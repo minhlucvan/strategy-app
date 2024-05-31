@@ -97,7 +97,7 @@ def get_vn_stock(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
         end_date = end_date[0:4] + '-' + end_date[4:6] + '-' + end_date[6:]
 
     loader = vnquant.data.DataLoader(
-        symbols='VND',
+        symbols=symbol,
         start=start_date,
         end=end_date,
         data_source='VND',

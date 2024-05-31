@@ -9,8 +9,12 @@ if check_password():
     if len(symbolsDate_dict['symbols']) > 0:
         st.header(f"{get_SymbolName(symbolsDate_dict['symbols'][0])} Strategies' comparision board")
         strategy_list = getattr(__import__(f"vbt_strategy"), 'strategy_list')
+        
+        defalut_strategies = []
+        selected_strategies = st.multiselect("Please select strategies", strategy_list, defalut_strategies)
+        
         params = params_selector({})
-        for strategyname in strategy_list:
+        for strategyname in selected_strategies:
             strategy_cls = getattr(__import__(f"vbt_strategy"), strategyname + 'Strategy')
             strategy = strategy_cls(symbolsDate_dict)
             if len(strategy.stock_dfs) > 0:
