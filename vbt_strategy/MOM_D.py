@@ -3,76 +3,72 @@ import numpy as np
 from numba import njit
 import streamlit as st
 import vectorbt as vbt
+import pandas as pd
 
 from .base import BaseStrategy
 from utils.vbt import plot_CSCV
 
-
 @njit
-def apply_mom_nb(price, window, lower, upper):
+def apply_mom_nb(price, window):
     mom_pct = np.full(price.shape, np.nan, dtype=np.float_)
     entry_signal = np.full(price.shape, np.nan, dtype=np.bool_)
     exit_signal = np.full(price.shape, np.nan, dtype=np.bool_)
+    
+    # print(price.shape) -> (1591, 1)
+    
+    # for each level in window_levels
+    # caculate the price - price shifted by level
+    # if the price is greater than 0, then entry_signal is True
+    # if the price is less than 0, then exit_signal is True
     for col in range(price.shape[1]):
         for i in range(window, price.shape[0]):
-            pct_change = price[i,col]/price[i-window,col] - 1
-            mom_pct[i,col] = pct_change
-            exit_signal[i,col] = (pct_change < lower)
-            entry_signal[i,col] = (pct_change > upper)
+            price_change = 0
+            for level in range(1, window+1):
+                price_change += price[i,col] - price[i-level,col]
+                
+            price_change_pct = price_change / price[i,col]
+            price_change_pct_mean = price_change_pct / window
+            
+            mom_pct[i,col] = price_change_pct_mean
+            exit_signal[i,col] = (price_change_pct_mean < 0)
+            entry_signal[i,col] = (price_change_pct_mean > 0)
             
     return mom_pct, entry_signal, exit_signal
 
-def get_MomInd():
+def get_MomDInd():
     MomInd = vbt.IndicatorFactory(
-        class_name = 'Mom',
+        class_name = 'MomD',
         input_names = ['price'],
-        param_names = ['window', 'lower', 'upper'],
+        param_names = ['window'],
         output_names = ['mom_pct','entry_signal', 'exit_signal']
     ).from_apply_func(apply_mom_nb)
     
     return MomInd
 
-class MOMStrategy(BaseStrategy):
+class MOM_DStrategy(BaseStrategy):
     '''Mom strategy'''
-    _name = "MOM"
-    desc = "This strategy aims to capture short- to medium-term price momentum in financial assets. It identifies periods of strong momentum using a specified window size and thresholds, entering trades during these periods and exiting when momentum weakens."
+    _name = "MOMD"
+    desc = "..."
     param_dict = {}
     param_def = [
-            {
-            "name": "window",
-            "type": "int",
-            "min":  5,
-            "max":  30,
-            "step": 2   
-            },
-            {
-            "name": "upper",
-            "type": "float",
-            "min":  0.03,
-            "max":  0.1,
-            "step": 0.02   
-            },
-            {
-            "name": "lower",
-            "type": "float",
-            "min":  0.0,
-            "max":  0.06,
-            "step": 0.02   
-            },
+        {
+        "name": "window",
+        "type": "int",
+        "min":  2,
+        "max":  30,
+        "step": 1  
+        }
     ]
 
     @vbt.cached_method
     def run(self, calledby='add'):
         #1. initialize the variables
-        windows = self.param_dict['window']
-        uppers = self.param_dict['upper']
-        lowers = self.param_dict['lower']
+        window = self.param_dict['window']
         close_price = self.stock_dfs[0][1].close
         open_price = self.stock_dfs[0][1].open
-
+        
         #2. calculate the indicators
-        mom_indicator = get_MomInd().run(close_price, window=windows, lower=lowers, upper=uppers,\
-            param_product=True)
+        mom_indicator = get_MomDInd().run(close_price, window=window, param_product=True)
 
         #3. remove all the name in param_def from param_dict
         for param in self.param_def:
@@ -90,12 +86,13 @@ class MOMStrategy(BaseStrategy):
             pf = vbt.Portfolio.from_signals(close=close_price, open=open_price, entries=entries, exits=exits, **self.pf_kwargs)
             if calledby == 'add':
                 RARMs = eval(f"pf.{self.param_dict['RARM']}()")
+                
                 idxmax = RARMs[RARMs != np.inf].idxmax()
                 if self.output_bool:
                     plot_CSCV(pf, idxmax, self.param_dict['RARM'])
                 pf = pf[idxmax]
 
-                self.param_dict.update(dict(zip(['window', 'lower', 'upper'], [int(idxmax[0]), round(idxmax[1], 4), round(idxmax[2], 4)])))
+                self.param_dict['window'] = int(idxmax)
 
-        self.pf =pf
+        self.pf = pf
         return True

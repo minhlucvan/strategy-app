@@ -56,12 +56,14 @@ def faster_supertrend_talib(high, low, close, window, multiplier):
 class SuperTrendStrategy(BaseStrategy):
     '''SuperTrend strategy'''
     _name = "SuperTrend"
-    desc = "&emsp;SuperTrend是一个趋势跟踪指标，它使用平均真实范围（ATR）和中间价格来定义一组上下带。其理念相当简单：当收盘价越过上限区间时，该资产被认为是进入了上升趋势，因此是一个买入信号。当收盘价低于下限时，该资产被认为已经退出了上升趋势，因此是一个卖出信号。<br> \
-        &emsp;超级趋势指标SuperTrend Indicator的计算公式：<br> \
-        &emsp;在做多时：<br>\
-        &emsp;超级趋势指标SuperTrend =（最高价+最低价）/2 – N*ATR(M)<br> \
-        &emsp;reference: <br>\
-            &emsp;https://medium.datadriveninvestor.com/superfast-supertrend-6269a3af0c2a"
+    desc = """The SuperTrend is a trend-following indicator that uses the Average True Range (ATR) and the median price to define a set of upper and lower bands. The concept is quite simple: when the closing price crosses above the upper band, the asset is considered to be in an uptrend, which is a buy signal. Conversely, when the closing price falls below the lower band, the asset is considered to have exited the uptrend, which is a sell signal.
+
+The calculation formula for the SuperTrend Indicator is as follows:
+When going long:
+\[ \text{SuperTrend Indicator} = \frac{\text{Highest Price} + \text{Lowest Price}}{2} - N \times \text{ATR}(M) \]
+
+Reference:
+[Superfast SuperTrend](https://medium.datadriveninvestor.com/superfast-supertrend-6269a3af0c2)"""
     param_dict = {}
     param_def = [
             {

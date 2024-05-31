@@ -10,14 +10,21 @@ from utils.vbt import plot_CSCV
 class MAStrategy(BaseStrategy):
     '''MA strategy'''
     _name = "MA"
-    desc = "双均线策略. 这是一种趋势跟踪策略, 该策略需要两条移动平均线, 分为快线和慢线. 当快线从下往上穿过慢线, 为黄金交叉, 开仓做多; 当快线从上往下穿过慢线, 为死亡交叉, 开仓做空."
+    desc = """This is a trend-following strategy that requires two moving averages: a fast line and a slow line.
+     When the fast line crosses above the slow line from below, it forms a golden cross,
+    signaling an entry to go long (buy). Conversely, when the fast line crosses below the slow line from above,
+    it forms a death cross, signaling an entry to go short (sell).
+    **Parameters**:
+    - `window`: The window size for the moving average calculation. `fast_window` and `slow_window` are calculated based on this window range.
+    """
     param_def = [
             {
             "name": "window",
             "type": "int",
             "min":  1,
             "max":  80,
-            "step": 2   
+            "step": 2,
+            "default": (10, 20)  
             },
         ]
 
@@ -56,6 +63,9 @@ class MAStrategy(BaseStrategy):
             pf = vbt.Portfolio.from_signals(close=close_price, open=open_price, entries=entries, exits=exits, **self.pf_kwargs)
             if calledby == 'add':
                 RARMs = eval(f"pf.{self.param_dict['RARM']}()")
+                st.write(f'pf.{self.param_dict["RARM"]}()')
+                st.write(RARMs)
+                
                 idxmax = RARMs[RARMs != np.inf].idxmax()
                 if self.output_bool:
                     plot_CSCV(pf, idxmax, self.param_dict['RARM'])

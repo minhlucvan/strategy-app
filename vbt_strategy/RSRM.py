@@ -35,7 +35,7 @@ def get_RSRMInd():
 class RSRMtrategy(BaseStrategy):
     '''Relative Strength Ratio-Mnmentum strategy'''
     _name = "RSRM"
-    desc = "超额收益旋转图（RRG，Relative Rotation Graph）来刻画出各个行业超额收益的周期, (rs_Ratio+rs_RatioMomentum)/2 > 100 持有，反之卖出。"
+    desc = "The Relative Rotation Graph (RRG) is used to depict the cycles of excess returns for various industries. If the average of the RS Ratio and the RS Ratio Momentum ((RS Ratio + RS Ratio Momentum) / 2) is greater than 100, hold the position; otherwise, sell."
     param_def = [
             {
             "name": "window",

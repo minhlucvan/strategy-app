@@ -12,8 +12,10 @@ from .base import BaseStrategy
 from utils.vbt import plot_CSCV
 
 def plot_cloud(fig, legend, shortEMA, longEMA, color1, color2):
-        longEMA_down = longEMA[longEMA < shortEMA].append(shortEMA[longEMA >= shortEMA]).sort_index()
-        longEMA_up = longEMA[longEMA >= shortEMA].append(shortEMA[longEMA < shortEMA]).sort_index()
+        # longEMA_down = longEMA[longEMA < shortEMA].append(shortEMA[longEMA >= shortEMA]).sort_index()
+        longEMA_down = pd.concat([longEMA[longEMA < shortEMA], shortEMA[longEMA >= shortEMA]]).sort_index()
+        # longEMA_up = longEMA[longEMA >= shortEMA].append(shortEMA[longEMA < shortEMA]).sort_index()
+        longEMA_up = pd.concat([longEMA[longEMA >= shortEMA], shortEMA[longEMA < shortEMA]]).sort_index()
 
         fig.add_trace(go.Scatter(x = shortEMA.index, 
                                  y = shortEMA,

@@ -20,5 +20,5 @@ seaborn
 akshare
 TA-Lib
 streamlit-quill
-git+ https://github.com/phamdinhkhanh/vnquant
+git+https://github.com/minhlucvan/vnquant.git
 

@@ -132,14 +132,14 @@ def show_PortforlioYearly(pf_row):
         if check_params(params):
             if strategy.maxRARM(params, output_bool=False):
                 st.text("Max Sharpe_Ratio's parameters:    " + str(strategy.param_dict))
-                pfYearly_df = pfYearly_df.append({
+                pfYearly_df = pd.concat([pfYearly_df, pd.DataFrame({
                             "year": y,
                             'total_return': round(strategy.pf.stats('total_return')[0]/100.0, 2),
                             'lastday_return': round(strategy.pf.returns()[-1], 2),
                             'sharpe_ratio':  round(strategy.pf.stats('sharpe_ratio')[0], 2),
                             'maxdrawdown':   round(strategy.pf.stats('max_dd')[0]/100.0, 2),
                             'annual_return': round(strategy.pf.annualized_return(), 2)
-                        }, ignore_index=True, )
+                        }, index=[0]),], ignore_index=True)
         
     st.table(pfYearly_df)    
 
