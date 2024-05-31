@@ -62,8 +62,10 @@ class CSCV(object):
             oos_returns = pd.concat([bins[i] for i in oos_set])
             R = eval(f"is_returns.vbt.returns(freq='d').{self.RARM}()")
             R_bar = eval(f"oos_returns.vbt.returns(freq='d').{self.RARM}()")
-            self.Rs[set_id] = self.Rs[set_id].append(R)
-            self.R_bars[set_id] = self.R_bars[set_id].append(R_bar)
+            # self.Rs[set_id] = self.Rs[set_id].append(R)
+            self.Rs[set_id] = pd.concat([self.Rs[set_id], R])
+            # self.R_bars[set_id] = self.R_bars[set_id].append(R_bar)
+            self.R_bars[set_id] = pd.concat([self.R_bars[set_id], R_bar])
 
     def estimate_overfitting(self, plot=False):
         """Estimate overfitting probability.

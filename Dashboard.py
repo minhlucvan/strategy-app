@@ -92,7 +92,8 @@ def show_PortforlioDetail(portfolio_df, index):
     if index > -1 and (index in portfolio_df.index):
         st.info('Selected portfolio:    ' + portfolio_df.at[index, 'name'])
         param_dict = json.loads(portfolio_df.at[index, 'param_dict'])
-        display_pfbrief(pf=vbt.Portfolio.loads(portfolio_df.at[index, 'vbtpf']), param_dict=param_dict)
+        pf = vbt.Portfolio.loads(portfolio_df.at[index, 'vbtpf'])
+        display_pfbrief(pf=pf, param_dict=param_dict)
         st.markdown("**Description**")
         st.markdown(portfolio_df.at[index, 'description'], unsafe_allow_html=True)
         return True
@@ -154,7 +155,9 @@ def main():
         ##多portfolio比较
         value_df = pd.DataFrame()
         position_df = pd.DataFrame()
+        st.write("Selected portfolios:")
         for index in selected_pfs:
+            st.write(f"Selected portfolio:    {portfolio.df.loc[index, 'name']}")
             pf = vbt.Portfolio.loads(portfolio.df.loc[index, 'vbtpf'])
             value_df[portfolio.df.loc[index, 'name']] = pf.value()
             position_df[portfolio.df.loc[index, 'name']] = pf.position_mask()

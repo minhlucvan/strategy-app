@@ -97,7 +97,7 @@ def show_bar():
 
 
 def input_SymbolsDate() -> dict:
-    market = st.sidebar.radio("Which Market?", ('US', 'CN', 'HK'), horizontal= True)
+    market = st.sidebar.radio("Which Market?", ("VN",'US', 'CN', 'HK',), horizontal= True)
     if market == 'US':
         symbols_string = st.sidebar.text_input("Enter all stock tickers to be included in portfolio separated by commas \
                                 WITHOUT spaces, e.g. 'AMZN,NFLX,GOOG,AAPL'", '', key="textinput" + "_symbols").upper()

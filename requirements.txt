@@ -3,7 +3,6 @@ pandas==1.4.3
 plotly
 requests
 numpy
-ta-lib-bin
 matplotlib
 vectorbt
 akshare
@@ -14,5 +13,12 @@ humanize
 seaborn
 EMD-signal
 vmdPY
+pyemd
 tftb
+Riskfolio-Lib
+seaborn
+akshare
+TA-Lib
+streamlit-quill
+git+ https://github.com/phamdinhkhanh/vnquant
 

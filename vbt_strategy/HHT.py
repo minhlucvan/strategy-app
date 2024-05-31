@@ -1,9 +1,9 @@
+from pyemd import EEMD, CEEMDAN, EMD
 import numpy as np
 import pandas as pd
 
 import streamlit as st
 import vectorbt as vbt
-from PyEMD import EEMD, CEEMDAN, EMD
 # from vmdpy import VMD
 
 from plotly.subplots import make_subplots # creating subplots
@@ -233,7 +233,7 @@ def cal_CEEMDAN(signal):
 class HHTStrategy(BaseStrategy):
     '''HHT strategy'''
     _name = "HHT"
-    desc = "基本思路是获取股价收盘信息后，使用希尔伯特黄变换将股价波动数据拆解为不同周期的波动曲线。再本别利用频谱分析计算每一个曲线的频率。目标是将股价波动数据拆解为不同周期波动的叠加态。"
+    desc = "The basic idea is to obtain the closing price information of a stock, and then use the Hilbert-Huang Transform to decompose the price volatility data into different periodic components. Frequency analysis is then performed on each component to calculate its dominant frequency. The goal is to decompose the stock price volatility into a superposition of different periodic components."
     param_def = [
             {
             "name": "n_imf",
