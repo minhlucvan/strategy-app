@@ -53,7 +53,7 @@ def show_pfOpt(symbolsWeightDate_dict:dict):
 		if symbol!='':
 			stock_df = datas.get_stock(symbol, start_date, end_date)
 			if stock_df.empty:
-				st.warning(f"Warning: stock '{symbol}' is invalid or missing. Ignore it", icon= "⚠️")
+				print(f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
 			else:
 				stocks_df[symbol] = stock_df.close
 				oweight_dict[symbol] = oweights[i]

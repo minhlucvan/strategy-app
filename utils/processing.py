@@ -10,6 +10,8 @@ import vectorbt as vbt
 import vnquant as vnquant
 
 from utils.db import load_symbol
+from utils import stock_utils
+from utils.stock_utils import get_stock_bars_very_long_term_cached
 
 
 @lru_cache
@@ -96,21 +98,24 @@ def get_vn_stock(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
     if len(end_date) == 8:
         end_date = end_date[0:4] + '-' + end_date[4:6] + '-' + end_date[6:]
 
-    loader = vnquant.data.DataLoader(
-        symbols=symbol,
-        start=start_date,
-        end=end_date,
-        data_source='VND',
-        minimal=True,
-        table_style='stack')
+    stock_df = get_stock_bars_very_long_term_cached(
+        ticker=symbol,
+        stock_type='stock',
+        count_back=300,
+        resolution="D",
+        start_date=start_date,
+        end_date=end_date,
+    )
 
-    stock_df = loader.download()
-
-    stock_df['volume'] = stock_df['volume_match']
+    stock_df['volume'] = stock_df['volume']
     stock_df['date'] = stock_df.index
     
+    # sort by index
+    stock_df = stock_df.sort_index()
+    
     stock_df = stock_df[['date', 'open', 'close', 'high', 'low', 'volume']]
-    return stock_df
+    
+    return stock_df   
 
 
 @lru_cache
@@ -158,6 +163,83 @@ def get_cn_index(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
                           & (result_df['date'] <= end_date)]
     return result_df
 
+@lru_cache
+def get_vn_index(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
+    """get vietnam stock data
+
+    Args:
+        ak_params symbol:str, start_date:str 20170301, end_date:str
+
+    Returns:
+        pd.DataFrame: _description_
+    """
+    
+    # 20180101 ->  '%Y-%m-%d'
+    if len(start_date) == 8:
+        start_date = start_date[0:4] + '-' + start_date[4:6] + '-' + start_date[6:]
+    
+    if len(end_date) == 8:
+        end_date = end_date[0:4] + '-' + end_date[4:6] + '-' + end_date[6:]
+
+    stock_df = get_stock_bars_very_long_term_cached(
+        ticker=symbol,
+        stock_type='index',
+        count_back=300,
+        resolution="D",
+        start_date=start_date,
+        end_date=end_date,
+    )
+
+    stock_df['volume'] = stock_df['volume']
+    stock_df['date'] = stock_df.index
+    
+    # sort by index
+    stock_df = stock_df.sort_index()
+    
+    stock_df = stock_df[['date', 'open', 'close', 'high', 'low', 'volume']]
+    
+    return stock_df    
+
+@lru_cache
+def get_vn_etf(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
+    """get vietnam etf data
+
+    Args:
+        ak_params symbol:str, start_date:str 20170301, end_date:str
+
+    Returns:
+        pd.DataFrame: _description_
+    """
+    
+    # 20180101 ->  '%Y-%m-%d'
+    if len(start_date) == 8:
+        start_date = start_date[0:4] + '-' + start_date[4:6] + '-' + start_date[6:]
+    
+    if len(end_date) == 8:
+        end_date = end_date[0:4] + '-' + end_date[4:6] + '-' + end_date[6:]
+
+    loader = vnquant.data.DataLoader(
+        symbols=symbol,
+        start=start_date,
+        end=end_date,
+        data_source='CAFE',
+        minimal=True,
+        table_style='stack')
+
+    stock_df = loader.download()
+
+    stock_df['volume'] = stock_df['volume_match']
+    stock_df['date'] = stock_df.index
+    
+    # covert to date
+    # stock_df['date'] = stock_df['date'].dt.date
+    
+    # sort by index
+    stock_df = stock_df.sort_index()
+    
+    stock_df = stock_df[['date', 'open', 'close', 'high', 'low', 'volume']]
+    return stock_df    
+
 
 @lru_cache
 def get_cn_fund_etf(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
@@ -199,6 +281,17 @@ def get_cn_fundamental(symbol: str) -> pd.DataFrame:
     result_df = ak.stock_a_lg_indicator(symbol=symbol)
     result_df.rename(columns={'trade_date': 'date'}, inplace=True)
     return result_df
+
+@lru_cache
+def get_vn_funamental(symbol: str) -> pd.DataFrame:
+    """get vietnam stock pe data乐咕乐股-A 股个股指标: 市盈率, 市净率, 股息率
+
+    """
+    loader = vnquant.data.FinanceLoader('VND', '2019-06-02','2021-12-31', data_source='VND', minimal=True)
+    data_basic = loader.get_basic_index()
+    st.write(data_basic)    
+    
+    return data_basic
 
 
 @lru_cache
@@ -282,6 +375,23 @@ def get_us_valuation(symbol: st, indicator: str) -> pd.DataFrame:
     result_df = stock_us_valuation_baidu(symbol, indicator)
     return result_df
 
+@lru_cache
+def get_vn_valuation(symbol: str, indicator: str) -> pd.DataFrame:
+    """get vietnam stock data
+
+    Args:
+        ak_params symbol:str, start_date:str 20170301, end_date:str
+
+    Returns:
+        pd.DataFrame: _description_
+    """
+    print(f"get_vn_valuation: {symbol}, {indicator}")
+    evaluation = stock_utils.get_stock_evaluation(symbol)
+    evaluation_df = stock_utils.load_stock_evaluation_to_dataframe(evaluation)
+    
+    evaluation_df['value'] = evaluation_df['pe']
+
+    return evaluation_df
 
 class AKData(object):
     def __init__(self, market):
@@ -290,7 +400,15 @@ class AKData(object):
     @vbt.cached_method
     def get_stock(self, symbol: str, start_date: datetime.datetime, end_date: datetime.datetime) -> pd.DataFrame:
         stock_df = pd.DataFrame()
+        print(f"AKData-get_stock: {symbol}, {self.market}")
         symbol_df = load_symbol(symbol)
+        
+        # hot fix for vietnam stock
+        if symbol == 'E1VFVN30':
+            symbol_df = pd.DataFrame([{'category': 'index'}])
+            
+        if symbol == 'VN30':
+            symbol_df = pd.DataFrame([{'category': 'index'}])
 
         if len(symbol_df) == 1:  # self.symbol_dict.keys():
             print(
@@ -322,6 +440,7 @@ class AKData(object):
 
     @vbt.cached_method
     def get_pettm(self, symbol: str) -> pd.DataFrame:
+        print(f"AKData-get_pettm: {symbol}, {self.market}")
         stock_df = pd.DataFrame()
         symbol_df = load_symbol(symbol)
 
@@ -336,6 +455,25 @@ class AKData(object):
                 stock_df.index = pd.to_datetime(stock_df['date'], utc=True)
                 stock_df = stock_df['value']
         return stock_df
+    
+    @vbt.cached_method
+    def get_valuation(self, symbol: str, indicator='pe') -> pd.DataFrame:
+        print(f"AKData-get_valuation: {symbol}, {self.market}")
+        stock_df = pd.DataFrame()
+        symbol_df = load_symbol(symbol)
+
+        if len(symbol_df) == 1:  # self.symbol_dict.keys():
+            func = ('get_' + self.market + '_valuation').lower()
+            try:
+                stock_df = eval(func)(symbol=symbol, indicator=indicator)
+            except Exception as e:
+                print("get_pettm()---", e)
+
+            if not stock_df.empty:
+                stock_df.index = pd.to_datetime(stock_df['date'], utc=True)
+                
+        return stock_df
+            
 
     @vbt.cached_method
     def get_pegttm(self, symbol: str) -> pd.DataFrame:
@@ -376,7 +514,7 @@ class AKData(object):
 #                     stock_dfs.append((symbol, stock_df))
 #     return stock_dfs
 
-
+@st.cache_data
 def get_stocks(symbolsDate_dict: dict, column='close'):
     datas = AKData(symbolsDate_dict['market'])
     stocks_df = pd.DataFrame()
@@ -385,14 +523,27 @@ def get_stocks(symbolsDate_dict: dict, column='close'):
             stock_df = datas.get_stock(
                 symbol, symbolsDate_dict['start_date'], symbolsDate_dict['end_date'])
             if stock_df.empty:
-                st.warning(
-                    f"Warning: stock '{symbol}' is invalid or missing. Ignore it", icon="⚠️")
+                print(
+                    f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
             else:
                 stocks_df[symbol] = stock_df['close']
                 
-    st.write(stocks_df)
     return stocks_df
 
+@st.cache_data
+def get_stocks_valuation(symbolsDate_dict: dict, indicator='pe'):
+    datas = AKData(symbolsDate_dict['market'])
+    stocks_df = pd.DataFrame()
+    for symbol in symbolsDate_dict['symbols']:
+        if symbol != '':
+            stock_df = datas.get_valuation(symbol, indicator)
+            if stock_df.empty:
+                print(
+                    f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
+            else:
+                stocks_df[symbol] = stock_df[indicator]
+                
+    return stocks_df
 
 @lru_cache
 def get_arkholdings(fund: str, end_date: str) -> pd.DataFrame:

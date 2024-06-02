@@ -40,7 +40,7 @@ class BaseStrategy(object):
             if symbol!='':
                 stock_df = self.datas.get_stock(symbol, self.start_date, self.end_date)
                 if stock_df.empty:
-                    st.warning(f"Warning: stock '{symbol}' is invalid or missing. Ignore it", icon= "⚠️")
+                    print(f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
                 else:
                     self.stock_dfs.append((symbol, stock_df))
         

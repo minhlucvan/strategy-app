@@ -33,7 +33,7 @@ class MAStrategy(BaseStrategy):
         #1. initialize the variables
         close_price = self.stock_dfs[0][1].close
         open_price = self.stock_dfs[0][1].open
-
+        
         #2. calculate the indicators
         if calledby == 'add' or self.param_dict['WFO']!='None':
             window = self.param_dict['window']
@@ -62,10 +62,7 @@ class MAStrategy(BaseStrategy):
         else:
             pf = vbt.Portfolio.from_signals(close=close_price, open=open_price, entries=entries, exits=exits, **self.pf_kwargs)
             if calledby == 'add':
-                RARMs = eval(f"pf.{self.param_dict['RARM']}()")
-                st.write(f'pf.{self.param_dict["RARM"]}()')
-                st.write(RARMs)
-                
+                RARMs = eval(f"pf.{self.param_dict['RARM']}()")                
                 idxmax = RARMs[RARMs != np.inf].idxmax()
                 if self.output_bool:
                     plot_CSCV(pf, idxmax, self.param_dict['RARM'])

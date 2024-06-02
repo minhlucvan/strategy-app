@@ -41,7 +41,7 @@ class CSPRStrategy(BaseStrategy):
             "type": "int",
             "min":  1,
             "max":  3,
-            "step": 0   
+            "step": 1   
             },
         ]
 
@@ -101,7 +101,8 @@ class CSPRStrategy(BaseStrategy):
                     plot_CSCV(pf, idxmax, self.param_dict['RARM'])
                 pf = pf[idxmax]
 
-                self.param_dict.update({'pattern': ','.join(PR_list[i] for i in idxmax)})
+                final_pr = PR_list[idxmax]
+                self.param_dict.update({'pattern': final_pr })
         
         self.pf = pf
         return True

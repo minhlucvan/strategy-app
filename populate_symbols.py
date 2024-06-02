@@ -91,7 +91,7 @@ def gen_cnfund_etf():
             VALUES (?, ?, ?, 'CN', false, 'FUND_ETF' )", (None, row['名称'], row['代码']))
     print(f'Successfully inserted {len(fund_eft_df)} records into stock table')
 
-def gen_vnindex_symbol():
+def gen_vn_symbol():
     print('Fetching vn index data...')
     assets_dfs = pd.read_html('https://vi.wikipedia.org/wiki/Danh_s%C3%A1ch_c%C3%B4ng_ty_tr%C3%AAn_s%C3%A0n_giao_d%E1%BB%8Bch_ch%E1%BB%A9ng_kho%C3%A1n_Vi%E1%BB%87t_Nam')
     
@@ -123,14 +123,31 @@ def gen_vnindex_symbol():
     
     print(f'Successfully inserted {len(assets_df)} records into stock table')
 
+def gen_vn_index_symbol():
+    data = [
+        ('VN30', 'VN30', 'HSX', False, 'INDEX'),
+        ('E1VFVN30', 'E1VFVN30', 'HSX', True, 'ETF'),
+        ('FUEVN100', 'FUEVN100', 'HSX', True, 'ETF'),
+        ('HNX-INDEX', 'HNX-INDEX', 'HNX', False, 'INDEX'),
+        ('HNX30-INDEX', 'HNX30-INDEX', 'HNX', False, 'INDEX'),
+    ]
+    
+    for row in data:
+        cursor.execute("""
+            INSERT INTO stock (name, symbol, exchange, is_etf, category)
+            VALUES (?, ?, ?, ?, ?)
+        """, row)
+        print(f'Successfully inserted {row[0]} into stock table')
+
 def clear_table():
     cursor.execute("DELETE FROM stock")
 
 clear_table()    
-gen_us_symbol()
-gen_cn_symbol()
-gen_hk_symbol()
-gen_cnindex_symbol()
-gen_cnfund_etf()
-gen_vnindex_symbol()
+# gen_us_symbol()
+# gen_cn_symbol()
+# gen_hk_symbol()
+# gen_cnindex_symbol()
+# gen_cnfund_etf()
+gen_vn_symbol()
+gen_vn_index_symbol()
 connection.commit()

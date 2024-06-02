@@ -16,6 +16,9 @@ def ecdf_nb(arr):
         result_arr[i] = ((arr <= arr[i]).mean())
     return result_arr
 
+def calc_turnoverratio_nb(close, open, volume):
+    return (close - open) / open / volume
+
 @njit
 def apply_PEGTOR_nb(pegttm, tor,  peg_rankH, peg_rankL, tor_rank):
     entries = np.where((pegttm < peg_rankL/100) & (tor < tor_rank/100), True, False)
@@ -52,12 +55,15 @@ class PEGTORStrategy(BaseStrategy):
 
     @vbt.cached_method
     def run(self, calledby='add')->bool:
+        stock_df = self.stock_dfs[0][1]
+
         #1. initialize the variables
-        if 'turnoverratio' not in self.stock_dfs[0][1].columns:
-            return False
-        close_price = self.stock_dfs[0][1].close
-        open_price = self.stock_dfs[0][1].open
-        tor = self.stock_dfs[0][1].turnoverratio
+        if 'turnoverratio' not in stock_df.columns:
+            stock_df['turnoverratio'] = calc_turnoverratio_nb(stock_df.close, stock_df.open, stock_df.volume)
+            
+        close_price = stock_df.close
+        open_price = stock_df.open
+        tor = stock_df.turnoverratio
         pegttm = self.datas.get_pegttm(self.stock_dfs[0][0])
         self.start_date = self.start_date.replace(tzinfo=timezone.utc)
         self.end_date = self.end_date.replace(tzinfo=timezone.utc)

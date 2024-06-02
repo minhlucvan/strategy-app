@@ -7,7 +7,7 @@ import vectorbt as vbt
 from .base import BaseStrategy
 from utils.vbt import plot_CSCV
 
-from utils.rrg import rs_ratio
+from studies.rrg import rs_ratio
 
 def apply_RSRM(price, window):
     mom_pct = np.full(price.shape, np.nan, dtype=np.float_)
@@ -69,6 +69,7 @@ class RSRMtrategy(BaseStrategy):
         #4. generate the vbt signal
         entries = fast_ma.ma_above(slow_ma)
         exits = fast_ma.ma_below(slow_ma)
+        
         #Don't look into the future
         entries = entries.vbt.signals.fshift()
         exits = exits.vbt.signals.fshift()

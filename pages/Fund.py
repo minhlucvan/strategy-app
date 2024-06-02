@@ -17,7 +17,7 @@ from utils.riskfolio import get_pfOpMS, FactorExposure, plot_AssetsClusters
 from utils.portfolio import Portfolio
 from utils.vbt import get_pfByWeight, get_pfByMaxReturn, plot_pf
 from utils.processing import get_stocks
-from utils.rrg import plot_RRG, RRG_Strategy
+from studies.rrg import plot_RRG, RRG_Strategy
 from utils.fundEngine import get_fundSources, get_fundEngine
 
 # @st.cache_data()
@@ -90,27 +90,27 @@ def show_FactorExposure(symbolsDate_dict, pf, stocks_df):
     factors_dict = {
         "None" : "Select the Factors Exposure",
         "iShares 5 factors" : {
-            'MTUM' : "动量", 
-            'QUAL' : "质量", 
-            'SIZE' : "规模", 
-            'USMV' : "低波动", 
-            'VLUE' : "价值"
+            'MTUM' : "Momentum", 
+            'QUAL' : "Quality", 
+            'SIZE' : "Size", 
+            'USMV' : "Low Volatility", 
+            'VLUE' : "Value"
         },
         "All Sector factors" : {
-            "XLB" : "原材料",
-            "XLC" : "通讯",
-            "XLE" : "能源",
-            "XLF" : "金融",
-            "XLI" : "工业制造",
-            "XLK" : "技术",
-            "XLP" : "必需消费",
-            "XLRE": "房地产",
-            "XLU" : "公用事业",
-            "XLV" : "医药",
-            "XLY" : "可选消费品"
+            "XLB" : "Materials",
+            "XLC" : "Communication",
+            "XLE" : "Energy",
+            "XLF" : "Financials",
+            "XLI" : "Industrials",
+            "XLK" : "Technology",
+            "XLP" : "Consumer Staples",
+            "XLRE": "Real Estate",
+            "XLU" : "Utilities",
+            "XLV" : "Healthcare",
+            "XLY" : "Consumer Discretionary"
         }
     }
-    factors_sel = st.selectbox("**因子暴露分析(Factor Exposures)**", factors_dict.keys(), label_visibility='collapsed')
+    factors_sel = st.selectbox("**Factor Exposures**", factors_dict.keys(), label_visibility='collapsed')
     factors_sel = factors_dict[factors_sel]
     if isinstance(factors_sel, dict):
         st.write('、'.join(k+'('+v+')' for v,k in factors_sel.items()))
@@ -152,6 +152,7 @@ def run():
         st.dataframe(df[['Stock', 'Portfolio (%)']]
                             .style.format({'Portfolio (%)':'{0:,.2f}'})
                             .background_gradient(cmap='YlGn'), 
+                        use_container_width=True
                         )
 
     # 2.select optimized portfolio strategies.
@@ -180,19 +181,19 @@ def run():
         weights = []
         for symbol in stocks_df.columns:
             weights.append(df.loc[symbol,'Portfolio (%)'])
-        weights = weights / sum(weights)
+        weights = np.array(weights) / sum(weights)
         pf = get_pfByWeight(stocks_df, weights)
         st.write('----')
-        st.write("**组合回报表现(Porfolio's Performance)**")
+        st.write("**Porfolio's Performance**")
         plot_pf(pf, select=False, name=f"{fund_name}-Original Weights")
 
         # 2.1.3 calculate the factors effect of Original fund portfolio.
         st.write('----')
-        st.write("**因子暴露分析(Factor Exposures)**")        
+        st.write("**Factor Exposures**")        
 
         show_FactorExposure(symbolsDate_dict, pf, stocks_df)
         # 2.1.4 Assets Clusters of Original fund portfolio.
-        st.write("**资产层次聚类(Assets Clusters)**")
+        st.write("**Assets Clusters**")
         with st.expander("The codependence or similarity matrix: pearson; Linkage method of hierarchical clustering: ward"):
             plot_AssetsClusters(stocks_df)
             
@@ -238,7 +239,7 @@ def run():
         stocks_df = get_stocks(symbolsDate_dict,'close')
         pf = RRG_Strategy(symbol_benchmark, stocks_df, RARM_obj, showRRG_bool)
 
-        st.write("**组合回报表现(Porfolio's Performance)**")
+        st.write("*Porfolio's Performance**")
         plot_pf(pf, name=fund_name+'-RRG', bm_symbol=symbol_benchmark, bm_price=stocks_df[symbol_benchmark], select=False)
 
 if check_password():

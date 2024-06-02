@@ -39,11 +39,11 @@ def getData(holding_ticker):
     # Data formatting
 
     # "History", "52WeekLow", "52WeekHigh" & "Unnamed: 7" columns are not useful.
-    df = df.drop(columns=['History', 'Unnamed: 7', "52WeekLow", "52WeekHigh"])
+    df = df.drop(columns=['History', 'Unnamed: 7', "52Week Low", "52Week High"])
 
     # Column name corrections.
-    df = df.rename(columns={"% ofPortfolio": "Portfolio (%)"})
-    df = df.rename(columns={"+/-ReportedPrice": "Reported Price Change (%)"})
+    df = df.rename(columns={"% of Portfolio": "Portfolio (%)"})
+    df = df.rename(columns={"+/-Reported Price": "Reported Price Change (%)"})
     df = df.rename(columns={"ReportedPrice*": "Reported Price"})
     df = df.rename(columns={"RecentActivity": "Recent Activity"})
 

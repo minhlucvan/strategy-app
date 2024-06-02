@@ -165,8 +165,8 @@ def main():
         # value_df = value_df.cumsum()
         value_df.fillna(method='ffill', inplace=True)
         # value_df['mean'] = value_df.mean(axis=1)
-        st.line_chart(value_df)
-        st.plotly_chart(position_df.vbt.plot(), user_container_width = True)
+        st.line_chart(value_df, use_container_width=True)
+        st.plotly_chart(position_df.vbt.plot(), use_container_width=True)
 
         if len(selected_pfs) == 2:
             if st.button("PairTrade"):
@@ -206,7 +206,7 @@ def main():
                                                     **pf_kwargs)
                     plot_pf(ms_pf, name="Master/Backup--"+symbol1 + '&' + symbol2)
                     value_df["Master/Backup"] = ms_pf.value()
-                    st.line_chart(value_df)
+                    st.line_chart(value_df, use_container_width=True)
 
 
 

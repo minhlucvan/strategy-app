@@ -21,4 +21,5 @@ akshare
 TA-Lib
 streamlit-quill
 git+https://github.com/minhlucvan/vnquant.git
+empyrial
 

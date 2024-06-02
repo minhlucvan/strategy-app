@@ -4,6 +4,7 @@ import numpy as np
 
 import streamlit as st
 from streamlit_quill import st_quill
+import json
 
 from utils.portfolio import Portfolio
 
@@ -39,6 +40,9 @@ def check_password():
 
     def password_entered():
         """Checks whether a password entered by the user is correct."""
+        if "password" not in st.session_state:
+            st.session_state["password"] = st.secrets["password"]
+            
         if st.session_state["password"] == st.secrets["password"]:
             st.session_state["password_correct"] = True
             del st.session_state["password"]  # don't store password
@@ -95,32 +99,84 @@ def show_bar():
     """
     st.markdown(bar, unsafe_allow_html=True)
 
+def input_SymbolsGroup(market, groups_dict):        
+    group_options = groups_dict[market]['group'].keys()
+    group_options = ['None'] + list(group_options)
+    group_sel = st.sidebar.selectbox("Symbols' group", group_options)
+    
+    if group_sel == 'None':
+        return {
+            "benchmark": groups_dict[market]['benchmark'],
+            "symbols": []
+        }
+    
+    return {
+        "benchmark": groups_dict[market]['benchmark'],
+        "symbols": groups_dict[market]['group'][group_sel]
+    }
 
-def input_SymbolsDate() -> dict:
-    market = st.sidebar.radio("Which Market?", ("VN",'US', 'CN', 'HK',), horizontal= True)
+def input_Symbols_wildcard(market):
     if market == 'US':
         symbols_string = st.sidebar.text_input("Enter all stock tickers to be included in portfolio separated by commas \
                                 WITHOUT spaces, e.g. 'AMZN,NFLX,GOOG,AAPL'", '', key="textinput" + "_symbols").upper()
     elif market == 'CN':
         symbols_string = st.sidebar.text_input("Enter all stock tickers to be included in portfolio separated by commas \
                                 WITHOUT spaces, e.g. '601318,000001'", '', key="textinput" + "_symbols")
+    elif market == 'VN':
+        symbols_string = st.sidebar.text_input("Enter Tickers", '', key="textinput" + "_symbols")
     else:
         symbols_string = st.sidebar.text_input("Enter all stock tickers to be included in portfolio separated by commas \
                                 WITHOUT spaces, e.g. '00700,01171'", '', key="textinput" + "_symbols")
     symbols = []
     if len(symbols_string) > 0:
         symbols = symbols_string.strip().split(',')
+        
+    return symbols
+
+def input_symbols_group(group_dict):
+    select_all = st.sidebar.checkbox("Select all symbols", value= False)
+    default_symbols = group_dict['symbols'] if select_all else []
+    # multi select symbols from group's symbols
+    group_symbols = st.sidebar.multiselect("Select symbols from group", group_dict['symbols'], default_symbols)
+    return group_symbols
+
+def input_SymbolsDate(group=True) -> dict:
+    market = st.sidebar.radio("Select market", ("VN",), horizontal= True)
+    
+    groups_data = {}
+    with open("funds.json", 'r', encoding='UTF-8') as f:
+        groups_data = json.load(f)
+    
+    group_dict = {
+        "benchmark": groups_data[market]['benchmark'],
+        "symbols": []
+    }
+    
+    symbols = []
+    
+    if group:
+        group_dict = input_SymbolsGroup(market, groups_data)
+    
+    if group and len(group_dict['symbols']) > 0:
+        symbols = input_symbols_group(group_dict)
+    else:
+        symbols = input_Symbols_wildcard(market)
 
     start_date = st.sidebar.date_input("Start date?", date(2018, 1, 1))
     end_date = st.sidebar.date_input("End date?", date.today()- timedelta(days = 1))
     start_date = datetime(year=start_date.year, month=start_date.month, day=start_date.day, tzinfo=pytz.utc)
     end_date = datetime(year=end_date.year, month=end_date.month, day=end_date.day, tzinfo=pytz.utc)
     
+    group_symbols = group_dict['symbols']
+    benmark_symbols = group_dict['benchmark']
+    
     return {
             "market":   market,
             "symbols":  symbols,
             "start_date": start_date,
             "end_date": end_date,
+            "goup_symbols": group_symbols,
+            "benchmark": benmark_symbols
         }
 
 def params_selector(params):

@@ -1,4 +1,6 @@
 import streamlit as st
+import pandas as pd
+import json
 
 from utils.component import input_SymbolsDate, check_password, params_selector, form_SavePortfolio
 from utils.db import get_SymbolsName
@@ -15,6 +17,7 @@ if check_password():
     strategyName = st.sidebar.selectbox("Please select strategy", strategy_list)
     if strategyName:
         symbolsDate_dict = input_SymbolsDate()
+
         if len(symbolsDate_dict['symbols']) > 0:
             st.header(strategyName)
             strategy_cls = getattr(__import__(f"vbt_strategy"), strategyName + 'Strategy')
@@ -26,7 +29,8 @@ if check_password():
                 params = params_selector(strategy.param_def)
                 if check_params(params):
                     if strategy.maxRARM(params, output_bool=True):
-                        st.text(f"Maximize Target's Parameters:    " + str(strategy.param_dict))
+                        st.text(f"Maximize Target's Parameters:    ")
+                        st.write(json.dumps(strategy.param_dict, indent=4))
                         form_SavePortfolio(symbolsDate_dict, strategyName, strategy.param_dict, strategy.pf)
                     else:
                         st.error("Stocks don't match the Strategy.")
