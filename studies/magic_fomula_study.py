@@ -20,6 +20,13 @@ from vbt_strategy.MOM_D import get_MomDInd
 
 from studies.market_wide import MarketWide_Strategy
 
+def plot_multi_line(df, title, x_title, y_title, legend_title):
+    fig = go.Figure()
+    for col in df.columns:
+        fig.add_trace(go.Scatter(x=df.index, y=df[col], mode='lines', name=col))
+    fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
+    st.plotly_chart(fig, use_container_width=True)
+
 
 def run(symbol_benchmark, symbolsDate_dict):
     
@@ -41,9 +48,10 @@ def run(symbol_benchmark, symbolsDate_dict):
     fundamentals_df.index = pd.to_datetime(fundamentals_df.index).tz_localize(None)
     
     # filter the stocks_df and fundamentals_df to the same date range
-    start_date = max(stocks_df.index[0], fundamentals_df.index[0])
+    start_date = pd.to_datetime(symbolsDate_dict['start_date']).tz_localize(None)
     
     fundamentals_df = fundamentals_df.loc[start_date:]
+    stocks_df = stocks_df.loc[start_date:]
     
     # Create a union of the indices
     union_index = stocks_df.index.union(fundamentals_df.index)
@@ -55,38 +63,45 @@ def run(symbol_benchmark, symbolsDate_dict):
     union_df = pd.concat([reindexed_stocks_df, reindexed_fundamental_df], axis=1)
     #shortAsset,cash,shortInvest,shortReceivable,inventory,longAsset,fixedAsset,asset,debt,shortDebt,longDebt,equity,capital,centralBankDeposit,otherBankDeposit,otherBankLoan,stockInvest,customerLoan,badLoan,provision,netCustomerLoan,otherAsset,otherBankCredit,oweOtherBank,oweCentralBank,valuablePaper,payableInterest,receivableInterest,deposit,otherDebt,fund,unDistributedIncome,minorShareHolderProfit,payable,close
 
-    # # Calculate Liquidity Ratios
-    # union_df['Current Ratio'] = union_df['asset'] / (union_df['debt'] + union_df['shortDebt'])
-    # union_df['Quick Ratio'] = (union_df['asset'] - union_df['inventory']) / (union_df['debt'] + union_df['shortDebt'])
+    union_df = union_df.fillna(method='ffill')
 
-    # # Calculate Solvency Ratios
-    # union_df['Debt-to-Equity Ratio'] = (union_df['debt'] + union_df['shortDebt']) / union_df['equity']
-    # union_df['Debt Ratio'] = (union_df['debt'] + union_df['shortDebt']) / union_df['asset']
-    # union_df['Equity Ratio'] = union_df['equity'] / union_df['asset']
-
-    # # Calculate Efficiency Ratios (assuming 'Cost of Goods Sold' and 'Net Credit Sales' are available)
-    # union_df['Inventory Turnover Ratio'] = union_df['Cost of Goods Sold'] / union_df['inventory']
-    # union_df['Receivables Turnover Ratio'] = union_df['Net Credit Sales'] / union_df['shortReceivable']
-
-    # # Calculate Profitability Ratios
-    # union_df['Gross Profit Margin'] = (union_df['Revenue'] - union_df['Cost of Goods Sold']) / union_df['Revenue']
-    # union_df['Net Profit Margin'] = union_df['close'] / union_df['Revenue']  # Assuming 'close' represents net income
-    # union_df['ROA'] = union_df['close'] / union_df['asset']
-    # union_df['ROE'] = union_df['close'] / union_df['equity']
-
-    # # Calculate Coverage Ratios (assuming 'EBIT' and 'Interest Expense' are available)
-    # union_df['Interest Coverage Ratio'] = union_df['EBIT'] / union_df['payableInterest']
-    # union_df['DSCR'] = union_df['netCustomerLoan'] / (union_df['debt'] + union_df['shortDebt'])
-
-    # # Additional calculations can be performed based on available data and specific requirements.
-
-    # # Print or return the DataFrame with calculated metrics
-    # print(union_df[['Current Ratio', 'Quick Ratio', 'Debt-to-Equity Ratio', 'Debt Ratio', 'Equity Ratio', 'Inventory Turnover Ratio', 'Receivables Turnover Ratio', 'Gross Profit Margin', 'Net Profit Margin', 'ROA', 'ROE', 'Interest Coverage Ratio', 'DSCR']])
-
+    # Calculate Liquidity Ratios
     current_ratio = union_df['asset'] / (union_df['debt'] + union_df['shortDebt'])
+    quick_ratio = (union_df['asset'] - union_df['inventory']) / (union_df['debt'] + union_df['shortDebt'])
     
-    st.write(current_ratio)
+    # Calculate Solvency Ratios
+    debt_to_equity_ratio = (union_df['debt'] + union_df['shortDebt']) / union_df['equity']
+    debt_ratio = (union_df['debt'] + union_df['shortDebt']) / union_df['asset']
+    equity_ratio = union_df['equity'] / union_df['asset']
     
+    # Calculate Efficiency Ratios (assuming 'Cost of Goods Sold' and 'Net Credit Sales' are available)
+    inventory_turnover_ratio = union_df['close'] / union_df['inventory']
+    receivables_turnover_ratio = union_df['close'] / union_df['shortReceivable']
+    
+    # Calculate Profitability Ratios
+    # gross_profit_margin = (union_df['Revenue'] - union_df['Cost of Goods Sold']) / union_df['Revenue']
+    # net_profit_margin = union_df['close'] / union_df['Revenue']  # Assuming 'close' represents net income
+    roa = union_df['close'] / union_df['asset']
     roe = union_df['close'] / union_df['equity']
     
-    st.write(roe)
+    # Calculate Coverage Ratios (assuming 'EBIT' and 'Interest Expense' are available)
+    # interest_coverage_ratio = union_df['EBIT'] / union_df['payableInterest']
+    dscr = union_df['netCustomerLoan'] / (union_df['debt'] + union_df['shortDebt'])
+    
+    Additional_data = {
+        'Current Ratio': current_ratio,
+        'Quick Ratio': quick_ratio,
+        'Debt to Equity Ratio': debt_to_equity_ratio,
+        'Debt Ratio': debt_ratio,
+        'Equity Ratio': equity_ratio,
+        'Inventory Turnover Ratio': inventory_turnover_ratio,
+        'Receivables Turnover Ratio': receivables_turnover_ratio,
+        'ROA': roa,
+        'ROE': roe,
+        'DSCR': dscr
+    
+    }
+    
+    selected_metrics = st.selectbox('Select Metrics to Plot', Additional_data.keys())
+    
+    plot_multi_line(Additional_data[selected_metrics], 'Financial Ratios', 'Date', 'Ratio', 'Metrics')
