@@ -13,7 +13,7 @@ from plotly.subplots import make_subplots # creating subplots
 from utils.component import  check_password, input_dates, input_SymbolsDate
 import matplotlib.pyplot as plt
 
-from utils.processing import get_stocks, get_stocks_funamental
+from utils.processing import get_stocks, get_stocks_financial
 from studies.rrg import plot_RRG, rs_ratio, RRG_Strategy
 from utils.vbt import plot_pf
 from vbt_strategy.MOM_D import get_MomDInd
@@ -35,73 +35,48 @@ def run(symbol_benchmark, symbolsDate_dict):
                     """)
         
     symbolsDate_dict['symbols'] =  symbolsDate_dict['symbols']
+    
+    if len(symbolsDate_dict['symbols']) < 1:
+        st.info("Please select symbols.")
+        st.stop()
+    
     # copy the symbolsDate_dict
     benchmark_dict = symbolsDate_dict.copy()
     benchmark_dict['symbols'] = [symbol_benchmark]
     
     # Assuming get_stocks and get_stocks_funamental are defined elsewhere
     stocks_df = get_stocks(symbolsDate_dict, stack=True)
-    fundamentals_df = get_stocks_funamental(symbolsDate_dict, stack=True)
+    financial_df = get_stocks_financial(symbolsDate_dict, stack=True)
             
     # Ensure both indices are timezone-naive
     stocks_df.index = pd.to_datetime(stocks_df.index).tz_localize(None)
-    fundamentals_df.index = pd.to_datetime(fundamentals_df.index).tz_localize(None)
+    financial_df.index = pd.to_datetime(financial_df.index).tz_localize(None)
     
-    # filter the stocks_df and fundamentals_df to the same date range
+    # filter the stocks_df and financial_df to the same date range
     start_date = pd.to_datetime(symbolsDate_dict['start_date']).tz_localize(None)
     
-    fundamentals_df = fundamentals_df.loc[start_date:]
-    stocks_df = stocks_df.loc[start_date:]
-    
     # Create a union of the indices
-    union_index = stocks_df.index.union(fundamentals_df.index)
+    union_index = stocks_df.index.union(financial_df.index)
     
     # Reindex both DataFrames to the union index
     reindexed_stocks_df = stocks_df.reindex(union_index)
-    reindexed_fundamental_df = fundamentals_df.reindex(union_index)
+    reindexed_fundamental_df = financial_df.reindex(union_index)
     
     union_df = pd.concat([reindexed_stocks_df, reindexed_fundamental_df], axis=1)
     #shortAsset,cash,shortInvest,shortReceivable,inventory,longAsset,fixedAsset,asset,debt,shortDebt,longDebt,equity,capital,centralBankDeposit,otherBankDeposit,otherBankLoan,stockInvest,customerLoan,badLoan,provision,netCustomerLoan,otherAsset,otherBankCredit,oweOtherBank,oweCentralBank,valuablePaper,payableInterest,receivableInterest,deposit,otherDebt,fund,unDistributedIncome,minorShareHolderProfit,payable,close
-
+    
+    # filter date > start_date
+    union_df = union_df.loc[start_date:]
+    
+    # reverse engineering the financials
+    # caculate equity = priceToEquity / PE
+    
+    
+    # fill missing values with the last available value
     union_df = union_df.fillna(method='ffill')
-
-    # Calculate Liquidity Ratios
-    current_ratio = union_df['asset'] / (union_df['debt'] + union_df['shortDebt'])
-    quick_ratio = (union_df['asset'] - union_df['inventory']) / (union_df['debt'] + union_df['shortDebt'])
     
-    # Calculate Solvency Ratios
-    debt_to_equity_ratio = (union_df['debt'] + union_df['shortDebt']) / union_df['equity']
-    debt_ratio = (union_df['debt'] + union_df['shortDebt']) / union_df['asset']
-    equity_ratio = union_df['equity'] / union_df['asset']
+    # index (code, factor)
+    metrics = union_df.columns.get_level_values(0).unique()
+    selected_metrics = st.selectbox('Select Metrics to Plot', metrics)
     
-    # Calculate Efficiency Ratios (assuming 'Cost of Goods Sold' and 'Net Credit Sales' are available)
-    inventory_turnover_ratio = union_df['close'] / union_df['inventory']
-    receivables_turnover_ratio = union_df['close'] / union_df['shortReceivable']
-    
-    # Calculate Profitability Ratios
-    # gross_profit_margin = (union_df['Revenue'] - union_df['Cost of Goods Sold']) / union_df['Revenue']
-    # net_profit_margin = union_df['close'] / union_df['Revenue']  # Assuming 'close' represents net income
-    roa = union_df['close'] / union_df['asset']
-    roe = union_df['close'] / union_df['equity']
-    
-    # Calculate Coverage Ratios (assuming 'EBIT' and 'Interest Expense' are available)
-    # interest_coverage_ratio = union_df['EBIT'] / union_df['payableInterest']
-    dscr = union_df['netCustomerLoan'] / (union_df['debt'] + union_df['shortDebt'])
-    
-    Additional_data = {
-        'Current Ratio': current_ratio,
-        'Quick Ratio': quick_ratio,
-        'Debt to Equity Ratio': debt_to_equity_ratio,
-        'Debt Ratio': debt_ratio,
-        'Equity Ratio': equity_ratio,
-        'Inventory Turnover Ratio': inventory_turnover_ratio,
-        'Receivables Turnover Ratio': receivables_turnover_ratio,
-        'ROA': roa,
-        'ROE': roe,
-        'DSCR': dscr
-    
-    }
-    
-    selected_metrics = st.selectbox('Select Metrics to Plot', Additional_data.keys())
-    
-    plot_multi_line(Additional_data[selected_metrics], 'Financial Ratios', 'Date', 'Ratio', 'Metrics')
+    plot_multi_line(union_df[selected_metrics], f'{selected_metrics} of Stocks and Financials', 'Date', selected_metrics, 'Stocks and Financials')

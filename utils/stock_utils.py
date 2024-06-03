@@ -1714,6 +1714,155 @@ def load_stock_balance_sheet_to_dataframe(data):
 
     return df
 
+def get_stock_financial(ticker='MWG', yearly=0, is_all=True):
+    # https://apipubaws.tcbs.com.vn/tcanalysis/v1/finance/VHM/financialratio?yearly=0&isAll=true
+    
+    url = f'https://apipubaws.tcbs.com.vn/tcanalysis/v1/finance/{ticker}/financialratio'
+    
+    headers = {
+        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'DNT': '1',
+        'Accept-language': 'vi',
+        'sec-ch-ua-mobile': '?0',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/',
+        'Content-type': 'application/json',
+        'Accept': 'application/json',
+        'Referer': 'https://tcinvest.tcbs.com.vn/',
+        'sec-ch-ua-platform': '"macOS"'
+    }
+    
+    params = {
+        'yearly': yearly,
+        'isAll': is_all
+    }
+    
+    response = requests.get(url, params=params, headers=headers)
+    
+    if response.status_code == 200:
+        json = response.json()
+        return json
+    else:
+        print(f"Request failed with status code {response.status_code}")
+        return None
+
+def load_stock_financial_to_dataframe(data):
+    # [
+    # {
+    #     "ticker": "VHM",
+    #     "quarter": 1,
+    #     "year": 2024,
+    #     "priceToEarning": 7.7,
+    #     "priceToBook": 0.9,
+    #     "valueBeforeEbitda": 9.1,
+    #     "dividend": null,
+    #     "roe": 0.130,
+    #     "roa": 0.052,
+    #     "daysReceivable": 122,
+    #     "daysInventory": 424,
+    #     "daysPayable": 136,
+    #     "ebitOnInterest": 0.8,
+    #     "earningPerShare": 5073,
+    #     "bookValuePerShare": 41853,
+    #     "interestMargin": null,
+    #     "nonInterestOnToi": null,
+    #     "badDebtPercentage": null,
+    #     "provisionOnBadDebt": null,
+    #     "costOfFinancing": null,
+    #     "equityOnTotalAsset": 0.392,
+    #     "equityOnLoan": null,
+    #     "costToIncome": null,
+    #     "equityOnLiability": 0.7,
+    #     "currentPayment": 1.2,
+    #     "quickPayment": 0.9,
+    #     "epsChange": -0.333,
+    #     "ebitdaOnStock": 5964,
+    #     "grossProfitMargin": 0.216,
+    #     "operatingProfitMargin": 0.105,
+    #     "postTaxMargin": 0.108,
+    #     "debtOnEquity": 0.3,
+    #     "debtOnAsset": 0.1,
+    #     "debtOnEbitda": 2.0,
+    #     "shortOnLongDebt": 0.6,
+    #     "assetOnEquity": 2.5,
+    #     "capitalBalance": 40321,
+    #     "cashOnEquity": 0.049,
+    #     "cashOnCapitalize": 0.056,
+    #     "cashCirculation": 410,
+    #     "revenueOnWorkCapital": 3.0,
+    #     "capexOnFixedAsset": -1.928,
+    #     "revenueOnAsset": 0.2,
+    #     "postTaxOnPreTax": 0.6,
+    #     "ebitOnRevenue": 0.105,
+    #     "preTaxOnEbit": 1.6,
+    #     "preProvisionOnToi": null,
+    #     "postTaxOnToi": null,
+    #     "loanOnEarnAsset": null,
+    #     "loanOnAsset": null,
+    #     "loanOnDeposit": null,
+    #     "depositOnEarnAsset": null,
+    #     "badDebtOnAsset": null,
+    #     "liquidityOnLiability": null,
+    #     "payableOnEquity": 1.4,
+    #     "cancelDebt": null,
+    #     "ebitdaOnStockChange": -0.137,
+    #     "bookValuePerShareChange": 0.018,
+    #     "creditGrowth": null
+    # },
+    
+    df = pd.DataFrame(data)
+    
+    df['quarter'] = df['quarter'].astype(int)
+    df['year'] = df['year'].astype(int)
+    df['priceToEarning'] = df['priceToEarning'].astype(float)
+    df['priceToBook'] = df['priceToBook'].astype(float)
+    df['valueBeforeEbitda'] = df['valueBeforeEbitda'].astype(float)
+    df['roe'] = df['roe'].astype(float)
+    df['roa'] = df['roa'].astype(float)
+    df['daysReceivable'] = df['daysReceivable'].astype(float)
+    df['daysInventory'] = df['daysInventory'].astype(float)
+    df['daysPayable'] = df['daysPayable'].astype(float)
+    df['ebitOnInterest'] = df['ebitOnInterest'].astype(float)
+    df['earningPerShare'] = df['earningPerShare'].astype(float)
+    df['bookValuePerShare'] = df['bookValuePerShare'].astype(float)
+    df['equityOnTotalAsset'] = df['equityOnTotalAsset'].astype(float)
+    df['equityOnLiability'] = df['equityOnLiability'].astype(float)
+    df['currentPayment'] = df['currentPayment'].astype(float)
+    df['quickPayment'] = df['quickPayment'].astype(float)
+    df['epsChange'] = df['epsChange'].astype(float)
+    df['ebitdaOnStock'] = df['ebitdaOnStock'].astype(float)
+    df['grossProfitMargin'] = df['grossProfitMargin'].astype(float)
+    df['operatingProfitMargin'] = df['operatingProfitMargin'].astype(float)
+    df['postTaxMargin'] = df['postTaxMargin'].astype(float)
+    df['debtOnEquity'] = df['debtOnEquity'].astype(float)
+    df['debtOnAsset'] = df['debtOnAsset'].astype(float)
+    df['debtOnEbitda'] = df['debtOnEbitda'].astype(float)
+    df['shortOnLongDebt'] = df['shortOnLongDebt'].astype(float)
+    df['assetOnEquity'] = df['assetOnEquity'].astype(float)
+    df['capitalBalance'] = df['capitalBalance'].astype(float)
+    df['cashOnEquity'] = df['cashOnEquity'].astype(float)
+    df['cashOnCapitalize'] = df['cashOnCapitalize'].astype(float)
+    df['cashCirculation'] = df['cashCirculation'].astype(float)
+    df['revenueOnWorkCapital'] = df['revenueOnWorkCapital'].astype(float)
+    df['capexOnFixedAsset'] = df['capexOnFixedAsset'].astype(float)
+    df['revenueOnAsset'] = df['revenueOnAsset'].astype(float)
+    df['postTaxOnPreTax'] = df['postTaxOnPreTax'].astype(float)
+    df['ebitOnRevenue'] = df['ebitOnRevenue'].astype(float)
+    df['preTaxOnEbit'] = df['preTaxOnEbit'].astype(float)
+    df['payableOnEquity'] = df['payableOnEquity'].astype(float)
+    df['ebitdaOnStockChange'] = df['ebitdaOnStockChange'].astype(float)
+    df['bookValuePerShareChange'] = df['bookValuePerShareChange'].astype(float)
+    
+    # Convert 'year' to datetime at the beginning of the year 2008
+    df['date'] = pd.to_datetime(df['year'], format='%Y')
+    
+    # Calculate the number of months to add based on the quarter
+    df['date'] = df.apply(lambda row: row['date'] + pd.DateOffset(months=(row['quarter']) * 3), axis=1)
+    
+    # set index
+    df['index'] = df['date']
+    df.set_index('index', inplace=True)
+    
+    return df
 
 def evaluate_stock_price_dcf(response_json, discount_rate):
     """
