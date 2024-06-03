@@ -27,6 +27,12 @@ def plot_multi_line(df, title, x_title, y_title, legend_title):
     fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
     st.plotly_chart(fig, use_container_width=True)
 
+def plot_snapshot(df, title, x_title, y_title, legend_title):
+    # plot bar chart fe each stock
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=df.columns, y=df.iloc[-1], name='PEB Ratio'))
+    fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
+    st.plotly_chart(fig, use_container_width=True)
 
 def run(symbol_benchmark, symbolsDate_dict):
     
@@ -63,14 +69,17 @@ def run(symbol_benchmark, symbolsDate_dict):
     reindexed_fundamental_df = financial_df.reindex(union_index)
     
     union_df = pd.concat([reindexed_stocks_df, reindexed_fundamental_df], axis=1)
-    #shortAsset,cash,shortInvest,shortReceivable,inventory,longAsset,fixedAsset,asset,debt,shortDebt,longDebt,equity,capital,centralBankDeposit,otherBankDeposit,otherBankLoan,stockInvest,customerLoan,badLoan,provision,netCustomerLoan,otherAsset,otherBankCredit,oweOtherBank,oweCentralBank,valuablePaper,payableInterest,receivableInterest,deposit,otherDebt,fund,unDistributedIncome,minorShareHolderProfit,payable,close
+    # close,priceToEarning,priceToBook,valueBeforeEbitda,dividend,roe,roa,daysReceivable,daysInventory,daysPayable,ebitOnInterest,earningPerShare,bookValuePerShare,interestMargin,nonInterestOnToi,badDebtPercentage,provisionOnBadDebt,costOfFinancing,equityOnTotalAsset,equityOnLoan,costToIncome,equityOnLiability,currentPayment,quickPayment,epsChange,ebitdaOnStock,grossProfitMargin,operatingProfitMargin,postTaxMargin,debtOnEquity,debtOnAsset,debtOnEbitda,shortOnLongDebt,assetOnEquity,capitalBalance,cashOnEquity,cashOnCapitalize,cashCirculation,revenueOnWorkCapital,capexOnFixedAsset,revenueOnAsset,postTaxOnPreTax,ebitOnRevenue,preTaxOnEbit,preProvisionOnToi,postTaxOnToi,loanOnEarnAsset,loanOnAsset,loanOnDeposit,depositOnEarnAsset,badDebtOnAsset,liquidityOnLiability,payableOnEquity,cancelDebt,ebitdaOnStockChange,bookValuePerShareChange,creditGrowth
     
     # filter date > start_date
     union_df = union_df.loc[start_date:]
+
+    # Assuming union_df is the DataFrame containing all columns
+    # Calculate P/E Ratio
+    # union_df['priceToEarning'] = union_df['close'] / union_df['earningPerShare']
     
-    # reverse engineering the financials
-    # caculate equity = priceToEquity / PE
-    
+    # Calculate P/B Ratio
+    # union_df['priceToBook'] = union_df['close'] / union_df['bookValuePerShare']
     
     # fill missing values with the last available value
     union_df = union_df.fillna(method='ffill')
@@ -80,3 +89,5 @@ def run(symbol_benchmark, symbolsDate_dict):
     selected_metrics = st.selectbox('Select Metrics to Plot', metrics)
     
     plot_multi_line(union_df[selected_metrics], f'{selected_metrics} of Stocks and Financials', 'Date', selected_metrics, 'Stocks and Financials')
+    
+    plot_snapshot(union_df[selected_metrics], f'{selected_metrics} of Stocks and Financials', 'Stocks', selected_metrics, 'Stocks and Financials')
