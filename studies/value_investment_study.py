@@ -24,13 +24,13 @@ def plot_evaluation_pe(price_df, evaluation_df, industry_df):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.02)
     
     for symbol in price_df.columns:
-        fig.add_trace(go.Scatter(x=price_df.index, y=price_df[symbol], mode='lines', name=symbol), row=1, col=1)
+        fig.add_trace(go.Scatter(x=price_df.index, y=price_df[symbol], mode='lines', name=f'{symbol} Price'), row=1, col=1)
     
     for symbol in evaluation_df.columns:
-        fig.add_trace(go.Scatter(x=evaluation_df.index, y=evaluation_df[symbol], mode='lines', name=symbol), row=1, col=1)
+        fig.add_trace(go.Scatter(x=evaluation_df.index, y=evaluation_df[symbol], mode='lines', name=f'{symbol} PE'), row=2, col=1)
     
     for symbol in industry_df.columns:
-        fig.add_trace(go.Scatter(x=industry_df.index, y=industry_df[symbol], mode='lines', name=symbol), row=1, col=1)
+        fig.add_trace(go.Scatter(x=industry_df.index, y=industry_df[symbol], mode='lines', name=f'{symbol} Industry PE'), row=2, col=1)
     
     st.plotly_chart(fig)
     
@@ -38,13 +38,13 @@ def plot_evaluation_pb(price_df, evaluation_df, industry_df):
     fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.02)
     
     for symbol in price_df.columns:
-        fig.add_trace(go.Scatter(x=price_df.index, y=price_df[symbol], mode='lines', name=symbol), row=1, col=1)
+        fig.add_trace(go.Scatter(x=price_df.index, y=price_df[symbol], mode='lines', name=f'{symbol} Price'), row=1, col=1)
         
     for symbol in evaluation_df.columns:
-        fig.add_trace(go.Scatter(x=evaluation_df.index, y=evaluation_df[symbol], mode='lines', name=symbol), row=1, col=1)
+        fig.add_trace(go.Scatter(x=evaluation_df.index, y=evaluation_df[symbol], mode='lines', name=f'{symbol} PB'), row=2, col=1)
         
     for symbol in industry_df.columns:
-        fig.add_trace(go.Scatter(x=industry_df.index, y=industry_df[symbol], mode='lines', name=symbol), row=1, col=1)
+        fig.add_trace(go.Scatter(x=industry_df.index, y=industry_df[symbol], mode='lines', name=f'{symbol} Industry PB'), row=2, col=1)
     
     st.plotly_chart(fig)
 
@@ -55,7 +55,7 @@ def plot_evaluation_pe_ratio(price_df, evaluation_df):
         fig.add_trace(go.Scatter(x=price_df.index, y=price_df[symbol], mode='lines', name=symbol), row=1, col=1)
     
     for symbol in evaluation_df.columns:
-        fig.add_trace(go.Scatter(x=evaluation_df.index, y=evaluation_df[symbol], mode='lines', name=symbol), row=1, col=1)
+        fig.add_trace(go.Scatter(x=evaluation_df.index, y=evaluation_df[symbol], mode='lines', name=symbol), row=2, col=1)
     
     st.plotly_chart(fig)
     
@@ -66,7 +66,7 @@ def plot_evaluation_pb_ratio(price_df, evaluation_df):
         fig.add_trace(go.Scatter(x=price_df.index, y=price_df[symbol], mode='lines', name=symbol), row=1, col=1)
     
     for symbol in evaluation_df.columns:
-        fig.add_trace(go.Scatter(x=evaluation_df.index, y=evaluation_df[symbol], mode='lines', name=symbol), row=1, col=1)
+        fig.add_trace(go.Scatter(x=evaluation_df.index, y=evaluation_df[symbol], mode='lines', name=symbol), row=2, col=1)
     
     st.plotly_chart(fig)
 

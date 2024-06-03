@@ -33,6 +33,10 @@ def plot_evaluation_pb(price_df, evaluation_df):
     st.plotly_chart(fig)
 
 def run(symbol_benchmark, symbolsDate_dict):
+    
+    with st.expander("Market Pricing Study"):
+        st.markdown("""Market Pricing Study is a study that compares the market price of a bunch of stocks with their valuation. The valuation is calculated by the average of the PE and PB of the stocks. The market price is the close price of the stocks. The study is useful to identify the overvalued and undervalued stocks in the market
+                    """)
         
     symbolsDate_dict['symbols'] =  symbolsDate_dict['symbols']
     # copy the symbolsDate_dict

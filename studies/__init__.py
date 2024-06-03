@@ -6,6 +6,7 @@ from .fundamental_pricing_study import run as run_fundamental_pricing
 from .momentum_top_study import run as run_momentum_top_down
 from .etf_flow_study import run as run_etf_flow
 from .etf_structure_study import run as run_etf_structure
+from .magic_fomula_study import run as run_magic_fomula
 
 study_list = [
     {
@@ -43,5 +44,9 @@ study_list = [
     {
         "name": "ETF Structure",
         "module": run_etf_structure
+    },
+    {
+        "name": "Magic Fomula",
+        "module": run_magic_fomula
     }       
 ]

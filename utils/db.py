@@ -44,7 +44,7 @@ def load_symbol(symbol:str):
             return None
 
 @cache
-def get_SymbolName(symbol:str):
+def get_SymbolName(symbol:str | list):
         # cursor.execute("SELECT strategy_id, symbol, exchange, name FROM strategy_stock \
         #                     JOIN stock ON stock.id = strategy_stock.stock_id")
         # symbols_df = cursor.fetchall()
@@ -55,6 +55,12 @@ def get_SymbolName(symbol:str):
         except Exception as e:
             print(f"Connnecting Database Error: {e}")
             return None
+
+def get_SymbolsNames(symbols:list):
+    symbols_slug = [f"'{symbol}'" for symbol in symbols]
+    result_df = pd.read_sql(f"SELECT name FROM stock WHERE symbol IN ({','.join(symbols_slug)})", connection)
+    
+    return result_df['name'].tolist()
 
 def get_SymbolsName(symbols:list):
     names = set()

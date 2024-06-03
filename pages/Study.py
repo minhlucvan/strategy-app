@@ -22,10 +22,6 @@ if check_password():
 
     symbol_benchmark = symbolsDate_dict['benchmark']
     
-    if len(symbolsDate_dict['symbols']) < 1:
-        st.info("Please select symbols.")
-        st.stop()
-    
     if studyName and study is not None:
         st.write(f"### Study: {studyName}")        
         try:

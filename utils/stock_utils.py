@@ -1679,7 +1679,6 @@ def load_stock_balance_sheet_to_dataframe(data):
     # },
 
     df = pd.DataFrame(data)
-    df['date'] = pd.to_datetime(df['year'], format='%Y')
     df['quarter'] = df['quarter'].astype(int)
     df['year'] = df['year'].astype(int)
     df['shortAsset'] = df['shortAsset'].astype(float)
@@ -1699,6 +1698,19 @@ def load_stock_balance_sheet_to_dataframe(data):
     df['unDistributedIncome'] = df['unDistributedIncome'].astype(float)
     df['minorShareHolderProfit'] = df['minorShareHolderProfit'].astype(float)
     df['payable'] = df['payable'].astype(float)
+    
+    # Convert 'year' to datetime at the beginning of the year
+    df['date'] = pd.to_datetime(df['year'], format='%Y')
+    
+    # start date of the quarter
+    df['start_date'] = df.apply(lambda row: pd.Timestamp(f"{row['year']}-{(row['quarter'] - 1) * 3 + 1}-01"), axis=1)
+    
+    # Calculate the number of months to add based on the quarter
+    df['date'] = df.apply(lambda row: row['date'] + pd.DateOffset(months=(row['quarter']) * 3), axis=1)
+    
+    # set index
+    df['index'] = df['date']
+    df.set_index('index', inplace=True)
 
     return df
 

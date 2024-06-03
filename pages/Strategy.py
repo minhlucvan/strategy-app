@@ -3,7 +3,7 @@ import pandas as pd
 import json
 
 from utils.component import input_SymbolsDate, check_password, params_selector, form_SavePortfolio
-from utils.db import get_SymbolsName
+from utils.db import get_SymbolsName, get_SymbolsNames
 
 def check_params(params):
     # for key, value in params.items():
@@ -15,8 +15,13 @@ def check_params(params):
 if check_password():
     strategy_list = getattr(__import__(f"vbt_strategy"), 'strategy_list')
     strategyName = st.sidebar.selectbox("Please select strategy", strategy_list)
+    
     if strategyName:
         symbolsDate_dict = input_SymbolsDate()
+        
+        if len(symbolsDate_dict['symbols']) < 1:
+            st.info("Please select symbols.")
+            st.stop()
 
         if len(symbolsDate_dict['symbols']) > 0:
             st.header(strategyName)
@@ -25,7 +30,7 @@ if check_password():
             with st.expander("Description:"):
                 st.markdown(strategy.desc, unsafe_allow_html= True)
             if len(strategy.stock_dfs) > 0:
-                st.subheader("Stocks:    " + ' , '.join(get_SymbolsName(symbolsDate_dict['symbols'])))
+                st.subheader("Stocks:    " + ' , '.join(get_SymbolsNames(symbolsDate_dict['symbols'])))
                 params = params_selector(strategy.param_def)
                 if check_params(params):
                     if strategy.maxRARM(params, output_bool=True):

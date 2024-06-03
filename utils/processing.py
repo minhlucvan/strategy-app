@@ -11,7 +11,7 @@ import vnquant as vnquant
 
 from utils.db import load_symbol
 from utils import stock_utils
-from utils.stock_utils import get_stock_bars_very_long_term_cached
+from utils.stock_utils import get_stock_bars_very_long_term_cached, get_stock_balance_sheet, load_stock_balance_sheet_to_dataframe
 
 
 @lru_cache
@@ -283,15 +283,18 @@ def get_cn_fundamental(symbol: str) -> pd.DataFrame:
     return result_df
 
 @lru_cache
-def get_vn_funamental(symbol: str) -> pd.DataFrame:
+def get_vn_fundamental(symbol: str) -> pd.DataFrame:
     """get vietnam stock pe data乐咕乐股-A 股个股指标: 市盈率, 市净率, 股息率
 
     """
-    loader = vnquant.data.FinanceLoader('VND', '2019-06-02','2021-12-31', data_source='VND', minimal=True)
-    data_basic = loader.get_basic_index()
-    st.write(data_basic)    
+    data = get_stock_balance_sheet(symbol)
     
-    return data_basic
+    data_df = load_stock_balance_sheet_to_dataframe(data)
+    
+    # drop columns
+    data_df = data_df.drop(columns=['ticker', 'quarter', 'year', 'date', 'start_date'])
+        
+    return data_df
 
 
 @lru_cache
@@ -473,7 +476,21 @@ class AKData(object):
                 stock_df.index = pd.to_datetime(stock_df['date'], utc=True)
                 
         return stock_df
-            
+        
+    @vbt.cached_method
+    def get_fundamental(self, symbol: str) -> pd.DataFrame:
+        print(f"AKData-get_fundamental: {symbol}, {self.market}")
+        stock_df = pd.DataFrame()
+        symbol_df = load_symbol(symbol)
+
+        if len(symbol_df) == 1:
+            func = ('get_' + self.market + '_fundamental').lower()
+            try:
+                stock_df = eval(func)(symbol=symbol)
+            except Exception as e:
+                print(e)
+
+        return stock_df    
 
     @vbt.cached_method
     def get_pegttm(self, symbol: str) -> pd.DataFrame:
@@ -515,9 +532,9 @@ class AKData(object):
 #     return stock_dfs
 
 @st.cache_data
-def get_stocks(symbolsDate_dict: dict, column='close'):
+def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level='factor'):
     datas = AKData(symbolsDate_dict['market'])
-    stocks_df = pd.DataFrame()
+    stocks_dfs = {}
     for symbol in symbolsDate_dict['symbols']:
         if symbol != '':
             stock_df = datas.get_stock(
@@ -526,8 +543,69 @@ def get_stocks(symbolsDate_dict: dict, column='close'):
                 print(
                     f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
             else:
-                stocks_df[symbol] = stock_df['close']
+                stocks_dfs[symbol] = stock_df
+    
+    stocks_df = pd.DataFrame()
+    if stack and stack_level == 'factor':
+        # each frame represents one stock with all factors open, close, high, low, volume
+        # stack the dataframes is 2 levels
+        # level 0 is the factor name, level 1 is the stock symbol
+        # eg. stocks_df['close']['AAPL'] = 12.3
+        factor_dfs = {}
+        for symbol in stocks_dfs:
+            for column in stocks_dfs[symbol].columns:
+                if column not in factor_dfs:
+                    factor_dfs[column] = pd.DataFrame()
+                factor_dfs[column][symbol] = stocks_dfs[symbol][column]
+        
+        stocks_df = pd.concat(factor_dfs, axis=1)
+        
+        # drop date column
+        stocks_df = stocks_df.drop(columns='date')
+    elif stack:
+        stocks_df = pd.concat(stocks_dfs, axis=1)
+    else:
+        # pick one column 
+        stocks_df = pd.DataFrame()
+        for symbol in stocks_dfs:
+            stocks_df[symbol] = stocks_dfs[symbol][column]
                 
+    return stocks_df
+
+@st.cache_data
+def get_stocks_funamental(symbolsDate_dict: dict, column='close',  stack=False, stack_level='factor'):
+    datas = AKData(symbolsDate_dict['market'])
+    stocks_dfs = {}
+    for symbol in symbolsDate_dict['symbols']:
+        if symbol != '':
+            stock_df = datas.get_fundamental(symbol)
+            if stock_df.empty:
+                print(
+                    f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
+            else:
+                stocks_dfs[symbol] = stock_df
+    
+    stocks_df = pd.DataFrame()
+    if stack and stack_level == 'factor':
+        # each frame represents one stock with all factors
+        # stack the dataframes is 2 levels
+        # level 0 is the factor name, level 1 is the stock symbol
+        # eg. stocks_df['pe']['AAPL'] = 12.3
+        factor_dfs = {}
+        for symbol in stocks_dfs:
+            for column in stocks_dfs[symbol].columns:
+                if column not in factor_dfs:
+                    factor_dfs[column] = pd.DataFrame()
+                factor_dfs[column][symbol] = stocks_dfs[symbol][column]
+        stocks_df = pd.concat(factor_dfs, axis=1)
+    elif stack:
+        stocks_df = pd.concat(stocks_dfs, axis=1)
+    else:
+        # pick one column 
+        stocks_df = pd.DataFrame()
+        for symbol in stocks_dfs:
+            stocks_df[symbol] = stocks_dfs[symbol][column]
+
     return stocks_df
 
 @st.cache_data
