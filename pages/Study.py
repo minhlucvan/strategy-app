@@ -27,8 +27,7 @@ if check_password():
         try:
             study(symbol_benchmark, symbolsDate_dict)
         except Exception as e:
-            print(e)
-            st.error(e)
+            raise e
     else:
         st.write("Please select a study.")
         
