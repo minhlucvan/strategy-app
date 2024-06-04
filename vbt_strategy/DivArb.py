@@ -158,7 +158,7 @@ class DivArbStrategy(BaseStrategy):
                 size=1.0,
                 size_type='percent',
                 group_by=group_by,
-                cash_sharing=True,
+                cash_sharing=False,
                 **self.pf_kwargs
             )
             if calledby == 'add':
