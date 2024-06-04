@@ -53,6 +53,10 @@ def run(symbol_benchmark, symbolsDate_dict):
    
     events_df = get_stocks_events(symbolsDate_dict, 'cashDividend')
     
+    
+    days_before = st.number_input('Days before event', min_value=1, max_value=10, value=6)
+    days_after = st.number_input('Days after event', min_value=1, max_value=10, value=0)
+    
     event_affection = {}
     
     for stock in stocks_df.columns:
@@ -77,11 +81,13 @@ def run(symbol_benchmark, symbolsDate_dict):
         
         event_df['event_date'] = pd.to_datetime(event_df['event_date'])
         
-        event_df['event_before_date'] = event_df['event_date'].apply(lambda x: x - pd.DateOffset(days=6))
+        event_df['event_before_date'] = event_df['event_date'].apply(lambda x: x - pd.DateOffset(days=days_before))
+        event_df['event_after_date'] = event_df['event_date'].apply(lambda x: x + pd.DateOffset(days=days_after))
         
         # convert to pd.datetime
         event_df['event_before_date'] = pd.to_datetime(event_df['event_before_date'])
         event_df['event_date'] = pd.to_datetime(event_df['event_date'])
+        event_df['event_after_date'] = pd.to_datetime(event_df['event_after_date'])
         
         
         for index, row in event_df.iterrows():
@@ -90,8 +96,9 @@ def run(symbol_benchmark, symbolsDate_dict):
             # find first index >= event_before_date
             event_before_price = stock_df[stock_df.index >= event_before_date].iloc[0]
             event_price = stock_df[stock_df.index >= event_date].iloc[0]
+            event_after_price = stock_df[stock_df.index >= row['event_after_date']].iloc[0]
             
-            event_price_change = (event_price - event_before_price) / event_before_price
+            event_price_change = (event_after_price - event_before_price) / event_before_price
             
             event_affection_df.loc[event_date, 'event_price_change'] = event_price_change
             
