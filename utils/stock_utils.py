@@ -9,6 +9,7 @@ from datetime import datetime
 from datetime import timezone
 from bs4 import BeautifulSoup
 import yfinance as yf
+import re
 from utils.calendar_utils import get_last_working_day_before
 
 import pytz
@@ -1968,6 +1969,30 @@ def get_stock_events(ticker='VND', from_date=None, to_date=None, resolution='D')
         print(f"Request failed with status code {response.status_code} - {response.text}")
         raise Exception(f"Request failed with status code {response.status_code}")
     
+    import re
+
+def extract_dividend_amount(html_text):
+    # Regular expression to extract the dividend amount
+    dividend_amount_pattern = re.compile(r"bằng tiền,\s*(\d+.\d+)\s*đ/CP")
+
+    # Find the dividend amount
+    dividend_amount_match = dividend_amount_pattern.search(html_text)
+    if dividend_amount_match:
+        return dividend_amount_match.group(1)
+    else:
+        return None
+
+def extract_exdividend_date(html_text):
+    # Regular expression to extract the ex-dividend date
+    exdividend_date_pattern = re.compile(r"Ngày GDKHQ:\s*(\d{2}-\d{2}-\d{4})")
+
+    # Find the ex-dividend date
+    exdividend_date_match = exdividend_date_pattern.search(html_text)
+    if exdividend_date_match:
+        return exdividend_date_match.group(1)
+    else:
+        return None
+
 def load_stock_events_to_dataframe(data):
     # {
     # "data": [
@@ -1980,6 +2005,12 @@ def load_stock_events_to_dataframe(data):
     print(f"Loading {len(data)} events")
     df = pd.DataFrame(data)
     df['date'] = pd.to_datetime(df['date'])
+    
+    df['cashDividend'] = df['title'].apply(extract_dividend_amount)
+    df['exDividendDate'] = df['title'].apply(extract_exdividend_date)
+    
+    df['cashDividend'] = df['cashDividend'].astype(float)
+    df['exDividendDate'] = pd.to_datetime(df['exDividendDate'], format='%d-%m-%Y')
     
     # set index to date
     df.set_index('date', inplace=True)
