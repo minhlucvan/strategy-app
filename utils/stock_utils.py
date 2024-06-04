@@ -1972,8 +1972,12 @@ def get_stock_events(ticker='VND', from_date=None, to_date=None, resolution='D')
     import re
 
 def extract_dividend_amount(html_text):
-    # Regular expression to extract the dividend amount
-    dividend_amount_pattern = re.compile(r"bằng tiền,\s*(\d+.\d+)\s*đ/CP")
+    # <div style='font-size: 14px; font-weight: bold;'>1. Cổ tức Cả năm/2013 bằng tiền, 4.000 đ/CP</div><div style='font-size: 12px; margin-top: 4px; margin-bottom: 12px; font-style: italic;'>Ngày GDKHQ: 18-06-2014</div>
+    # Regular expression to extract the dividend amount bằng tiền, {anything} đ/CP => anything
+    # bằng tiền, 500 đ/CP => 500
+    # bằng tiền, 1.2 đ/CP => 1.2
+    # # bằng tiền, any_string đ/CP => any_string (not only number)
+    dividend_amount_pattern = re.compile(r"bằng tiền, ([^ ]+) đ/CP")
 
     # Find the dividend amount
     dividend_amount_match = dividend_amount_pattern.search(html_text)
@@ -2010,6 +2014,10 @@ def load_stock_events_to_dataframe(data):
     df['exDividendDate'] = df['title'].apply(extract_exdividend_date)
     
     df['cashDividend'] = df['cashDividend'].astype(float)
+    
+    # if cashDividend < 10 => cashDividend = cashDividend * 1000
+    df['cashDividend'] = df['cashDividend'].apply(lambda x: x if x > 10.0 else x * 1000.0)
+    
     df['exDividendDate'] = pd.to_datetime(df['exDividendDate'], format='%d-%m-%Y')
     
     # set index to date

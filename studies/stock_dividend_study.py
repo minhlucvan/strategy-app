@@ -51,18 +51,13 @@ def run(symbol_benchmark, symbolsDate_dict):
     benchmark_df = get_stocks(benchmark_dict,'close')
     stocks_df = get_stocks(symbolsDate_dict,'close')
    
-    events_df = get_stocks_events(symbolsDate_dict, 'label')
-    
-    symbols = stocks_df.columns.values.tolist()
-    event_types = events_df.stack().unique()      
-    
-    selected_events = ['D']
+    events_df = get_stocks_events(symbolsDate_dict, 'cashDividend')
     
     event_affection = {}
     
     for stock in stocks_df.columns:
         stock_df = stocks_df[stock]
-        event_df = events_df[stock].apply(lambda x: x if x in selected_events else np.nan)
+        event_df = events_df[stock]
         event_df = event_df.dropna()
         
         event_affection_df = pd.DataFrame(index=stock_df.index, columns=['event_price_change'])
@@ -71,7 +66,11 @@ def run(symbol_benchmark, symbolsDate_dict):
         if event_df.empty:
             continue
         
+        # remove event < 1000
+        event_df = event_df[event_df > 1000]
+        
         event_df = pd.DataFrame(event_df)
+        
         
         # find 6 days before the event
         event_df['event_date'] = event_df.index
@@ -83,6 +82,7 @@ def run(symbol_benchmark, symbolsDate_dict):
         # convert to pd.datetime
         event_df['event_before_date'] = pd.to_datetime(event_df['event_before_date'])
         event_df['event_date'] = pd.to_datetime(event_df['event_date'])
+        
         
         for index, row in event_df.iterrows():
             event_before_date = row['event_before_date']
@@ -97,8 +97,25 @@ def run(symbol_benchmark, symbolsDate_dict):
             
         event_affection[stock] = event_affection_df['event_price_change']
 
+    event_unstack_df = events_df.unstack().reset_index()
+    event_unstack_df.columns = ['Stock', 'Date', 'Cash Dividend']
     
-        
+    # drop na
+    event_unstack_df = event_unstack_df.dropna()
+    
+    # set index to Date
+    event_unstack_df.index = event_unstack_df['Date']
+    
+    # scatter plot the cash dividend
+    st.write("Cash Dividend Scatter")
+    fig = px.scatter(event_unstack_df, x="Date", y="Cash Dividend", color="Stock")
+    st.plotly_chart(fig)
+    
+    # plot the cash dividend distribution
+    st.write("Cash Dividend Distribution")
+    fig = px.histogram(event_unstack_df, x="Cash Dividend", color="Stock", marginal="box", nbins=50)
+    st.plotly_chart(fig)    
+    
     events_affection_df = pd.DataFrame(event_affection)
     
     events_affection_unstack_df = events_affection_df.unstack().reset_index()
