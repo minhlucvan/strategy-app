@@ -56,6 +56,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     days_before = st.number_input('Days before event', min_value=1, max_value=10, value=6)
     days_after = st.number_input('Days after event', min_value=0, max_value=10, value=0)
+    dividend_threshold = st.number_input('Dividend Threshold', min_value=0, max_value=6000, value=1000)
     
     event_affection = {}
     
@@ -71,7 +72,7 @@ def run(symbol_benchmark, symbolsDate_dict):
             continue
         
         # remove event < 1000
-        event_df = event_df[event_df > 1000]
+        event_df = event_df[event_df > dividend_threshold]
         
         event_df = pd.DataFrame(event_df)
         
@@ -174,4 +175,25 @@ def run(symbol_benchmark, symbolsDate_dict):
     fig = px.line(events_affection_unstack_daily_cumsum_df, x=events_affection_unstack_daily_cumsum_df.index, y="Price Change")
     fig.add_trace(go.Scatter(x=benchmark_return_cumsum.index, y=benchmark_return_cumsum[symbol_benchmark], mode='lines', name='Benchmark'))
     st.plotly_chart(fig)
+    
+    # calculate the max drawdown
+    max_drawdown = events_affection_unstack_daily_cumsum_df['Price Change'].min()
+    st.write(f"Max Drawdown: {max_drawdown}")
+    
+    anualized_return = events_affection_unstack_daily_cumsum_df['Price Change'].iloc[-1] / len(events_affection_unstack_daily_cumsum_df) * 252
+    st.write(f"Anualized Return: {anualized_return}")
+    
+    # calculate the benchmark anualized return
+    benchmark_anualized_return = benchmark_return_cumsum[symbol_benchmark].iloc[-1] / len(benchmark_return_cumsum) * 252
+    
+    st.write(f"Benchmark Anualized Return: {benchmark_anualized_return}")
+    
+    # calculate the sharpe ratio
+    daily_return = events_affection_unstack_daily_df['Price Change']
+    daily_return = daily_return.dropna()
+    daily_return = daily_return[daily_return != 0]
+    daily_return = daily_return.dropna()
+    
+    sharpe_ratio = daily_return.mean() / daily_return.std() * np.sqrt(252)
+    st.write(f"Sharpe Ratio: {sharpe_ratio}")
     
