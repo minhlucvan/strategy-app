@@ -150,8 +150,13 @@ def run(symbol_benchmark, symbolsDate_dict):
     st.plotly_chart(fig)
     
     # group by index
-    events_affection_unstack_daily_df = events_affection_unstack_df.groupby(events_affection_unstack_df.index).agg({'Price Change': 'mean'})
-        
+    events_affection_unstack_daily_df = events_affection_unstack_df.groupby(events_affection_unstack_df.index).agg({'Price Change': 'mean', 'total': 'count'})
+    
+    # plot total trade by date
+    st.write("Total Trade by Date")
+    fig = px.bar(events_affection_unstack_daily_df, x=events_affection_unstack_daily_df.index, y="total")
+    st.plotly_chart(fig)
+
     # plot the price change mean by date bars
     st.write("Price Change Mean by Date")
     fig = px.bar(events_affection_unstack_daily_df, x=events_affection_unstack_daily_df.index, y="Price Change")
