@@ -55,7 +55,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     
     days_before = st.number_input('Days before event', min_value=1, max_value=10, value=6)
-    days_after = st.number_input('Days after event', min_value=1, max_value=10, value=0)
+    days_after = st.number_input('Days after event', min_value=0, max_value=10, value=0)
     
     event_affection = {}
     
@@ -93,10 +93,14 @@ def run(symbol_benchmark, symbolsDate_dict):
         for index, row in event_df.iterrows():
             event_before_date = row['event_before_date']
             event_date = row['event_date']
+            event_after_date = row['event_after_date']
             # find first index >= event_before_date
             event_before_price = stock_df[stock_df.index >= event_before_date].iloc[0]
             event_price = stock_df[stock_df.index >= event_date].iloc[0]
-            event_after_price = stock_df[stock_df.index >= row['event_after_date']].iloc[0]
+            event_after_price = stock_df[stock_df.index >= event_after_date].iloc[0]
+            
+            if pd.isna(event_before_price) or pd.isna(event_price) or pd.isna(event_after_price):
+                continue
             
             event_price_change = (event_after_price - event_before_price) / event_before_price
             
