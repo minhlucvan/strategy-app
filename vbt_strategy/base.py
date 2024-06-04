@@ -32,6 +32,8 @@ class BaseStrategy(object):
     output_bool = False
     stacked_bool = False
     stocks_df = None
+    bm_symbol = None
+    bm_price = None
     
     def __init__(self, symbolsDate_dict:dict):
         self.symbolsDate_dict = symbolsDate_dict
@@ -98,7 +100,7 @@ class BaseStrategy(object):
         if True:
             if self.run(calledby='add'):
                 if self.output_bool:
-                    plot_pf(self.pf, name=self._name+ '_' + self.get_assets_identifier())
+                    plot_pf(self.pf, name=self._name+ '_' + self.get_assets_identifier(), bm_symbol=self.bm_symbol, bm_price=self.bm_price)
                 return True
             else:
                 return False

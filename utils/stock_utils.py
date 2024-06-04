@@ -2025,4 +2025,3 @@ def load_stock_events_to_dataframe(data):
     
     return df
     
-    

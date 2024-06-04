@@ -95,6 +95,12 @@ class DivArbStrategy(BaseStrategy):
             "min":  0,
             "max":  1,
             "step": 0
+        }, {
+            "name": 'dividend_threshold',
+            "type": "int",
+            "min": 1000,
+            "max": 10000,
+            "step": 0
         }
     ]
     stacked_bool = True
@@ -102,13 +108,33 @@ class DivArbStrategy(BaseStrategy):
     @ vbt.cached_method
     def run(self, calledby='add'):
         stocks_df = self.stocks_df
+        self.bm_symbol = self.symbolsDate_dict['benchmark']
+        
+        bm_df= self.datas.get_stock(self.bm_symbol, self.start_date, self.end_date)
+        self.bm_price = bm_df['close']
+        
+        # align the benchmark price with the stocks price
+        self.bm_price = self.bm_price.reindex(stocks_df.index, method='nearest')
+        
         # 1. initialize the variables
 
         close_price = stocks_df
         
         events_df = get_stocks_events(self.symbolsDate_dict, 'cashDividend')
         
+        
+        dividend_threshold = self.param_dict['dividend_threshold']
+        
+        # if the dividend is less than the threshold, set it to nan
+        for stock in events_df.columns:
+            for i in range(len(events_df)):
+                if events_df[stock][i] < dividend_threshold:
+                    events_df[stock][i] = np.nan
+        
         days_to_event = generate_arbitrage_signal(stocks_df, events_df)
+        
+        
+        
                         
         days_before = self.param_dict['days_before']
         days_after = self.param_dict['days_after']
@@ -154,11 +180,11 @@ class DivArbStrategy(BaseStrategy):
                 close=close_price,
                 entries=entries,
                 exits=exits,
-                init_cash=100000000,
-                size=1.0,
+                init_cash=100,
+                size=0.5,
                 size_type='percent',
                 group_by=group_by,
-                cash_sharing=False,
+                cash_sharing=True,
                 **self.pf_kwargs
             )
             if calledby == 'add':
