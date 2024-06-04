@@ -46,6 +46,11 @@ def generate_arbitrage_signal(stocks_df, events_df):
     
     for stock in stocks_df.columns:
         stock_df = stocks_df[stock]
+    
+        if stock not in events_df.columns:
+            days_to_event_data[stock] = [np.nan] * len(stock_df)
+            continue
+    
         event_df = events_df[stock]
         event_df = event_df.dropna()
         
@@ -53,6 +58,7 @@ def generate_arbitrage_signal(stocks_df, events_df):
         
         # check if there is any event
         if event_df.empty:
+            days_to_event_data[stock] = [np.nan] * len(stock_df)
             continue
         
         event_df = pd.DataFrame(event_df)
@@ -82,7 +88,7 @@ class DivArbStrategy(BaseStrategy):
             "type": "int",
             "min":  3,
             "max":  10,
-            "step": 0
+            "step": 1
         }, {
             "name": 'days_after',
             "type": "int",
