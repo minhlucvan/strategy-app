@@ -13,6 +13,7 @@ from .ADX_RSI import ADX_RSIStrategy
 from .EMACloud import EMACloudStrategy
 from .MOM_D import MOM_DStrategy
 # from .HHT import HHTStrategy
+from .DivArb import DivArbStrategy
 
 
 
@@ -32,6 +33,7 @@ __all__ = [
     "PETORStrategy",
     "PEGTORStrategy",
     "EMACloudStrategy"
+    "DivArbStrategy"
 ]
 
 strategy_list = [
@@ -50,4 +52,5 @@ strategy_list = [
     "PETOR",
     "PEGTOR",
     "EMACloud",
+    "DivArb"
 ]

@@ -57,10 +57,23 @@ def get_SymbolName(symbol:str | list):
             return None
 
 def get_SymbolsNames(symbols:list):
+        
+    if len(symbols) > 10:
+        return symbols[:5] + [f'and {len(symbols)-5} more']
+    
+    if len(symbols) >= 5:
+        return symbols
+
+    
     symbols_slug = [f"'{symbol}'" for symbol in symbols]
     result_df = pd.read_sql(f"SELECT name FROM stock WHERE symbol IN ({','.join(symbols_slug)})", connection)
     
-    return result_df['name'].tolist()
+    results = result_df['name'].tolist()
+    
+    if len(results) > 3:
+        return results[:5] + [f'and {len(results)-5} more']
+    
+    return results
 
 def get_SymbolsName(symbols:list):
     names = set()

@@ -90,7 +90,6 @@ def run(symbol_benchmark, symbolsDate_dict):
         event_df['event_date'] = pd.to_datetime(event_df['event_date'])
         event_df['event_after_date'] = pd.to_datetime(event_df['event_after_date'])
         
-        
         for index, row in event_df.iterrows():
             event_before_date = row['event_before_date']
             event_date = row['event_date']

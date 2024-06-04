@@ -4,7 +4,7 @@ import numpy as np
 import streamlit as st
 import vectorbt as vbt
 
-from utils.processing import AKData
+from utils.processing import AKData, get_stocks
 from utils.vbt import plot_pf
 
 def cal_TVWLength(n_days, O, R):
@@ -21,28 +21,32 @@ class BaseStrategy(object):
     '''base strategy'''
     _name = "base"
     desc = "......"
+    symbolsDate_dict = {}
     param_dict = {}
     param_def = {}
     stock_dfs = []
-    pf_kwargs = dict(fees=0.001, slippage=0.001, freq='1D')
+    symbols = []
+    market = ''
+    pf_kwargs = dict(fees=0.0005, slippage=0.001, freq='1D')
     pf = None
     output_bool = False
+    stacked_bool = False
+    stocks_df = None
     
     def __init__(self, symbolsDate_dict:dict):
-        market = symbolsDate_dict['market']
-        symbols = symbolsDate_dict['symbols']
+        self.symbolsDate_dict = symbolsDate_dict
+        self.market = symbolsDate_dict['market']
+        self.symbols = symbolsDate_dict['symbols']
         self.start_date = symbolsDate_dict['start_date']
         self.end_date = symbolsDate_dict['end_date']
-        self.datas = AKData(market)
+        self.datas = AKData(self.market)
         self.stock_dfs = []
         self.param_dict = {}
-        for symbol in symbols:
-            if symbol!='':
-                stock_df = self.datas.get_stock(symbol, self.start_date, self.end_date)
-                if stock_df.empty:
-                    print(f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
-                else:
-                    self.stock_dfs.append((symbol, stock_df))
+
+        if self.stacked_bool:
+            self.get_stocks_stacked(symbolsDate_dict)
+        else:
+            self.init_stocks(symbolsDate_dict)
         
         # initialize param_dict using default param_def
         for param in self.param_def:
@@ -54,10 +58,36 @@ class BaseStrategy(object):
         vbt.settings.array_wrapper['freq'] = 'days'
         vbt.settings.returns['year_freq'] = '252 days'
         vbt.settings.portfolio.stats['incl_unrealized'] = True
+    
+    def get_stocks_stacked(self, symbolsDate_dict:dict):
+        self.stocks_df = get_stocks(symbolsDate_dict, column='close')
+        
+    def init_stocks(self, symbolsDate_dict:dict):
+        for symbol in symbolsDate_dict['symbols']:
+            if symbol!='':
+                stock_df = self.datas.get_stock(symbol, self.start_date, self.end_date)
+                if stock_df.empty:
+                    print(f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
+                else:
+                    self.stock_dfs.append((symbol, stock_df))
 
     def log(self, txt, dt=None, doprint=False):
         pass
 
+    def validate(self):
+        if self.stacked_bool:
+            return len(self.stocks_df) > 0
+        
+        return len(self.stock_dfs) > 0
+
+    def get_assets_identifier(self):
+        if self.stacked_bool:
+            cols = self.stocks_df.columns.get_level_values(0).unique()
+            if len(cols) > 3:
+                return '_'.join(cols[:3].values.tolist()) + f'__{len(cols)-3}'
+            return '_'.join(cols.values.tolist())
+        return self.stock_dfs[0][0]
+    
     def maxRARM(self, param, output_bool=False):
         '''
         Maximize Risk-Adjusted Return Measurement
@@ -68,7 +98,7 @@ class BaseStrategy(object):
         if True:
             if self.run(calledby='add'):
                 if self.output_bool:
-                    plot_pf(self.pf, name=self._name+'_'+self.stock_dfs[0][0])
+                    plot_pf(self.pf, name=self._name+ '_' + self.get_assets_identifier())
                 return True
             else:
                 return False

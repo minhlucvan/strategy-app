@@ -29,7 +29,7 @@ if check_password():
             strategy = strategy_cls(symbolsDate_dict)
             with st.expander("Description:"):
                 st.markdown(strategy.desc, unsafe_allow_html= True)
-            if len(strategy.stock_dfs) > 0:
+            if strategy.validate():
                 st.subheader("Stocks:    " + ' , '.join(get_SymbolsNames(symbolsDate_dict['symbols'])))
                 params = params_selector(strategy.param_def)
                 if check_params(params):
@@ -38,7 +38,7 @@ if check_password():
                         st.write(json.dumps(strategy.param_dict, indent=4))
                         form_SavePortfolio(symbolsDate_dict, strategyName, strategy.param_dict, strategy.pf)
                     else:
-                        st.error("Stocks don't match the Strategy.")
+                        st.error("Strategy failed to maximize the Target's Parameters.")
             else:
-                st.error("None of stocks is valid.")
+                st.error("Stocks don't match the Strategy.")
 

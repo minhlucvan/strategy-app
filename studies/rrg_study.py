@@ -18,7 +18,13 @@ from studies.rrg import plot_RRG, rs_ratio, RRG_Strategy
 from utils.vbt import plot_pf
 
 def run(symbol_benchmark, symbolsDate_dict):
+    if len(symbolsDate_dict['symbols']) < 1:
+        st.info("Please select symbols.")
+        st.stop()
+        
     symbolsDate_dict['symbols'] =  [symbol_benchmark] + symbolsDate_dict['symbols']
+
+    
     stocks_df = get_stocks(symbolsDate_dict,'close')
     # pf = RRG_Strategy(symbol_benchmark, stocks_df)
     # st.write(pf.stats())
