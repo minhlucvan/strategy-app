@@ -123,9 +123,13 @@ def run(symbol_benchmark, symbolsDate_dict):
     # group by index
     events_affection_unstack_daily_df = events_affection_unstack_df.groupby(events_affection_unstack_df.index).agg({'Price Change': 'mean'})
         
-    # plot the price change mean by date
+    # plot the price change mean by date bars
     st.write("Price Change Mean by Date")
-    fig = px.line(events_affection_unstack_daily_df, x=events_affection_unstack_daily_df.index, y="Price Change")
+    fig = px.bar(events_affection_unstack_daily_df, x=events_affection_unstack_daily_df.index, y="Price Change")
+    # color green if positive, red if negative
+    fig.update_traces(marker_color=['green' if x >= 0 else 'red' for x in events_affection_unstack_daily_df['Price Change']])
+    # hide legend
+    fig.update_layout(showlegend=False)
     st.plotly_chart(fig)
     
     events_affection_unstack_daily_cumsum_df = events_affection_unstack_daily_df.cumsum()
