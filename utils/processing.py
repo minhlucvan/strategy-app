@@ -25,36 +25,6 @@ def get_us_symbol() -> dict:
 
 
 @lru_cache
-def get_cn_symbol() -> dict:
-    assets_df = ak.stock_zh_a_spot_em()
-    symbol_dict = {}
-    for index, row in assets_df.iterrows():
-        symbol = row['代码']
-        symbol_dict[symbol] = symbol
-    return symbol_dict
-
-
-@lru_cache
-def get_cnindex_symbol() -> dict:
-    assets_df = ak.stock_zh_index_spot()
-    symbol_dict = {}
-    for index, row in assets_df.iterrows():
-        symbol = row['代码'][2:]
-        symbol_dict[symbol] = row['代码']
-    return symbol_dict
-
-
-@lru_cache
-def get_hk_symbol() -> dict:
-    assets_df = ak.stock_hk_spot_em()
-    symbol_dict = {}
-    for index, row in assets_df.iterrows():
-        symbol = row['代码']
-        symbol_dict[symbol] = row['代码']
-    return symbol_dict
-
-
-@lru_cache
 def get_us_stock(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
     """get us stock data
 
@@ -65,19 +35,6 @@ def get_us_stock(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
         pd.DataFrame: _description_
     """
     return ak.stock_us_hist(symbol=symbol, start_date=start_date, end_date=end_date, adjust="qfq")
-
-
-@lru_cache
-def get_cn_stock(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
-    """get chinese stock data
-
-    Args:
-        ak_params symbol:str, start_date:str 20170301, end_date:str
-
-    Returns:
-        pd.DataFrame: _description_
-    """
-    return ak.stock_zh_a_hist(symbol=symbol, start_date=start_date, end_date=end_date, adjust="qfq")
 
 
 @lru_cache
@@ -116,52 +73,6 @@ def get_vn_stock(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
     stock_df = stock_df[['date', 'open', 'close', 'high', 'low', 'volume']]
     
     return stock_df   
-
-
-@lru_cache
-def get_cnindex_stock(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
-    """get chinese stock data东方财富网-中国股票指数-行情数据
-        symbol="399282"; 指数代码，此处不用市场标识
-
-    Args:
-        ak_params symbol:str, start_date:str 20170301, end_date:str
-
-    Returns:
-        pd.DataFrame: _description_
-    """
-    return ak.index_zh_a_hist(symbol=symbol, start_date=start_date, end_date=end_date, adjust="qfq")
-
-
-@lru_cache
-def get_hk_stock(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
-    """get chinese stock data
-
-    Args:
-        ak_params symbol:str, start_date:str 20170301, end_date:str
-
-    Returns:
-        pd.DataFrame: _description_
-    """
-    return ak.stock_hk_hist(symbol=symbol, start_date=start_date, end_date=end_date, adjust="qfq")
-
-
-@lru_cache
-def get_cn_index(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
-    """get chinese stock data历史行情数据-东方财富
-
-    Args:
-        ak_params symbol:str, start_date:str 20170301, end_date:str
-
-    Returns:
-        pd.DataFrame: _description_
-    """
-    result_df = ak.stock_zh_index_daily_em(symbol=symbol)
-    start_date = start_date[0:4] + '-' + start_date[4:6] + '-' + start_date[6:]
-    end_date = end_date[0:4] + '-' + end_date[4:6] + '-' + end_date[6:]
-
-    result_df = result_df[(result_df['date'] >= start_date)
-                          & (result_df['date'] <= end_date)]
-    return result_df
 
 @lru_cache
 def get_vn_index(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
@@ -240,48 +151,6 @@ def get_vn_etf(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
     stock_df = stock_df[['date', 'open', 'close', 'high', 'low', 'volume']]
     return stock_df    
 
-
-@lru_cache
-def get_cn_fund_etf(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
-    """get chinese fund etf data新浪财经-基金行情的日频率行情数据
-    Args:
-        ak_params symbol:str, start_date:str 20170301, end_date:str
-
-    Returns:
-        pd.DataFrame: _description_
-    """
-    result_df = ak.fund_etf_hist_sina(symbol=symbol)
-    result_df['date'] = result_df.date.map(lambda x: x.strftime('%Y-%m-%d'))
-
-    start_date = start_date[0:4] + '-' + start_date[4:6] + '-' + start_date[6:]
-    end_date = end_date[0:4] + '-' + end_date[4:6] + '-' + end_date[6:]
-
-    result_df = result_df[(result_df['date'] >= start_date)
-                          & (result_df['date'] <= end_date)]
-    return result_df
-
-
-@lru_cache
-def get_cn_fundamental(symbol: str) -> pd.DataFrame:
-    """get chinese stock pe data乐咕乐股-A 股个股指标: 市盈率, 市净率, 股息率
-
-    Args:
-        ak_params symbol:str
-        Returns: pd.DataFrame: value
-            trade_date	object	交易日
-            pe	float64	市盈率
-            pe_ttm	float64	市盈率TTM
-            pb	float64	市净率
-            ps	float64	市销率
-            ps_ttm	float64	市销率TTM
-            dv_ratio	float64	股息率
-            dv_ttm	float64	股息率TTM
-            total_mv	float64	总市值
-    """
-    result_df = ak.stock_a_lg_indicator(symbol=symbol)
-    result_df.rename(columns={'trade_date': 'date'}, inplace=True)
-    return result_df
-
 @lru_cache
 def get_vn_fundamental(symbol: str) -> pd.DataFrame:
     """get vietnam stock pe data乐咕乐股-A 股个股指标: 市盈率, 市净率, 股息率
@@ -295,39 +164,6 @@ def get_vn_fundamental(symbol: str) -> pd.DataFrame:
     data_df = data_df.drop(columns=['ticker', 'quarter', 'year', 'date', 'start_date'])
         
     return data_df
-
-
-@lru_cache
-def get_cn_valuation(symbol: str, indicator: str) -> pd.DataFrame:
-    """get 百度股市通- A 股-财务报表-估值数据
-        目标地址: https://gushitong.baidu.com/stock/ab-002044
-        限量: 单次获取指定 symbol 和 indicator 的所有历史数据
-    Args:
-        symbol	    str	symbol="002044"; A 股代码
-        indicator	str	indicator="总市值"; choice of {"总市值", "市盈率(TTM)", "市盈率(静)", "市净率", "市现率"}
-    return:
-        date	object	-
-        value	float64	-
-    """
-    result_df = ak.stock_zh_valuation_baidu(symbol, indicator)
-    return result_df
-
-
-@lru_cache
-def get_hk_valuation(symbol: str, indicator: str) -> pd.DataFrame:
-    """get 百度股市通- 港股-财务报表-估值数据
-        目标地址: https://gushitong.baidu.com/stock/hk-06969
-        限量: 单次获取指定 symbol 和 indicator 的所有历史数据
-    Args:
-        symbol      str symbol="02358"; 港股代码
-        indicator	str	indicator="总市值"; choice of {"总市值", "市盈率(TTM)", "市盈率(静)", "市净率", "市现率"}
-    return:
-        date	object	-
-        value	float64	-
-    """
-    result_df = ak.stock_hk_valuation_baidu(symbol, indicator)
-    return result_df
-
 
 @lru_cache
 def stock_us_valuation_baidu(symbol: str = "AAPL", indicator: str = "总市值") -> pd.DataFrame:
@@ -362,6 +198,7 @@ def stock_us_valuation_baidu(symbol: str = "AAPL", indicator: str = "总市值")
         temp_df["value"] = pd.to_numeric(temp_df["value"])
     return temp_df
 
+@lru_cache
 def get_vn_financial(symbol: str) -> pd.DataFrame:
     """get vietnam stock data
 
@@ -412,6 +249,22 @@ def get_vn_valuation(symbol: str, indicator: str) -> pd.DataFrame:
     evaluation_df['value'] = evaluation_df['pe']
 
     return evaluation_df
+
+@lru_cache
+def get_vn_events(symbol: str, start_date: datetime.datetime, end_date: datetime.datetime) -> pd.DataFrame:
+    """get vietnam stock data
+
+    Args:
+        ak_params symbol:str, start_date:str 20170301, end_date:str
+
+    Returns:
+        pd.DataFrame: _description_
+    """
+    print(f"get_vn_events: {symbol}")
+    events = stock_utils.get_stock_events(symbol, start_date, end_date)
+    events_df = stock_utils.load_stock_events_to_dataframe(events)
+    
+    return events_df
 
 class AKData(object):
     def __init__(self, market):
@@ -525,6 +378,21 @@ class AKData(object):
         return stock_df
     
     @vbt.cached_method
+    def get_events(self, symbol: str, start_date: datetime.datetime, end_date: datetime.datetime) -> pd.DataFrame:
+        print(f"AKData-get_events: {symbol}, {self.market}")
+        stock_df = pd.DataFrame()
+        symbol_df = load_symbol(symbol)
+
+        if len(symbol_df) == 1:
+            func = ('get_' + self.market + '_events').lower()
+            try:
+                stock_df = eval(func)(symbol=symbol, start_date=start_date, end_date=end_date)
+            except Exception as e:
+                print(e)
+
+        return stock_df
+    
+    @vbt.cached_method
     def get_pegttm(self, symbol: str) -> pd.DataFrame:
         stock_df = pd.DataFrame()
         symbol_df = load_symbol(symbol)
@@ -575,7 +443,7 @@ def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level=
                 print(
                     f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
             else:
-                stocks_dfs[symbol] = stock_df
+                stocks_dfs[symbol] = stock_df if stack else stock_df[column]
     
     stocks_df = pd.DataFrame()
     if stack and stack_level == 'factor':
@@ -597,10 +465,7 @@ def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level=
     elif stack:
         stocks_df = pd.concat(stocks_dfs, axis=1)
     else:
-        # pick one column 
-        stocks_df = pd.DataFrame()
-        for symbol in stocks_dfs:
-            stocks_df[symbol] = stocks_dfs[symbol][column]
+        stocks_df = pd.DataFrame(stocks_dfs)
                 
     return stocks_df
 
@@ -615,7 +480,7 @@ def get_stocks_funamental(symbolsDate_dict: dict, column='close',  stack=False, 
                 print(
                     f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
             else:
-                stocks_dfs[symbol] = stock_df
+                stocks_dfs[symbol] = stock_df if stack else stock_df[column]
     
     stocks_df = pd.DataFrame()
     if stack and stack_level == 'factor':
@@ -633,11 +498,8 @@ def get_stocks_funamental(symbolsDate_dict: dict, column='close',  stack=False, 
     elif stack:
         stocks_df = pd.concat(stocks_dfs, axis=1)
     else:
-        # pick one column 
-        stocks_df = pd.DataFrame()
-        for symbol in stocks_dfs:
-            stocks_df[symbol] = stocks_dfs[symbol][column]
-
+        stocks_df = pd.DataFrame(stocks_dfs)
+        
     return stocks_df
 
 @st.cache_data
@@ -652,7 +514,7 @@ def get_stocks_financial(symbolsDate_dict: dict, column='close',  stack=False, s
                 print(
                     f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
             else:
-                stocks_dfs[symbol] = stock_df
+                stocks_dfs[symbol] = stock_df if stack else stock_df[column]
         
     stocks_df = pd.DataFrame()
     
@@ -671,11 +533,43 @@ def get_stocks_financial(symbolsDate_dict: dict, column='close',  stack=False, s
     elif stack:
         stocks_df = pd.concat(stocks_dfs, axis=1)
     else:
-        # pick one column 
-        stocks_df = pd.DataFrame()
-        for symbol in stocks_dfs:
-            stocks_df[symbol] = stocks_dfs[symbol][column]
+        stocks_df = pd.DataFrame(stocks_dfs)
+
             
+    return stocks_df
+
+st.cache_data
+def get_stocks_events(symbolsDate_dict: dict, column='label',  stack=False, stack_level='factor'):
+    print(f"get_stocks_events: {symbolsDate_dict} {column} {stack} {stack_level}")
+    datas = AKData(symbolsDate_dict['market'])
+    stocks_dfs = {}
+    for symbol in symbolsDate_dict['symbols']:
+        if symbol != '':
+            stock_df = datas.get_events(symbol, symbolsDate_dict['start_date'], symbolsDate_dict['end_date'])
+            if stock_df.empty:
+                print(
+                    f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
+            else:
+                stocks_dfs[symbol] = stock_df if stack else stock_df[column]
+    
+    stocks_df = pd.DataFrame()
+    if stack and stack_level == 'factor':
+        # each frame represents one stock with all factors
+        # stack the dataframes is 2 levels
+        # level 0 is the factor name, level 1 is the stock symbol
+        # eg. stocks_df['pe']['AAPL'] = 12.3
+        factor_dfs = {}
+        for symbol in stocks_dfs.keys():
+            for column in stocks_dfs[symbol].columns:
+                if column not in factor_dfs:
+                    factor_dfs[column] = pd.DataFrame()
+                factor_dfs[column][symbol] = stocks_dfs[symbol][column]
+        stocks_df = pd.concat(factor_dfs, axis=1)
+    elif stack:
+        stocks_df = pd.concat(stocks_dfs, axis=1)
+    else:
+        stocks_df = pd.DataFrame(stocks_dfs)
+                
     return stocks_df
 
 @st.cache_data

@@ -73,7 +73,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     # filter date > start_date
     union_df = union_df.loc[start_date:]
-
+    
     # Assuming union_df is the DataFrame containing all columns
     # Calculate P/E Ratio
     # union_df['priceToEarning'] = union_df['close'] / union_df['earningPerShare']

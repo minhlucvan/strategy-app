@@ -13,6 +13,8 @@ from utils.calendar_utils import get_last_working_day_before
 
 import pytz
 
+from utils.misc import retry
+
 MAX_RETRIES = 5
 RETRY_WAIT_TIME = 3
 
@@ -85,7 +87,6 @@ def get_stock_bars_long_term(ticker, stock_type, time=None, count_back=500, reso
     else:
         print(f"Failed to retrieve data. Status code: {response.status_code}")
         return None
-
 
 def get_stock_bars_very_long_term(ticker, stock_type, count_back=300, resolution='D', total_page=10):
     timestamp = int(datetime.now().timestamp())
@@ -279,10 +280,14 @@ def load_data_into_dataframe(data, set_index=True):
 
     if 'tradingDate' in df.columns:
         df['tradingDate'] = pd.to_datetime(df['tradingDate'])
-
-        # add 7 hours to tradingDate
-        df['tradingDate'] = df['tradingDate'] + pd.Timedelta(hours=7)
-
+        
+        df['tradingDate'] = df['tradingDate'].dt.tz_localize(None)
+        
+                
+        df['tradingDate'] = df['tradingDate'].dt.date
+        
+        df['tradingDate'] = pd.to_datetime(df['tradingDate'])
+    
         # sort by tradingDate
         df.sort_values(by=['tradingDate'], inplace=True)
 
@@ -1915,3 +1920,70 @@ def evaluate_stock_price_combined(response_json, methods=["pe", "pb", "evebitda"
     stock_prices["average"] = sum(stock_prices.values()) / len(stock_prices)
 
     return stock_prices
+
+@retry(times=MAX_RETRIES, exceptions=(Exception), delay=RETRY_WAIT_TIME)
+def get_stock_events(ticker='VND', from_date=None, to_date=None, resolution='D'):
+    print(f"Getting stock events for {ticker} from {from_date} to {to_date} with resolution {resolution}")
+    # https://apipubaws.tcbs.com.vn/icalendar-service/v1/event-info/trading-view?ticker=VND&from=1360288800&to=1419991200&resolution=D
+    url = f'https://apipubaws.tcbs.com.vn/icalendar-service/v1/event-info/trading-view'
+
+    headers = {
+        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'DNT': '1',
+        'Accept-language': 'vi',
+        'sec-ch-ua-mobile': '?0',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/'
+    }
+    
+    if from_date is None:
+        # default from 2018-01-01
+        from_date = pd.Timestamp('2018-01-01').timestamp()
+    
+    if to_date is None:
+        # default to now
+        to_date = pd.Timestamp.now().timestamp()
+    
+    if isinstance(from_date, datetime):
+        from_date = from_date.timestamp()
+        
+    if isinstance(to_date, datetime):
+        to_date = to_date.timestamp()
+        
+    params = {
+        'ticker': ticker,
+        'from': int(from_date),
+        'to': int(to_date),
+        'resolution': resolution
+    }
+    
+    response = requests.get(url, params=params, headers=headers)
+    
+    if response.status_code == 200:
+        json = response.json()
+        data = json['data']
+        print(f"Got {len(data)} events")
+        return data
+    else:
+        print(f'Request failed for url: {response.url}')
+        print(f"Request failed with status code {response.status_code} - {response.text}")
+        raise Exception(f"Request failed with status code {response.status_code}")
+    
+def load_stock_events_to_dataframe(data):
+    # {
+    # "data": [
+    #     {
+    #         "id": "F22012014",
+    #         "label": "F",
+    #         "date": "2014-01-22T00:00:00Z",
+    #         "title": "<div style='font-size: 14px; font-weight: bold;'>1. Công bố báo cáo tài chính quý</div><div style='font-size: 12px; margin-top: 4px; margin-bottom: 12px; font-style: italic;'>Ngày công bố: 22-01-2014</div>"
+    #     },
+    print(f"Loading {len(data)} events")
+    df = pd.DataFrame(data)
+    df['date'] = pd.to_datetime(df['date'])
+    
+    # set index to date
+    df.set_index('date', inplace=True)
+    
+    return df
+    
+    

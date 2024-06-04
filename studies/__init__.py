@@ -7,6 +7,7 @@ from .momentum_top_study import run as run_momentum_top_down
 from .etf_flow_study import run as run_etf_flow
 from .etf_structure_study import run as run_etf_structure
 from .magic_fomula_study import run as run_magic_fomula
+from .stock_events_study import run as run_stock_events
 
 study_list = [
     {
@@ -48,5 +49,9 @@ study_list = [
     {
         "name": "Magic Fomula",
         "module": run_magic_fomula
+    },
+    {
+        "name": "Stock Events",
+        "module": run_stock_events
     }       
 ]
