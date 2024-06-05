@@ -7,7 +7,7 @@ import vectorbt as vbt
 
 import plotly.express as px
 import plotly.graph_objs as go
-from plotly.subplots import make_subplots # creating subplots
+import plotly.subplots as sp
 
 
 from utils.component import  check_password, input_dates, input_SymbolsDate
@@ -36,11 +36,18 @@ def plot_snapshot(df, title, x_title, y_title, legend_title):
 
 def run(symbol_benchmark, symbolsDate_dict):
     
-    with st.expander("Market Pricing Study"):
-        st.markdown("""Market Pricing Study is a study that compares the market price of a bunch of stocks with their valuation. The valuation is calculated by the average of the PE and PB of the stocks. The market price is the close price of the stocks. The study is useful to identify the overvalued and undervalued stocks in the market
-                    """)
+    with st.expander("Magic Formula Study"):
+        st.markdown("""Magic Formula is a value investing strategy that selects stocks based on a combination of two factors:
+                       
+- Earnings Yield (E/P)
+- Return on Capital (ROIC)
+
+The strategy ranks stocks based on these two factors and selects the top stocks for investment.
+""")
         
     symbolsDate_dict['symbols'] =  symbolsDate_dict['symbols']
+    
+    is_multi = len(symbolsDate_dict['symbols']) > 1
     
     if len(symbolsDate_dict['symbols']) < 1:
         st.info("Please select symbols.")
@@ -86,8 +93,79 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     # index (code, factor)
     metrics = union_df.columns.get_level_values(0).unique()
-    selected_metrics = st.selectbox('Select Metrics to Plot', metrics)
     
-    plot_multi_line(union_df[selected_metrics], f'{selected_metrics} of Stocks and Financials', 'Date', selected_metrics, 'Stocks and Financials')
+    price_df = union_df['close']
     
-    plot_snapshot(union_df[selected_metrics], f'{selected_metrics} of Stocks and Financials', 'Stocks', selected_metrics, 'Stocks and Financials')
+    st.write("## Stock Prices")
+    plot_multi_line(price_df, 'Stock Prices', 'Date', 'Price', 'Stocks')
+    
+    # drop open, high, low
+    metrics = metrics.drop(['close', 'open', 'high', 'low'])
+    default_metrics = ['priceToEarning', 'priceToBook']
+
+    selected_metrics = st.multiselect('Select Metrics to Plot', metrics, default_metrics)
+    
+    for metric in selected_metrics:
+        plot_multi_line(union_df[metric], f'{metric} comparsion', 'Date', metric, 'Stocks')
+
+
+    # plot snapshot
+    snapshot_df = union_df[selected_metrics].iloc[-1]
+    # reset multi index to single index
+    # (metric, stock) -> stock | metric1 | metric2 | metric3
+    snapshot_df = snapshot_df.reset_index()
+    snapshot_df.columns = ['metric', 'stock', 'value']
+
+    # convert metric to column
+    snapshot_df = snapshot_df.pivot(index='metric', columns='stock', values='value')
+    # snapshot_df = metric | stock1 | stock2 | stock3
+
+    # set index to stock
+    snapshot_df = snapshot_df.reset_index()
+    snapshot_df = snapshot_df.set_index('metric')
+
+    # Create a subplot with a row for each metric
+    metrics = snapshot_df.index
+    fig = sp.make_subplots(rows=len(metrics), cols=1, shared_xaxes=False, vertical_spacing=0.01)
+
+    # Add each metric's stacked bar chart to the subplot
+    for i, metric in enumerate(metrics, start=1):
+        for stock in snapshot_df.columns:
+            stock_index = snapshot_df.columns.get_loc(stock)
+            fig.add_trace(
+                go.Bar(
+                    y=[metric],
+                    x=[snapshot_df.loc[metric,
+                    stock]],
+                    name=stock,
+                    orientation='h',
+                    # color by stock name
+                    marker=dict(
+                        color=px.colors.qualitative.Plotly[stock_index]
+                    )),
+                row=i, col=1
+            )
+
+    # Update layout
+    fig.update_layout(
+        title='Snapshot of Raw Values by Metric and Stock',
+        xaxis_title='',
+        yaxis_title='Metric',
+        barmode='stack',
+        legend_title='Stock',
+        height=140 * len(metrics)  # Adjust the height based on the number of metrics
+    )
+
+    # Adjust x-axis titles for each subplot
+    for i in range(1, len(metrics) + 1):
+        # fig.update_xaxes(title_text='Value', row=i, col=1)
+        fig.update_xaxes(showticklabels=False, row=i, col=1)
+
+    names = set()
+    fig.for_each_trace(
+        lambda trace:
+            trace.update(showlegend=False)
+            if (trace.name in names) else names.add(trace.name))
+
+    # Display the plot
+    st.plotly_chart(fig, use_container_width=True)

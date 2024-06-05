@@ -2024,4 +2024,46 @@ def load_stock_events_to_dataframe(data):
     df.set_index('date', inplace=True)
     
     return df
+
+def get_stock_overview(ticker='MWG'):
+    # https://apipubaws.tcbs.com.vn/tcanalysis/v1/ticker/BMP/overview
+    url = f'https://apipubaws.tcbs.com.vn/tcanalysis/v1/ticker/{ticker}/overview'
+    
+    headers = {
+        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'DNT': '1',
+        'Accept-language': 'vi',
+        'sec-ch-ua-mobile': '?0',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/'
+    }
+    
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 200:
+        json = response.json()
+        return json
+    else:
+        print(f"Request failed with status code {response.status_code}")
+        return None
+    
+def get_stock_ratio(ticker='MWG'):
+    # https://apipubaws.tcbs.com.vn/tcanalysis/v1/ticker/BMP/stockratio
+    url = f'https://apipubaws.tcbs.com.vn/tcanalysis/v1/ticker/{ticker}/stockratio'
+    
+    headers = {
+        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'DNT': '1',
+        'Accept-language': 'vi',
+        'sec-ch-ua-mobile': '?0',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/'
+    }
+    
+    response = requests.get(url, headers=headers)
+    
+    if response.status_code == 200:
+        json = response.json()
+        return json
+    else:
+        print(f"Request failed with status code {response.status_code}")
+        return None
     
