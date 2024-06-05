@@ -10,6 +10,7 @@ from .magic_fomula_study import run as run_magic_fomula
 from .stock_events_study import run as run_stock_events
 from .stock_dividend_study import run as run_stock_dividend
 from .bank_pricing_study import run as run_bank_pricing
+from .steven_fomula_study import run as run_steven_fomula
 
 study_list = [
     {
@@ -63,5 +64,9 @@ study_list = [
     {
         "name": "Bank Pricing",
         "module": run_bank_pricing
+    },
+    {
+        "name": "Steven Fomula",
+        "module": run_steven_fomula
     }
 ]

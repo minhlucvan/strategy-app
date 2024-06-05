@@ -20,7 +20,15 @@ from vbt_strategy.MOM_D import get_MomDInd
 
 from studies.market_wide import MarketWide_Strategy
 
-def plot_multi_line(df, title, x_title, y_title, legend_title):
+def plot_multi_line(df, title, x_title, y_title, legend_title, price_df=None):
+    if price_df is not None:
+        fig = sp.make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.01)
+        for col in df.columns:
+            fig.add_trace(go.Scatter(x=df.index, y=df[col], mode='lines', name=col), row=1, col=1)
+            fig.add_trace(go.Scatter(x=price_df.index, y=price_df[col], mode='lines', name=col), row=2, col=1)
+        fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
+        st.plotly_chart(fig, use_container_width=True)
+        return
     fig = go.Figure()
     for col in df.columns:
         fig.add_trace(go.Scatter(x=df.index, y=df[col], mode='lines', name=col))
@@ -141,12 +149,54 @@ def load_market_data(file_path):
     
     return df
 
+# one metric uniformly applied to all stocks
+# combine other metrics to form a score
+# the score is used to rank the stocks
+# the score is linear combination of the metrics
+# parameter is a np.series of metrics
+# index: ticker,quarter,year,priceToEarning,priceToBook,valueBeforeEbitda,dividend,roe,roa,
+# daysReceivable,daysInventory,daysPayable,ebitOnInterest,earningPerShare,bookValuePerShare,
+# interestMargin,nonInterestOnToi,badDebtPercentage,provisionOnBadDebt,costOfFinancing,equityOnTotalAsset,
+# equityOnLoan,costToIncome,equityOnLiability,currentPayment,quickPayment,epsChange,ebitdaOnStock,
+# grossProfitMargin,operatingProfitMargin,postTaxMargin,debtOnEquity,debtOnAsset,debtOnEbitda,
+# shortOnLongDebt,assetOnEquity,capitalBalance,cashOnEquity,cashOnCapitalize,cashCirculation,
+# revenueOnWorkCapital,capexOnFixedAsset,revenueOnAsset,postTaxOnPreTax,ebitOnRevenue,preTaxOnEbit,
+# preProvisionOnToi,postTaxOnToi,loanOnEarnAsset,loanOnAsset,loanOnDeposit,depositOnEarnAsset,
+# badDebtOnAsset,liquidityOnLiability,payableOnEquity,cancelDebt,ebitdaOnStockChange,
+# bookValuePerShareChange,creditGrowth
+# return: magic score
+def magic_formula(metrics_df):
+    score = metrics_df['priceToEarning']
+    return score
+
+def calculate_magic_formula_score(union_df, magic_func):
+    # create a new dataframe to store the scores
+    score_df = pd.DataFrame()
+    
+    symbols = union_df.columns.get_level_values(1).unique()
+    indices = union_df.index
+    union_unstacked = union_df.unstack().reset_index()
+    
+    # columns = (metric, stock, date, value)
+    union_unstacked.columns = ['metric', 'stock', 'date', 'value']
+    
+    for symbol in symbols:
+        symbol_df = union_unstacked[union_unstacked['stock'] == symbol]
+        for index in indices:
+            index_df = symbol_df[symbol_df['date'] == index]
+            index_df = index_df.set_index('metric')
+            index_metrics_values = index_df['value']
+            score = magic_func(index_metrics_values)
+            score_df.loc[index, symbol] = score
+
+    return score_df
 def run(
     symbol_benchmark,
     symbolsDate_dict,
     default_metrics=['priceToEarning', 'priceToBook'],
     default_use_saved_benchmark=False,
     use_benchmark=True,
+    magic_func=None
 ):
     
     with st.expander("Magic Formula Study"):
@@ -238,11 +288,18 @@ The strategy ranks stocks based on these two factors and selects the top stocks 
         if use_benchmark:
             plot_multi_line(ratio_df[metric], f'{metric} Ratio comparsion', 'Date', metric, 'Stocks')
     
+    if magic_func is not None:
+        magic_df = calculate_magic_formula_score(union_df, magic_func)
+        
+        st.write("## Magic Formula Score")
+        plot_multi_line(magic_df, 'Magic Formula Score', 'Date', 'Score', 'Stocks', price_df=price_df)
+    
     # skip comparison if there is only one stock
     if len(union_df.columns.get_level_values(1).unique()) < 2:
         st.info('Select more symbols to compare')
         st.stop()
-    
+        
+    st.write("## Snapshot of Raw Values by Metric and Stock")
     # plot snapshot
     snapshot_df = union_df[selected_metrics].iloc[-1]
     # reset multi index to single index

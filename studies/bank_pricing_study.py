@@ -19,7 +19,7 @@ from vbt_strategy.MOM_D import get_MomDInd
 from studies.magic_fomula_study import run as run_magic_fomula
 
 def run(symbol_benchmark, symbolsDate_dict):
-    st.write("## Banking Metrics Analysis")
+    st.write("## Relative comparison of bank stocks")
     
     with st.expander("Methodology and Approach"):
         st.markdown("""
