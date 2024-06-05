@@ -89,6 +89,40 @@ def plot_contrbution(df, title, x_title, y_title, legend_title):
     fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
     st.plotly_chart(fig, use_container_width=True)
 
+@st.cache_data
+def calculate_market_metrics(union_df):
+    market_data_list = []
+    
+    # loop through each index
+    for index in union_df.index:
+        market_data = {}
+        market_data['date'] = index
+        for metric in union_df.columns.get_level_values(0).unique():
+            market_data[metric] = union_df.loc[index, metric].mean()
+        market_data_list.append(market_data)
+
+    market_data_df = pd.DataFrame(market_data_list)
+    
+    # set date as index
+    market_data_df = market_data_df.set_index('date')
+    
+    return market_data_df
+
+# calculate the ratio metrics = stock / market
+def calculate_raitio_metrics(union_df, market_df):
+    ratios_df = union_df.copy()
+    
+    # set full nan
+    ratios_df.loc[:, :] = np.nan
+    
+    for metric in union_df.columns.get_level_values(0).unique():
+        for stock in union_df.columns.get_level_values(1).unique():
+            for index in union_df.index:
+                if market_df.loc[index, metric] != 0 and not pd.isna(union_df.loc[index, (metric, stock)]):
+                    ratios_df.loc[index, (metric, stock)] = union_df.loc[index, (metric, stock)] / market_df.loc[index, metric]
+    
+    return ratios_df
+    
 def run(symbol_benchmark, symbolsDate_dict):
     
     with st.expander("Magic Formula Study"):
@@ -135,16 +169,15 @@ The strategy ranks stocks based on these two factors and selects the top stocks 
     
     # filter date > start_date
     union_df = union_df.loc[start_date:]
+
+    market_df = calculate_market_metrics(union_df)
     
-    # Assuming union_df is the DataFrame containing all columns
-    # Calculate P/E Ratio
-    # union_df['priceToEarning'] = union_df['close'] / union_df['earningPerShare']
-    
-    # Calculate P/B Ratio
-    # union_df['priceToBook'] = union_df['close'] / union_df['bookValuePerShare']
+    ratio_df = calculate_raitio_metrics(union_df, market_df)
     
     # fill missing values with the last available value
     union_df = union_df.fillna(method='ffill')
+    market_df = market_df.fillna(method='ffill')
+    ratio_df = ratio_df.fillna(method='ffill')
     
     # index (code, factor)
     metrics = union_df.columns.get_level_values(0).unique()
@@ -162,8 +195,9 @@ The strategy ranks stocks based on these two factors and selects the top stocks 
     
     for metric in selected_metrics:
         plot_multi_line(union_df[metric], f'{metric} comparsion', 'Date', metric, 'Stocks')
-
-        # plot snapshot
+        plot_multi_line(ratio_df[metric], f'{metric} Ratio comparsion', 'Date', metric, 'Stocks')
+        
+    # plot snapshot
     snapshot_df = union_df[selected_metrics].iloc[-1]
     # reset multi index to single index
     # (metric, stock) -> stock | metric1 | metric2 | metric3
@@ -178,8 +212,6 @@ The strategy ranks stocks based on these two factors and selects the top stocks 
     snapshot_df = snapshot_df.reset_index()
     snapshot_df = snapshot_df.set_index('metric')
     
-    plot_snapshot_comparison(snapshot_df, 'Snapshot of Raw Values by Metric and Stock', 'Value', 'Metric', 'Stock')
-    
     # calculate the snapshot contribution = snapshot / sum by row
     snapshot_contrib_df = snapshot_df.copy()
     
@@ -191,5 +223,7 @@ The strategy ranks stocks based on these two factors and selects the top stocks 
     
     # add new metric 'contribution' = sum by column
     snapshot_contrib_df.loc['contribution'] = snapshot_contrib_df.sum()
+    
+    plot_snapshot_comparison(snapshot_df, 'Snapshot of Raw Values by Metric and Stock', 'Value', 'Metric', 'Stock')
     
     plot_contrbution(snapshot_contrib_df.loc['contribution'], 'Snapshot of Contribution by Stock', 'Contribution', 'Stock', 'Contribution')
