@@ -106,13 +106,15 @@ def input_SymbolsGroup(market, groups_dict):
     
     if group_sel == 'None':
         return {
+            "name": None,
             "benchmark": groups_dict[market]['benchmark'],
             "symbols": []
         }
     
     return {
         "benchmark": groups_dict[market]['benchmark'],
-        "symbols": groups_dict[market]['group'][group_sel]
+        "symbols": groups_dict[market]['group'][group_sel],
+        "name": group_sel
     }
 
 def input_Symbols_wildcard(market):
@@ -169,6 +171,7 @@ def input_SymbolsDate(group=True) -> dict:
     
     group_symbols = group_dict['symbols']
     benmark_symbols = group_dict['benchmark']
+    group_name = group_dict['name'] if 'name' in group_dict else None
     
     return {
             "market":   market,
@@ -176,7 +179,8 @@ def input_SymbolsDate(group=True) -> dict:
             "start_date": start_date,
             "end_date": end_date,
             "goup_symbols": group_symbols,
-            "benchmark": benmark_symbols
+            "benchmark": benmark_symbols,
+            "group_name": group_name
         }
 
 def params_selector(params):

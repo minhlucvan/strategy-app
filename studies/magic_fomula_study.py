@@ -133,6 +133,14 @@ def calculate_raitio_metrics(union_df, market_df):
     
     return ratios_df
     
+def load_market_data(file_path):
+    df = pd.read_pickle(file_path)
+    
+    # set date to pd.datetime
+    df.index = pd.to_datetime(df.index)
+    
+    return df
+
 def run(symbol_benchmark, symbolsDate_dict):
     
     with st.expander("Magic Formula Study"):
@@ -146,7 +154,7 @@ The strategy ranks stocks based on these two factors and selects the top stocks 
         
     symbolsDate_dict['symbols'] =  symbolsDate_dict['symbols']
     
-    is_multi = len(symbolsDate_dict['symbols']) > 1
+    use_saved_benchmark = st.checkbox('Use saved benchmark', value=False)
     
     if len(symbolsDate_dict['symbols']) < 1:
         st.info("Please select symbols.")
@@ -182,7 +190,14 @@ The strategy ranks stocks based on these two factors and selects the top stocks 
     
     union_df = calculate_realtime_metrics(union_df)
 
-    market_df = calculate_market_metrics(union_df)
+    market_df = calculate_market_metrics(union_df) if not use_saved_benchmark else load_market_data('data/vn30_financials.pkl')
+
+    # re-align the market_df with union_df
+    market_df = market_df.reindex(union_df.index, method='ffill')
+    
+    if symbolsDate_dict['group_name'] == 'VN30' and not use_saved_benchmark:
+        # save market_df to file
+        market_df.to_pickle('data/vn30_financials.pkl')
     
     ratio_df = calculate_raitio_metrics(union_df, market_df)
     
@@ -208,7 +223,12 @@ The strategy ranks stocks based on these two factors and selects the top stocks 
     for metric in selected_metrics:
         plot_multi_line(union_df[metric], f'{metric} comparsion', 'Date', metric, 'Stocks')
         plot_multi_line(ratio_df[metric], f'{metric} Ratio comparsion', 'Date', metric, 'Stocks')
-        
+    
+    # skip comparison if there is only one stock
+    if len(union_df.columns.get_level_values(1).unique()) < 2:
+        st.info('Select more symbols to compare')
+        st.stop()
+    
     # plot snapshot
     snapshot_df = union_df[selected_metrics].iloc[-1]
     # reset multi index to single index
