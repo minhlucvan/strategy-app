@@ -34,6 +34,61 @@ def plot_snapshot(df, title, x_title, y_title, legend_title):
     fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
     st.plotly_chart(fig, use_container_width=True)
 
+def plot_snapshot_comparison(snapshot_df, title, x_title, y_title, legend_title):
+    # Create a subplot with a row for each metric
+    metrics = snapshot_df.index
+    fig = sp.make_subplots(rows=len(metrics), cols=1, shared_xaxes=False, vertical_spacing=0.01)
+
+    # Add each metric's stacked bar chart to the subplot
+    for i, metric in enumerate(metrics, start=1):
+        for stock in snapshot_df.columns:
+            stock_index = snapshot_df.columns.get_loc(stock)
+            fig.add_trace(
+                go.Bar(
+                    y=[metric],
+                    x=[snapshot_df.loc[metric, stock]],
+                    name=stock,
+                    orientation='h',
+                    # color by stock name
+                    marker=dict(
+                        color=px.colors.qualitative.Plotly[stock_index % len(px.colors.qualitative.Plotly)]
+                    )
+                ),
+                row=i, col=1
+            )
+
+    # Update layout
+    fig.update_layout(
+        title='Snapshot of Raw Values by Metric and Stock',
+        xaxis_title='',
+        yaxis_title='Metric',
+        barmode='stack',
+        legend_title='Stock',
+        height=140 * len(metrics)  # Adjust the height based on the number of metrics
+    )
+
+    # Adjust x-axis titles for each subplot
+    for i in range(1, len(metrics) + 1):
+        # fig.update_xaxes(title_text='Value', row=i, col=1)
+        fig.update_xaxes(showticklabels=False, row=i, col=1)
+
+    names = set()
+    fig.for_each_trace(
+        lambda trace:
+            trace.update(showlegend=False)
+            if (trace.name in names) else names.add(trace.name))
+
+    # Display the plot
+    st.plotly_chart(fig, use_container_width=True)
+
+def plot_contrbution(df, title, x_title, y_title, legend_title):
+    df_sorted = df.sort_values(ascending=False)
+    
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=df_sorted.index, y=df_sorted, name='Contribution'))
+    fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
+    st.plotly_chart(fig, use_container_width=True)
+
 def run(symbol_benchmark, symbolsDate_dict):
     
     with st.expander("Magic Formula Study"):
@@ -108,8 +163,7 @@ The strategy ranks stocks based on these two factors and selects the top stocks 
     for metric in selected_metrics:
         plot_multi_line(union_df[metric], f'{metric} comparsion', 'Date', metric, 'Stocks')
 
-
-    # plot snapshot
+        # plot snapshot
     snapshot_df = union_df[selected_metrics].iloc[-1]
     # reset multi index to single index
     # (metric, stock) -> stock | metric1 | metric2 | metric3
@@ -123,49 +177,19 @@ The strategy ranks stocks based on these two factors and selects the top stocks 
     # set index to stock
     snapshot_df = snapshot_df.reset_index()
     snapshot_df = snapshot_df.set_index('metric')
-
-    # Create a subplot with a row for each metric
-    metrics = snapshot_df.index
-    fig = sp.make_subplots(rows=len(metrics), cols=1, shared_xaxes=False, vertical_spacing=0.01)
-
-    # Add each metric's stacked bar chart to the subplot
-    for i, metric in enumerate(metrics, start=1):
-        for stock in snapshot_df.columns:
-            stock_index = snapshot_df.columns.get_loc(stock)
-            fig.add_trace(
-                go.Bar(
-                    y=[metric],
-                    x=[snapshot_df.loc[metric, stock]],
-                    name=stock,
-                    orientation='h',
-                    # color by stock name
-                    marker=dict(
-                        color=px.colors.qualitative.Plotly[stock_index % len(px.colors.qualitative.Plotly)]
-                    )
-                ),
-                row=i, col=1
-            )
-
-    # Update layout
-    fig.update_layout(
-        title='Snapshot of Raw Values by Metric and Stock',
-        xaxis_title='',
-        yaxis_title='Metric',
-        barmode='stack',
-        legend_title='Stock',
-        height=140 * len(metrics)  # Adjust the height based on the number of metrics
-    )
-
-    # Adjust x-axis titles for each subplot
-    for i in range(1, len(metrics) + 1):
-        # fig.update_xaxes(title_text='Value', row=i, col=1)
-        fig.update_xaxes(showticklabels=False, row=i, col=1)
-
-    names = set()
-    fig.for_each_trace(
-        lambda trace:
-            trace.update(showlegend=False)
-            if (trace.name in names) else names.add(trace.name))
-
-    # Display the plot
-    st.plotly_chart(fig, use_container_width=True)
+    
+    plot_snapshot_comparison(snapshot_df, 'Snapshot of Raw Values by Metric and Stock', 'Value', 'Metric', 'Stock')
+    
+    # calculate the snapshot contribution = snapshot / sum by row
+    snapshot_contrib_df = snapshot_df.copy()
+    
+    # calculate the sum by row
+    snapshot_sum = snapshot_contrib_df.sum(axis=1)
+    
+    # calculate the contribution
+    snapshot_contrib_df = snapshot_contrib_df.div(snapshot_sum, axis=0)
+    
+    # add new metric 'contribution' = sum by column
+    snapshot_contrib_df.loc['contribution'] = snapshot_contrib_df.sum()
+    
+    plot_contrbution(snapshot_contrib_df.loc['contribution'], 'Snapshot of Contribution by Stock', 'Contribution', 'Stock', 'Contribution')
