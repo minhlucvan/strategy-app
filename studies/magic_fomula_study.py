@@ -135,14 +135,14 @@ The strategy ranks stocks based on these two factors and selects the top stocks 
             fig.add_trace(
                 go.Bar(
                     y=[metric],
-                    x=[snapshot_df.loc[metric,
-                    stock]],
+                    x=[snapshot_df.loc[metric, stock]],
                     name=stock,
                     orientation='h',
                     # color by stock name
                     marker=dict(
-                        color=px.colors.qualitative.Plotly[stock_index]
-                    )),
+                        color=px.colors.qualitative.Plotly[stock_index % len(px.colors.qualitative.Plotly)]
+                    )
+                ),
                 row=i, col=1
             )
 
