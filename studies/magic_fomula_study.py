@@ -108,6 +108,16 @@ def calculate_market_metrics(union_df):
     
     return market_data_df
 
+# re-calculate the metrics based on the latest close price
+def calculate_realtime_metrics(union_df):
+    for metric in union_df.columns.get_level_values(0).unique():
+        for stock in union_df.columns.get_level_values(1).unique():
+            if metric == 'priceToEarning':
+                union_df.loc[:, (metric, stock)] = union_df['close', stock] / union_df['earningPerShare', stock]
+            elif metric == 'priceToBook':
+                union_df.loc[:, (metric, stock)] = union_df['close', stock] / union_df['bookValuePerShare', stock]
+
+    return union_df
 # calculate the ratio metrics = stock / market
 def calculate_raitio_metrics(union_df, market_df):
     ratios_df = union_df.copy()
@@ -169,6 +179,8 @@ The strategy ranks stocks based on these two factors and selects the top stocks 
     
     # filter date > start_date
     union_df = union_df.loc[start_date:]
+    
+    union_df = calculate_realtime_metrics(union_df)
 
     market_df = calculate_market_metrics(union_df)
     
