@@ -141,7 +141,13 @@ def load_market_data(file_path):
     
     return df
 
-def run(symbol_benchmark, symbolsDate_dict):
+def run(
+    symbol_benchmark,
+    symbolsDate_dict,
+    default_metrics=['priceToEarning', 'priceToBook'],
+    default_use_saved_benchmark=False,
+    use_benchmark=True,
+):
     
     with st.expander("Magic Formula Study"):
         st.markdown("""Magic Formula is a value investing strategy that selects stocks based on a combination of two factors:
@@ -154,7 +160,7 @@ The strategy ranks stocks based on these two factors and selects the top stocks 
         
     symbolsDate_dict['symbols'] =  symbolsDate_dict['symbols']
     
-    use_saved_benchmark = st.checkbox('Use saved benchmark', value=False)
+    use_saved_benchmark = st.checkbox('Use saved benchmark', value=default_use_saved_benchmark) if use_benchmark else False
     
     if len(symbolsDate_dict['symbols']) < 1:
         st.info("Please select symbols.")
@@ -188,23 +194,30 @@ The strategy ranks stocks based on these two factors and selects the top stocks 
     # filter date > start_date
     union_df = union_df.loc[start_date:]
     
-    union_df = calculate_realtime_metrics(union_df)
+    union_df = calculate_realtime_metrics(union_df) 
 
-    market_df = calculate_market_metrics(union_df) if not use_saved_benchmark else load_market_data('data/vn30_financials.pkl')
+    market_df = pd.DataFrame()
+    ratio_df = pd.DataFrame()
+    
+    if use_benchmark and not use_saved_benchmark:
+        if use_saved_benchmark:
+            market_df = load_market_data('data/vn30_financials.pkl')
+        else:
+            market_df = calculate_market_metrics(union_df) 
 
-    # re-align the market_df with union_df
-    market_df = market_df.reindex(union_df.index, method='ffill')
-    
-    if symbolsDate_dict['group_name'] == 'VN30' and not use_saved_benchmark:
-        # save market_df to file
-        market_df.to_pickle('data/vn30_financials.pkl')
-    
-    ratio_df = calculate_raitio_metrics(union_df, market_df)
+        # re-align the market_df with union_df
+        market_df = market_df.reindex(union_df.index, method='ffill')
+        
+        if symbolsDate_dict['group_name'] == 'VN30' and not use_saved_benchmark:
+            # save market_df to file
+            market_df.to_pickle('data/vn30_financials.pkl')
+        
+        ratio_df = calculate_raitio_metrics(union_df, market_df)
+        market_df = market_df.fillna(method='ffill')
+        ratio_df = ratio_df.fillna(method='ffill')
     
     # fill missing values with the last available value
     union_df = union_df.fillna(method='ffill')
-    market_df = market_df.fillna(method='ffill')
-    ratio_df = ratio_df.fillna(method='ffill')
     
     # index (code, factor)
     metrics = union_df.columns.get_level_values(0).unique()
@@ -216,13 +229,14 @@ The strategy ranks stocks based on these two factors and selects the top stocks 
     
     # drop open, high, low
     metrics = metrics.drop(['close', 'open', 'high', 'low'])
-    default_metrics = ['priceToEarning', 'priceToBook']
 
     selected_metrics = st.multiselect('Select Metrics to Plot', metrics, default_metrics)
     
     for metric in selected_metrics:
         plot_multi_line(union_df[metric], f'{metric} comparsion', 'Date', metric, 'Stocks')
-        plot_multi_line(ratio_df[metric], f'{metric} Ratio comparsion', 'Date', metric, 'Stocks')
+    
+        if use_benchmark:
+            plot_multi_line(ratio_df[metric], f'{metric} Ratio comparsion', 'Date', metric, 'Stocks')
     
     # skip comparison if there is only one stock
     if len(union_df.columns.get_level_values(1).unique()) < 2:
