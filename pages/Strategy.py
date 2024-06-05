@@ -19,9 +19,9 @@ if check_password():
     if strategyName:
         symbolsDate_dict = input_SymbolsDate()
         
-        if len(symbolsDate_dict['symbols']) < 1:
-            st.info("Please select symbols.")
-            st.stop()
+        # if len(symbolsDate_dict['symbols']) < 1:
+        #     st.info("Please select symbols.")
+        #     st.stop()
 
         if len(symbolsDate_dict['symbols']) > 0:
             st.header(strategyName)

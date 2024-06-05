@@ -15,7 +15,7 @@ from utils.component import check_password, params_selector
 from utils.portfolio import Portfolio, selectpf_bySymbols
 from vbt_strategy.PairTrade import pairtrade_pfs
 from pages.Strategy import check_params
-from utils.db import get_SymbolName
+from utils.db import get_SymbolName, get_SymbolsNames
 from utils.vbt import display_pfbrief
 
 import config
@@ -53,18 +53,19 @@ def show_PortfolioTable(portfolio_df):
     def stringlist_to_set(strlist: list):
         slist = []
         for sstr in strlist:
-            for s in sstr.split(','):
-                slist.append(s)
+            # for s in sstr.split(','):
+            slist.append(sstr)
+            
         slist = list(dict.fromkeys(slist))
         slist.sort()
         return(slist)
-    
+        
     symbols = stringlist_to_set(portfolio_df['symbols'].values)
     if 'symbolsSel' not in st.session_state:
         st.session_state['symbolsSel'] = symbols
 
     sSel = st.multiselect("Please select symbols:", symbols, 
-                                format_func=lambda x: get_SymbolName(x)+x,
+                                format_func=lambda x: x,
                                 help='empty means all')
     if st.session_state['symbolsSel'] == sSel:
         update_bokeh = False
@@ -105,7 +106,7 @@ def show_PortforlioYearly(pf_row):
     end_date = datetime(year=end_date.year, month=end_date.month, day=end_date.day, tzinfo=pytz.utc)
     symbolsDate_dict = {
             "market":   pf_row['market'],
-            "symbols":  [],
+            "symbols":  pf_row['symbols'].split(','),
             "start_date": end_date,
             "end_date": end_date,
         }
@@ -116,14 +117,15 @@ def show_PortforlioYearly(pf_row):
     strategy_cli = getattr(__import__(f"vbt_strategy"), f"{strategyname}Strategy")
     strategy = strategy_cli(symbolsDate_dict)
     params = params_selector(strategy.param_def)
-
     pfYearly_df = pd.DataFrame()                                 
     for y in range(1, 10, 2):
         start_date = datetime(year=end_date.year-y, month=end_date.month, day=end_date.day, tzinfo=pytz.utc)
-        st.write(start_date)
+        display_start_date = start_date.strftime('%Y-%m-%d')
+        display_end_date = end_date.strftime('%Y-%m-%d')
+        st.write(f"Period: {display_start_date} to {display_end_date}")
         symbolsDate_dict = {
             "market":   pf_row['market'],
-            "symbols":  [pf_row['symbols']],
+            "symbols":  pf_row['symbols'].split(','),
             "start_date": start_date,
             "end_date": end_date,
         }

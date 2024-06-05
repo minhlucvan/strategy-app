@@ -19,9 +19,7 @@ connection, cursor = init_connection()
 def selectpf_bySymbols(df, symbols:list):
         ids = []
         for i, row in df.iterrows():
-            for s in row['symbols'].split(','):
-                if s in symbols:
-                    ids.append(i)
+            ids.append(i)
         return df.loc[ids,:]
 
 class Portfolio(object):
@@ -66,7 +64,11 @@ class Portfolio(object):
             sql_stat = f"SELECT * FROM stock WHERE symbol in ({tickers})"
             cursor.execute(sql_stat)
             stocks = cursor.fetchall()
-            if len(stocks) == len(symbols):
+            
+            if len(stocks) != len(symbols):
+                print(f"Waring: some symbols are not in the stock table")
+            
+            if len(stocks) > 0:
                 param_json = json.dumps(strategy_param)
                 tickers = ','.join(symbols)
 
@@ -79,10 +81,6 @@ class Portfolio(object):
                 cursor.execute("INSERT INTO portfolio (id, name, description, create_date, start_date, end_date, total_return, annual_return, lastday_return, sharpe_ratio, maxdrawdown, param_dict, strategy, symbols, market, vbtpf) VALUES(?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)",
                             (None, name, description, datetime.today(), start_date, end_date, total_return, annual_return, lastday_return, sharpe_ratio, maxdrawdown, param_json, strategyname, tickers, market, pf_blob))
                 connection.commit()
-
-            else:
-                print("some of stocks are invalid.")
-                return False
 
           except Exception  as e:
             print("Portforlio.add error occurs:", e)

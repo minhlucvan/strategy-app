@@ -108,7 +108,7 @@ class DivArbStrategy(BaseStrategy):
     @ vbt.cached_method
     def run(self, calledby='add'):
         stocks_df = self.stocks_df
-        self.bm_symbol = self.symbolsDate_dict['benchmark']
+        self.bm_symbol = 'VN30'
         
         bm_df= self.datas.get_stock(self.bm_symbol, self.start_date, self.end_date)
         self.bm_price = bm_df['close']
@@ -132,10 +132,7 @@ class DivArbStrategy(BaseStrategy):
                     events_df[stock][i] = np.nan
         
         days_to_event = generate_arbitrage_signal(stocks_df, events_df)
-        
-        
-        
-                        
+           
         days_before = self.param_dict['days_before']
         days_after = self.param_dict['days_after']
         
