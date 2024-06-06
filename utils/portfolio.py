@@ -30,7 +30,7 @@ class Portfolio(object):
         self.df = pd.read_sql("SELECT * FROM portfolio", connection)
         self.df.set_index('id', inplace=True, drop=False)
 
-    def add(self, symbolsDate_dict:dict, strategyname:str, strategy_param, pf, description="desc")->bool:
+    def add(self, symbolsDate_dict:dict, strategyname:str, strategy_param, pf, description="desc", name=None)->bool:
         """
             add a portforlio to db/table
             input:
@@ -48,9 +48,9 @@ class Portfolio(object):
         symbols = symbolsDate_dict['symbols']
         start_date = symbolsDate_dict['start_date']
         end_date = pf.value().index[-1].strftime("%Y-%m-%d")
+        
+        name = name if name else strategyname + '_' + ','.join(symbols)
 
-
-        name = strategyname + '_' + '&'.join(symbols)
         filename = str(datetime.now().timestamp()) + '.pf'
         pf.save(config.PORTFOLIO_PATH + filename)
         with open(config.PORTFOLIO_PATH + filename, 'rb') as pf_file:

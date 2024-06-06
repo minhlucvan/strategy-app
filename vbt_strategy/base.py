@@ -106,11 +106,15 @@ class BaseStrategy(object):
         return len(self.stock_dfs) > 0
 
     def get_assets_identifier(self):
+        if self.symbolsDate_dict['group_name'] and len(self.symbolsDate_dict['group_name']) > 0:
+            return self.symbolsDate_dict['group_name']
+        
         if self.stacked_bool:
             cols = self.stocks_df.columns.get_level_values(0).unique()
             if len(cols) > 3:
                 return '_'.join(cols[:3].values.tolist()) + f'__{len(cols)-3}'
             return '_'.join(cols.values.tolist())
+        
         return self.stock_dfs[0][0]
     
     def maxRARM(self, param, output_bool=False):

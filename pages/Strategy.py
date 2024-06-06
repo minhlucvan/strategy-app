@@ -36,7 +36,8 @@ if check_password():
                     if strategy.maxRARM(params, output_bool=True):
                         st.text(f"Maximize Target's Parameters:    ")
                         st.write(json.dumps(strategy.param_dict, indent=4))
-                        form_SavePortfolio(symbolsDate_dict, strategyName, strategy.param_dict, strategy.pf)
+                        asset_name = strategy.get_assets_identifier()
+                        form_SavePortfolio(symbolsDate_dict, strategyName, strategy.param_dict, strategy.pf, asset_name)
                     else:
                         st.error("Strategy failed to maximize the Target's Parameters.")
             else:

@@ -15,14 +15,16 @@ def input_dates(by='unique'):
     end_date = datetime(year=end_date.year, month=end_date.month, day=end_date.day, tzinfo=pytz.utc)
     return start_date, end_date
 
-def form_SavePortfolio(symbolsDate_dict, strategyname:str, strategy_param:dict, pf):
+def form_SavePortfolio(symbolsDate_dict, strategyname:str, strategy_param:dict, pf, assets_name:str=None):
     with st.expander("Edit description and Save"):
         with st.form("form_" + strategyname):
-            desc_str = st_quill(value= f"{strategyname},  Param_dict: {strategy_param}", html= True)
+            tittle = st.text_input("Portfolio Name", value= f"{strategyname}_{assets_name}")
+            # desc_str = st_quill(value= f"{strategyname},  Param_dict: {strategy_param}", html= True)
+            desc_str = st.text_area("Description", value= f"{strategyname},  Param_dict: {strategy_param}")
             submitted = st.form_submit_button("Save")
             if submitted:
                 portfolio = Portfolio()
-                if portfolio.add(symbolsDate_dict, strategyname, strategy_param, pf, desc_str):
+                if portfolio.add(symbolsDate_dict, strategyname, strategy_param, pf, desc_str, name=tittle):
                     st.success("Save the portfolio sucessfully.")
                 else:
                     st.error('Fail to save the portfolio.')

@@ -6,6 +6,8 @@ import json
 
 import streamlit as st
 
+from utils.riskfolio import get_pfOpMS
+
 st.set_page_config(page_title="BForecast Strategy App")
 
 import vectorbt as vbt
@@ -153,6 +155,7 @@ def main():
     if 'update_bokeh' not in st.session_state:
         st.session_state['update_bokeh'] = True # update and refresh bokeh table
     selected_pfs = show_PortfolioTable(portfolio.df)
+    
     if len(selected_pfs) > 1:
         ##多portfolio比较
         value_df = pd.DataFrame()
@@ -169,6 +172,10 @@ def main():
         # value_df['mean'] = value_df.mean(axis=1)
         st.line_chart(value_df, use_container_width=True)
         st.plotly_chart(position_df.vbt.plot(), use_container_width=True)
+
+        # optimize portfolio
+        pf = get_pfOpMS(value_df)
+        plot_pf(pf, select=False, name=f"Optimized Portfolio", show_recents=False)
 
         if len(selected_pfs) == 2:
             if st.button("PairTrade"):

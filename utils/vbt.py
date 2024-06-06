@@ -42,7 +42,7 @@ def show_pffromfile(vbtpf):
     pf = vbt.Portfolio.loads(vbtpf)
     plot_pf(pf)
 
-def plot_pf(pf, name= "", select=True, bm_symbol=None, bm_price=None):
+def plot_pf(pf, name= "", select=True, bm_symbol=None, bm_price=None, show_recents=True):
     ## select control wheather display the subplots multiselect box
     ## bm_symbol is benchmark symbol, bm_price is benchmark's daily prices
     if len(pf.orders.records_readable) == 0:
@@ -129,34 +129,34 @@ def plot_pf(pf, name= "", select=True, bm_symbol=None, bm_price=None):
         st.text('Cash:     {:.2f}'.format(pf.cash()[-1]))
         st.text('Total:    {:.2f}'.format(pf.value()[-1]))
 
-
-    st.write("###### Recent Orders")    
-    records_df = pf.orders.records_readable
-    records_df['Date'] = pd.to_datetime(records_df['Timestamp']).dt.date    
-    records_df['Amount'] = records_df['Price'] * records_df['Size'] - records_df['Fees']
-    # find the ticker's name in Columns
-    def find_ticker(x):
-        column = x.Column
-        result = ''
-        if type(column)==str:
-            result = column  # 'APPL'
-        elif type(column)==tuple and type(column[-1])==str:
-            result = column[-1]  # (10, 5, 'APPL')
-        else:
-            result = name.split('_')[-1]    # name = 'APPL
-        return result
-    
-    records_df['Ticker'] = records_df.apply(find_ticker, axis=1)
-    records_df['StockName'] = records_df.apply(lambda x: get_SymbolName(x['Ticker']), axis=1)
-    records_df = records_df[['Date', 'Ticker', 'StockName', 'Side', 'Size', 'Price', 'Fees', 'Amount']]
-    records_df.set_index('Date', inplace=True)
-    records_df.sort_index(ascending=False , inplace=True)
-    
-    # last 5 records
-    records_df = records_df.head(5)
-    
-    st.write(records_df.style.format({'Size':'{0:,.2f}', 'Price':'{0:,.2f}', 'Fees':'{0:,.4f}', 'Amount':'{0:,.2f}'}))
+    if show_recents:
+        st.write("###### Recent Orders")    
+        records_df = pf.orders.records_readable
+        records_df['Date'] = pd.to_datetime(records_df['Timestamp']).dt.date    
+        records_df['Amount'] = records_df['Price'] * records_df['Size'] - records_df['Fees']
+        # find the ticker's name in Columns
+        def find_ticker(x):
+            column = x.Column
+            result = ''
+            if type(column)==str:
+                result = column  # 'APPL'
+            elif type(column)==tuple and type(column[-1])==str:
+                result = column[-1]  # (10, 5, 'APPL')
+            else:
+                result = name.split('_')[-1]    # name = 'APPL
+            return result
         
+        records_df['Ticker'] = records_df.apply(find_ticker, axis=1)
+        records_df['StockName'] = records_df.apply(lambda x: get_SymbolName(x['Ticker']), axis=1)
+        records_df = records_df[['Date', 'Ticker', 'StockName', 'Side', 'Size', 'Price', 'Fees', 'Amount']]
+        records_df.set_index('Date', inplace=True)
+        records_df.sort_index(ascending=False , inplace=True)
+        
+        # last 5 records
+        records_df = records_df.head(5)
+        
+        st.write(records_df.style.format({'Size':'{0:,.2f}', 'Price':'{0:,.2f}', 'Fees':'{0:,.4f}', 'Amount':'{0:,.2f}'}))
+            
     # 4. save the stats and records to the html, and download    
     buffer.write("<style>table {text-align: right;}table thead th {text-align: center;}</style>")
     buffer.write("<br><h4>Return's Statistics</h4>")
