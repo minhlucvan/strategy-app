@@ -143,7 +143,8 @@ def input_symbols_group(group_dict):
     return group_symbols
 
 def input_SymbolsDate(group=True) -> dict:
-    market = st.sidebar.radio("Select market", ("VN",), horizontal= True)
+    # market = st.sidebar.radio("Select market", ("VN",), horizontal= True)
+    market = 'VN'
     
     groups_data = {}
     with open("funds.json", 'r', encoding='UTF-8') as f:

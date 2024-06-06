@@ -11,6 +11,7 @@ from .stock_events_study import run as run_stock_events
 from .stock_dividend_study import run as run_stock_dividend
 from .bank_pricing_study import run as run_bank_pricing
 from .steven_fomula_study import run as run_steven_fomula
+from .relative_comparsion_study import run as run_relative_comparsion
 
 study_list = [
     {
@@ -68,5 +69,9 @@ study_list = [
     {
         "name": "Steven Fomula",
         "module": run_steven_fomula
+    },
+    {
+        "name": "Relative Comparsion",
+        "module": run_relative_comparsion
     }
 ]

@@ -5,3 +5,4 @@ try_*
 *.pickle
 *.pyc
 caches/
+cache/

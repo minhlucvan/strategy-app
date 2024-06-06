@@ -1,4 +1,4 @@
-import requests
+import requests_cache 
 import matplotlib.pyplot as plt
 import pandas as pd
 import numpy as np
@@ -15,6 +15,8 @@ from utils.calendar_utils import get_last_working_day_before
 import pytz
 
 from utils.misc import retry
+CACHE_TTL = 60 * 60 * 24  # 1 day
+requests = requests_cache.CachedSession('cache/demo_cache', expire_after=CACHE_TTL)
 
 MAX_RETRIES = 5
 RETRY_WAIT_TIME = 3

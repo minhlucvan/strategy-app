@@ -33,13 +33,20 @@ def plot_multi_line(df, title, x_title, y_title, legend_title, price_df=None):
     for col in df.columns:
         fig.add_trace(go.Scatter(x=df.index, y=df[col], mode='lines', name=col))
     fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
+    # update marker color by stock name
+    for i, stock in enumerate(df.columns):
+        fig.data[i].marker.color = px.colors.qualitative.Plotly[i % len(px.colors.qualitative.Plotly)]
     st.plotly_chart(fig, use_container_width=True)
 
-def plot_snapshot(df, title, x_title, y_title, legend_title):
+def plot_snapshot(df, title, x_title, y_title, legend_title, sorted=False):
+    display_series = df.iloc[-1] if sorted else df.iloc[-1].sort_values(ascending=False)
     # plot bar chart fe each stock
     fig = go.Figure()
-    fig.add_trace(go.Bar(x=df.columns, y=df.iloc[-1], name='PEB Ratio'))
+    fig.add_trace(go.Bar(x=df.columns, y=display_series, name='PEB Ratio'))
     fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
+    # update marker color by stock name
+    for i, stock in enumerate(df.columns):
+        fig.data[0].marker.color = px.colors.qualitative.Plotly[i % len(px.colors.qualitative.Plotly)]
     st.plotly_chart(fig, use_container_width=True)
 
 def plot_snapshot_comparison(snapshot_df, title, x_title, y_title, legend_title):
@@ -95,6 +102,9 @@ def plot_contrbution(df, title, x_title, y_title, legend_title):
     fig = go.Figure()
     fig.add_trace(go.Bar(x=df_sorted.index, y=df_sorted, name='Contribution'))
     fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
+    # update marker color by stock name
+    for i, stock in enumerate(df_sorted.index):
+        fig.data[0].marker.color = px.colors.qualitative.Plotly[i % len(px.colors.qualitative.Plotly)]
     st.plotly_chart(fig, use_container_width=True)
 
 @st.cache_data
@@ -118,13 +128,11 @@ def calculate_market_metrics(union_df):
 
 # re-calculate the metrics based on the latest close price
 def calculate_realtime_metrics(union_df):
-    for metric in union_df.columns.get_level_values(0).unique():
+    for index in union_df.index:
         for stock in union_df.columns.get_level_values(1).unique():
-            if metric == 'priceToEarning':
-                union_df.loc[:, (metric, stock)] = union_df['close', stock] / union_df['earningPerShare', stock]
-            elif metric == 'priceToBook':
-                union_df.loc[:, (metric, stock)] = union_df['close', stock] / union_df['bookValuePerShare', stock]
-
+            stock_df = union_df.loc[index, ('close', stock)]
+            # calculate priceToEarning
+            union_df.loc[index, ('priceToEarning', stock)] = stock_df / union_df.loc[index, ('earningPerShare', stock)]
     return union_df
 # calculate the ratio metrics = stock / market
 def calculate_raitio_metrics(union_df, market_df):
@@ -190,11 +198,13 @@ def calculate_magic_formula_score(union_df, magic_func):
             score_df.loc[index, symbol] = score
 
     return score_df
+
 def run(
     symbol_benchmark,
     symbolsDate_dict,
     default_metrics=['priceToEarning', 'priceToBook'],
     default_use_saved_benchmark=False,
+    magic_formula_method='raw',
     use_benchmark=True,
     magic_func=None
 ):
@@ -209,6 +219,9 @@ The strategy ranks stocks based on these two factors and selects the top stocks 
 """)
         
     symbolsDate_dict['symbols'] =  symbolsDate_dict['symbols']
+    
+    if magic_func is not None and magic_formula_method == 'relative':
+        use_benchmark = True
     
     use_saved_benchmark = st.checkbox('Use saved benchmark', value=default_use_saved_benchmark) if use_benchmark else False
     
@@ -244,12 +257,15 @@ The strategy ranks stocks based on these two factors and selects the top stocks 
     # filter date > start_date
     union_df = union_df.loc[start_date:]
     
+    # ffill
+    union_df = union_df.fillna(method='ffill')
+    
     union_df = calculate_realtime_metrics(union_df) 
 
     market_df = pd.DataFrame()
     ratio_df = pd.DataFrame()
     
-    if use_benchmark and not use_saved_benchmark:
+    if use_benchmark:
         if use_saved_benchmark:
             market_df = load_market_data('data/vn30_financials.pkl')
         else:
@@ -277,6 +293,16 @@ The strategy ranks stocks based on these two factors and selects the top stocks 
     st.write("## Stock Prices")
     plot_multi_line(price_df, 'Stock Prices', 'Date', 'Price', 'Stocks')
     
+    if magic_func is not None:
+        input_df = ratio_df if magic_formula_method == 'relative' else union_df
+        magic_df = calculate_magic_formula_score(input_df, magic_func)
+        
+        st.write("## Magic Formula Score")
+        plot_multi_line(magic_df, 'Magic Formula Score', 'Date', 'Score', 'Stocks')
+        
+        plot_snapshot(magic_df, 'Snapshot of Magic Formula Score', 'Stock', 'Score', 'Stocks', sorted=True)
+    
+    
     # drop open, high, low
     metrics = metrics.drop(['close', 'open', 'high', 'low'])
 
@@ -287,12 +313,6 @@ The strategy ranks stocks based on these two factors and selects the top stocks 
     
         if use_benchmark:
             plot_multi_line(ratio_df[metric], f'{metric} Ratio comparsion', 'Date', metric, 'Stocks')
-    
-    if magic_func is not None:
-        magic_df = calculate_magic_formula_score(union_df, magic_func)
-        
-        st.write("## Magic Formula Score")
-        plot_multi_line(magic_df, 'Magic Formula Score', 'Date', 'Score', 'Stocks', price_df=price_df)
     
     # skip comparison if there is only one stock
     if len(union_df.columns.get_level_values(1).unique()) < 2:
