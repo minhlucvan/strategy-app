@@ -12,6 +12,7 @@ from .stock_dividend_study import run as run_stock_dividend
 from .bank_pricing_study import run as run_bank_pricing
 from .steven_fomula_study import run as run_steven_fomula
 from .relative_comparsion_study import run as run_relative_comparsion
+from .stock_issue_study import run as run_stock_issue
 
 study_list = [
     {
@@ -61,6 +62,10 @@ study_list = [
     {
         "name": "Stock Dividend",
         "module": run_stock_dividend
+    },
+    {
+        "name": "Stock Issue",
+        "module": run_stock_issue
     },
     {
         "name": "Bank Pricing",

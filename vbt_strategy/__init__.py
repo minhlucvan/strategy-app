@@ -14,7 +14,8 @@ from .EMACloud import EMACloudStrategy
 from .MOM_D import MOM_DStrategy
 # from .HHT import HHTStrategy
 from .DivArb import DivArbStrategy
-
+from .IssArb import IssArbStrategy
+from .MARS import MARSStrategy
 
 
 __all__ = [
@@ -32,8 +33,10 @@ __all__ = [
     "ADX_RSIStrategy",
     "PETORStrategy",
     "PEGTORStrategy",
-    "EMACloudStrategy"
-    "DivArbStrategy"
+    "EMACloudStrategy",
+    "DivArbStrategy",
+    "IssArbStrategy",
+    "MARSStrategy"
 ]
 
 strategy_list = [
@@ -52,5 +55,7 @@ strategy_list = [
     "PETOR",
     "PEGTOR",
     "EMACloud",
-    "DivArb"
+    "DivArb",
+    "IssArb",
+    "MARS"
 ]

@@ -61,6 +61,9 @@ def run(symbol_benchmark, symbolsDate_dict):
     event_affection = {}
     
     for stock in stocks_df.columns:
+        if stock not in events_df.columns:
+            continue
+        
         stock_df = stocks_df[stock]
         event_df = events_df[stock]
         event_df = event_df.dropna()

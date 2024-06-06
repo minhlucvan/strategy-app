@@ -34,6 +34,8 @@ class BaseStrategy(object):
     stocks_df = None
     bm_symbol = None
     bm_price = None
+    use_rsc = False
+    benchmark_symbol = None
     
     def __init__(self, symbolsDate_dict:dict):
         self.symbolsDate_dict = symbolsDate_dict
@@ -49,6 +51,9 @@ class BaseStrategy(object):
             self.get_stocks_stacked(symbolsDate_dict)
         else:
             self.init_stocks(symbolsDate_dict)
+        
+        if self.use_rsc:
+            self.init_rsc()
         
         # initialize param_dict using default param_def
         for param in self.param_def:
@@ -72,6 +77,19 @@ class BaseStrategy(object):
                     print(f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
                 else:
                     self.stock_dfs.append((symbol, stock_df))
+
+    def init_rsc(self):
+        if self.benchmark_symbol is None:
+            raise ValueError("benchmark_symbol is not defined")
+        
+        if self.stacked_bool:
+            raise ValueError("stacked_bool is not supported for rsc")
+        
+        self.benchmark_df = self.datas.get_stock(self.benchmark_symbol, self.start_date, self.end_date)
+        
+        for i in range(len(self.stock_dfs)):
+            # calculate the relative strength
+            self.stock_dfs[i][1]['close'] = self.stock_dfs[i][1]['close'] / self.benchmark_df['close']
 
     def log(self, txt, dt=None, doprint=False):
         pass
