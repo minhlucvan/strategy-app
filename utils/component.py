@@ -174,6 +174,9 @@ def input_SymbolsDate(group=True) -> dict:
     benmark_symbols = group_dict['benchmark']
     group_name = group_dict['name'] if 'name' in group_dict else None
     
+    # upper case
+    symbols = [symbol.upper() for symbol in symbols]
+    
     return {
             "market":   market,
             "symbols":  symbols,
