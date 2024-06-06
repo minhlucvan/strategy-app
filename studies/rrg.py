@@ -328,7 +328,7 @@ def plot_RRG(symbol_benchmark, stocks_df):
     plot_AnimateRRG(rs_ratio_df, sSel, tail_length)
 
 # @vbt.cached_method
-def RRG_Strategy(symbol_benchmark, stocks_df, RARM_obj= 'sharpe_ratio', output_bool=False):
+def RRG_Strategy(symbol_benchmark, stocks_df, RARM_obj= 'sharpe_ratio', output_bool=False, ret_param=False):
     stocks_df[stocks_df<0] = np.nan
     symbols_target = []
     for s in stocks_df.columns:
@@ -358,6 +358,7 @@ def RRG_Strategy(symbol_benchmark, stocks_df, RARM_obj= 'sharpe_ratio', output_b
                 cash_sharing=True,  # share capital between columns
                 **pf_kwargs,
             )
+    param_dict = {}
     if not isinstance(pf.total_return(), np.float64):
         RARMs = eval(f"pf.{RARM_obj}()")
         idxmax = RARMs[RARMs != np.inf].idxmax()
@@ -365,8 +366,11 @@ def RRG_Strategy(symbol_benchmark, stocks_df, RARM_obj= 'sharpe_ratio', output_b
         st.write(f"The Max {RARM_obj} is {param_columns.names}:{idxmax}")
         if output_bool:
            plot_CSCV(pf, idxmax, RARM_obj)
-
+        
         pf = pf[idxmax]
+        
+        if ret_param:
+            param_dict = dict(zip(['rs_ratio', 'rs_momentum', 'rs_window'], (int(i) for i in idxmax)))
 
         if output_bool:
             rs_df = pd.DataFrame()
@@ -377,6 +381,10 @@ def RRG_Strategy(symbol_benchmark, stocks_df, RARM_obj= 'sharpe_ratio', output_b
             # plot_RatioMomentum(stocks_df, rs_df, sSel[0:1], symbol_benchmark)
             rs_df.dropna(axis=0, how='all', inplace=True)
             plot_AnimateRRG(rs_df, sSel, 6, idxmax)
+            
+    if ret_param:
+        return pf, param_dict
+    
     return pf
 
 def ratio_filter(x, s):

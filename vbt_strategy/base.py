@@ -35,7 +35,7 @@ class BaseStrategy(object):
     bm_symbol = None
     bm_price = None
     use_rsc = False
-    benchmark_symbol = None
+    inlude_bm = False
     
     def __init__(self, symbolsDate_dict:dict):
         self.symbolsDate_dict = symbolsDate_dict
@@ -67,7 +67,12 @@ class BaseStrategy(object):
         vbt.settings.portfolio.stats['incl_unrealized'] = True
     
     def get_stocks_stacked(self, symbolsDate_dict:dict):
-        self.stocks_df = get_stocks(symbolsDate_dict, column='close')
+        symbolsDate_dict_cp = symbolsDate_dict.copy()
+        
+        if self.inlude_bm and self.bm_symbol is not None:
+            symbolsDate_dict_cp['symbols'].append(self.bm_symbol)
+        
+        self.stocks_df = get_stocks(symbolsDate_dict_cp, column='close')
         
     def init_stocks(self, symbolsDate_dict:dict):
         for symbol in symbolsDate_dict['symbols']:
@@ -79,13 +84,13 @@ class BaseStrategy(object):
                     self.stock_dfs.append((symbol, stock_df))
 
     def init_rsc(self):
-        if self.benchmark_symbol is None:
-            raise ValueError("benchmark_symbol is not defined")
+        if self.bm_symbol is None:
+            raise ValueError("bm_symbol is not defined")
         
         if self.stacked_bool:
             raise ValueError("stacked_bool is not supported for rsc")
         
-        self.benchmark_df = self.datas.get_stock(self.benchmark_symbol, self.start_date, self.end_date)
+        self.benchmark_df = self.datas.get_stock(self.bm_symbol, self.start_date, self.end_date)
         
         for i in range(len(self.stock_dfs)):
             # calculate the relative strength
