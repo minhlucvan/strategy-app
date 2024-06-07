@@ -27,7 +27,7 @@ class BaseStrategy(object):
     stock_dfs = []
     symbols = []
     market = ''
-    pf_kwargs = dict(fees=0.0005, slippage=0.001, freq='1D')
+    pf_kwargs = dict(fees=0.0005, slippage=0.001, sl_stop=0.15, freq='1D')
     pf = None
     output_bool = False
     stacked_bool = False
@@ -35,7 +35,9 @@ class BaseStrategy(object):
     bm_symbol = None
     bm_price = None
     use_rsc = False
-    inlude_bm = False
+    include_bm = False
+    rs_dfs = None
+    rs_df = None
     
     def __init__(self, symbolsDate_dict:dict):
         self.symbolsDate_dict = symbolsDate_dict
@@ -69,12 +71,12 @@ class BaseStrategy(object):
     def get_stocks_stacked(self, symbolsDate_dict:dict):
         symbolsDate_dict_cp = symbolsDate_dict.copy()
         
-        if self.inlude_bm and self.bm_symbol is not None:
+        if self.include_bm and self.bm_symbol is not None:
             symbolsDate_dict_cp['symbols'].append(self.bm_symbol)
         
         self.stocks_df = get_stocks(symbolsDate_dict_cp, column='close')
         
-        if self.inlude_bm and self.bm_symbol is not None:
+        if self.include_bm and self.bm_symbol is not None:
             self.bm_price = self.stocks_df[self.bm_symbol]
             self.stocks_df = self.stocks_df.drop(self.bm_symbol, axis=1)
         
@@ -86,18 +88,28 @@ class BaseStrategy(object):
                     print(f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
                 else:
                     self.stock_dfs.append((symbol, stock_df))
+                    
+        if self.include_bm and self.bm_symbol is not None:
+            bm_df = self.datas.get_stock(self.bm_symbol, self.start_date, self.end_date)
+            if bm_df.empty:
+                print(f"Warning: benchmark '{self.bm_symbol}' is invalid or missing. Ignore it")
+            else:
+                # align the benchmark price with the stock price
+                bm_df = bm_df.reindex(self.stock_dfs[0][1].index)
+                self.bm_price = bm_df['close']
 
     def init_rsc(self):
         if self.bm_price is None:
             raise ValueError("Benchmark price is not initialized please config bm_symbol and include_bm to True")
                 
         if self.stacked_bool:
-            for col in self.stocks_df.columns.get_level_values(0).unique():
-                self.stocks_df[col] = self.stocks_df[col] / self.bm_price
+            self.rs_df = self.stocks_df / self.bm_price
         else:
+            self.rs_dfs = []
             for i in range(len(self.stock_dfs)):
                 # calculate the relative strength
-                self.stock_dfs[i][1]['close'] = self.stock_dfs[i][1]['close'] / self.bm_price['close']
+                rs = self.stock_dfs[i][1]['close'] / self.bm_price
+                self.rs_dfs.append((self.stock_dfs[i][0], rs))
 
     def log(self, txt, dt=None, doprint=False):
         pass
@@ -109,7 +121,7 @@ class BaseStrategy(object):
         return len(self.stock_dfs) > 0
 
     def get_assets_identifier(self):
-        if self.symbolsDate_dict['group_name'] and len(self.symbolsDate_dict['group_name']) > 0:
+        if self.symbolsDate_dict['group_name'] and len(self.symbolsDate_dict['group_name']) == len(self.symbolsDate_dict['symbols']):
             return self.symbolsDate_dict['group_name']
         
         if self.stacked_bool:
@@ -126,15 +138,18 @@ class BaseStrategy(object):
         '''
         self.param_dict.update(param)
         self.output_bool = output_bool
-        
-        if self.param_dict['WFO'] == 'None':
-            self.param_dict['WFO'] = False
-        
+                
         # try:
         if True:
             if self.run(calledby='add'):
                 if self.output_bool:
-                    plot_pf(self.pf, name=self._name+ '_' + self.get_assets_identifier(), bm_symbol=self.bm_symbol, bm_price=self.bm_price)
+                    plot_pf(
+                        self.pf,
+                        name=self._name+ '_' + self.get_assets_identifier(),
+                        bm_symbol=self.bm_symbol,
+                        bm_price=self.bm_price,
+                        symbols=self.symbols,
+                    )
                 return True
             else:
                 return False

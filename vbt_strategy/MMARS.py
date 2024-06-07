@@ -25,15 +25,11 @@ class MMARSStrategy(BaseStrategy):
     stacked_bool = True
     use_rsc = True
     bm_symbol = 'VN30'
-    inlude_bm = True
+    include_bm = True
 
     # for multi symbols
     @vbt.cached_method
     def run(self, output_bool=False, calledby='add') -> bool:
-        # workaroud for None value
-        if self.param_dict['WFO'] == 'None':
-            self.param_dict['WFO'] = False
-
         stocks_df = self.stocks_df
 
         if calledby == 'add' or self.param_dict['WFO']:
@@ -61,8 +57,8 @@ class MMARSStrategy(BaseStrategy):
             group_list.extend([n]*num_symbol)
         group_by = pd.Index(group_list, name='group')
 
-        if self.param_dict['WFO']:
-            entries, exits = self.maxSR_WFO(
+        if self.param_dict['WFO'] != 'None':
+            entries, exits = self.maxRARM_WFO(
                 stocks_df, entries, exits, 'y', group_by)
             pf = vbt.Portfolio.from_signals(stocks_df,
                                             entries=entries, exits=exits,

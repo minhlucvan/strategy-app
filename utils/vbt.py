@@ -42,7 +42,7 @@ def show_pffromfile(vbtpf):
     pf = vbt.Portfolio.loads(vbtpf)
     plot_pf(pf)
 
-def plot_pf(pf, name= "", select=True, bm_symbol=None, bm_price=None, show_recents=True):
+def plot_pf(pf, name= "", select=True, bm_symbol=None, bm_price=None, show_recents=True, symbols=None):
     ## select control wheather display the subplots multiselect box
     ## bm_symbol is benchmark symbol, bm_price is benchmark's daily prices
     if len(pf.orders.records_readable) == 0:
@@ -101,6 +101,8 @@ def plot_pf(pf, name= "", select=True, bm_symbol=None, bm_price=None, show_recen
                 result = column  # 'APPL'
             elif type(column)==tuple and type(column[-1])==str:
                 result = column[-1]  # (10, 5, 'APPL')
+            elif isinstance(symbols, list):
+                result = symbols[0]  # ['APPL']
             else:
                 result = name.split('_')[-1]    # name = 'APPL
             return result

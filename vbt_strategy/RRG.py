@@ -19,7 +19,7 @@ class RRGStrategy(BaseStrategy):
     stacked_bool = True
     output_bool = False
     bm_symbol = 'VN30'
-    inlude_bm = True
+    include_bm = True
 
     @vbt.cached_method
     def run(self, calledby='add'):
