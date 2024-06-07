@@ -74,6 +74,10 @@ class BaseStrategy(object):
         
         self.stocks_df = get_stocks(symbolsDate_dict_cp, column='close')
         
+        if self.inlude_bm and self.bm_symbol is not None:
+            self.bm_price = self.stocks_df[self.bm_symbol]
+            self.stocks_df = self.stocks_df.drop(self.bm_symbol, axis=1)
+        
     def init_stocks(self, symbolsDate_dict:dict):
         for symbol in symbolsDate_dict['symbols']:
             if symbol!='':
@@ -84,17 +88,16 @@ class BaseStrategy(object):
                     self.stock_dfs.append((symbol, stock_df))
 
     def init_rsc(self):
-        if self.bm_symbol is None:
-            raise ValueError("bm_symbol is not defined")
-        
+        if self.bm_price is None:
+            raise ValueError("Benchmark price is not initialized please config bm_symbol and include_bm to True")
+                
         if self.stacked_bool:
-            raise ValueError("stacked_bool is not supported for rsc")
-        
-        self.benchmark_df = self.datas.get_stock(self.bm_symbol, self.start_date, self.end_date)
-        
-        for i in range(len(self.stock_dfs)):
-            # calculate the relative strength
-            self.stock_dfs[i][1]['close'] = self.stock_dfs[i][1]['close'] / self.benchmark_df['close']
+            for col in self.stocks_df.columns.get_level_values(0).unique():
+                self.stocks_df[col] = self.stocks_df[col] / self.bm_price
+        else:
+            for i in range(len(self.stock_dfs)):
+                # calculate the relative strength
+                self.stock_dfs[i][1]['close'] = self.stock_dfs[i][1]['close'] / self.bm_price['close']
 
     def log(self, txt, dt=None, doprint=False):
         pass
@@ -123,6 +126,10 @@ class BaseStrategy(object):
         '''
         self.param_dict.update(param)
         self.output_bool = output_bool
+        
+        if self.param_dict['WFO'] == 'None':
+            self.param_dict['WFO'] = False
+        
         # try:
         if True:
             if self.run(calledby='add'):

@@ -17,6 +17,8 @@ from .DivArb import DivArbStrategy
 from .IssArb import IssArbStrategy
 from .MARS import MARSStrategy
 from .RRG import RRGStrategy
+from .MMA import MMAStrategy
+from .MMARS import MMARSStrategy
 
 
 __all__ = [
@@ -38,7 +40,9 @@ __all__ = [
     "DivArbStrategy",
     "IssArbStrategy",
     "MARSStrategy",
-    "RRGStrategy"
+    "RRGStrategy",
+    "MMAStrategy",
+    "MMARSStrategy"
 ]
 
 strategy_list = [
@@ -60,5 +64,7 @@ strategy_list = [
     "DivArb",
     "IssArb",
     "MARS",
-    "RRG"
+    "RRG",
+    "MMA",
+    "MMARS"
 ]
