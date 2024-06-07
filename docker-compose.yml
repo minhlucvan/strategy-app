@@ -62,5 +62,5 @@ services:
     environment:
       REPO_URL: https://github.com/minhlucvan/strategy-app.git
       GIT_BRANCH: master
-      INTERVAL: 300
+      # INTERVAL: 3
       
