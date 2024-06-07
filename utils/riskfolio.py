@@ -3,6 +3,7 @@ import numpy as np
 import pandas as pd
 import plotly.express as px
 import matplotlib.pyplot as plt
+import matplotlib.cm
 from datetime import datetime
 import riskfolio as rp
 import vectorbt as vbt
@@ -10,32 +11,37 @@ import vectorbt as vbt
 from utils.processing import AKData
 from utils.vbt import get_pfByWeight,  plot_pf
 
+import matplotlib.pyplot as plt
+from datetime import datetime
+import riskfolio as rp  # Assuming these functions are from the Riskfolio-Lib
+
 def report(
-        returns,
-        w,
-        rm="MV",
-        rf=0,
-        alpha=0.05,
-        others=0.05,
-        nrow=25,
-        height=6,
-        width=14,
-        t_factor=252,
-        ini_days=1,
-        days_per_year=252,
-        bins=50,
-    ):
-    
+    returns,
+    w,
+    rm="MV",
+    rf=0,
+    alpha=0.05,
+    others=0.05,
+    nrow=25,
+    height=6,
+    width=14,
+    t_factor=252,
+    ini_days=1,
+    days_per_year=252,
+    bins=50,
+):
     cov = returns.cov()
     nav = returns.cumsum()
 
+    # Create a figure with a specific layout
     fig, ax = plt.subplots(
         nrows=6,
         figsize=(width, height * 6),
         gridspec_kw={"height_ratios": [2, 1, 1.5, 1, 1, 1]},
     )
 
-    ax[0] = rp.plot_table(
+    # Generate table plot
+    rp.plot_table(
         returns,
         w,
         MAR=rf,
@@ -46,7 +52,12 @@ def report(
         ax=ax[0],
     )
 
-    ax[2] = rp.plot_pie(
+    # Generate drawdown plots
+    st.write(returns)
+    # rp.plot_drawdown(returns=returns, w=w, ax=[ax[1], ax[5]])
+
+    # Generate pie chart for portfolio composition
+    rp.plot_pie(
         w=w,
         title="Portfolio Composition",
         others=others,
@@ -55,7 +66,8 @@ def report(
         ax=ax[2],
     )
 
-    ax[3] = rp.plot_risk_con(
+    # Generate risk contribution plot
+    rp.plot_risk_con(
         w=w,
         cov=cov,
         returns=returns,
@@ -66,26 +78,30 @@ def report(
         ax=ax[3],
     )
 
-    ax[4] = rp.plot_hist(returns=returns, w=w, alpha=alpha, bins=bins, ax=ax[4])
+    # Generate histogram plot
+    rp.plot_hist(returns=returns, w=w, alpha=alpha, bins=bins, ax=ax[4])
 
-    ax[[1, 5]] = rp.plot_drawdown(nav=nav, w=w, alpha=alpha, ax=ax[[1, 5]])
-
+    # Adding titles and subtitles
     year = str(datetime.now().year)
-
     title = "Riskfolio-Lib Report"
     subtitle = "Copyright (c) 2020-" + year + ", Dany Cajas. All rights reserved."
 
     fig.suptitle(title, fontsize="xx-large", y=1.011, fontweight="bold")
     ax[0].set_title(subtitle, fontsize="large", ha="center", pad=10)
 
-    return fig
+    # Display the plot
+    st.pyplot(fig)
 
-def get_pfOpMS(stocks_df, rm="MV"):
+# Example usage:
+# report(returns, w)
+
+
+def get_pfOpMS(stocks_df, rm="MV", show_report=False):
     '''
     calculate portfolio Optimized max sharpe ratio
     '''
     pct_df = pd.DataFrame()
-    stocks_df.dropna(axis=1,how='any', inplace=True)
+    stocks_df.dropna(axis=1, how='any', inplace=True)
     for symbol in stocks_df.columns:
         pct_df[symbol] = stocks_df[symbol].pct_change().dropna()
     port = rp.Portfolio(returns=pct_df)
@@ -100,9 +116,8 @@ def get_pfOpMS(stocks_df, rm="MV"):
     l = 0 # Risk aversion factor, only useful when obj is 'Utility'
     weights_df = port.optimization(model=model, rm=rm, obj=obj, rf=rf, l=l, hist=hist)
 
-    # fig = report(stocks_df, w, rm='MV', rf=0, alpha=0.05, height=6, width=14, others=0.05, nrow=25)
-    # st.pyplot(fig)
-   
+    if show_report:
+        report(stocks_df, weights_df, rm='MV', rf=0, alpha=0.05, height=6, width=14, others=0.05, nrow=25)   
     # Calculate returns of portfolio with optimized weights
     pfs_df=stocks_df.copy()
     pfs_df['Optimized Portfolio'] = 0
@@ -154,3 +169,4 @@ def plot_AssetsClusters(stocks_df):
                       #linecolor='tab:purple',
                       ax=ax)
     st.pyplot(fig)
+    

@@ -175,7 +175,10 @@ def main():
 
         # optimize portfolio
         pf = get_pfOpMS(value_df)
-        plot_pf(pf, select=False, name=f"Optimized Portfolio", show_recents=False)
+    
+        show_details = st.checkbox("Show Details")
+        if show_details:
+            plot_pf(pf, select=False, name=f"Optimized Portfolio", show_recents=False)
 
         if len(selected_pfs) == 2:
             if st.button("PairTrade"):
