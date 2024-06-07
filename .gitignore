@@ -6,3 +6,4 @@ try_*
 *.pyc
 caches/
 cache/
+airflow/
