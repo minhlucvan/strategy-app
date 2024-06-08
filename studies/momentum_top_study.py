@@ -1,6 +1,125 @@
 import streamlit as st
 from datetime import datetime, timedelta
 
+import numpy as np
+import pandas as pd
+
+@st.cache_data(ttl = 28800,show_spinner=False)
+def return_by_m_month(df, m):
+    return df.rolling(m).apply(np.prod)
+
+def get_top(month, mom, months_ret):
+    top = mom.columns
+    for n, ret in months_ret:
+        top = ret.loc[month, top].nlargest(n).index
+    return top
+
+def performance(month, strategy_exposure, mom, months_ret):
+    top = get_top(month, mom, months_ret)
+    mon_top = mom.loc[month:, top]
+    cur_mon_top = mon_top[:1]  # current month performance
+    next_mon_top = mon_top[1:2]  # next month performance
+
+    # Apply transaction cost = 0.1%
+    next_mon_top = next_mon_top - 0.001
+
+    # Apply tax = 0.1%
+    next_mon_top = next_mon_top - 0.001
+
+    portfolio = next_mon_top
+
+    # Apply strategy exposure
+    cash = 1 - strategy_exposure
+    portfolio = portfolio * strategy_exposure + cash
+
+    perf = portfolio.mean(axis=1).values[0]
+    return perf, next_mon_top
+
+def performance_raw(month, mom, months_ret):
+    top = get_top(month, mom, months_ret)
+    mon_top = mom.loc[month:, top]
+    cur_mon_top = mon_top[:1]  # current month performance
+    
+    portfolio = cur_mon_top
+
+    return portfolio
+
+
+
+def calculate_drawdown(returns_list):
+    drawdowns = []
+    max_return = 0
+    for r in returns_list:
+        max_return = max(max_return, r)
+        drawdown = (r - max_return) / max_return
+        drawdowns.append(drawdown)
+    return drawdowns
+
+def adjust_exposure_for_drawdown(portfolio_values, max_drawdown_threshold, target_exposure):
+    drawdown = calculate_drawdown(portfolio_values)
+    if drawdown[-1] < -0.3:
+        return target_exposure / 3
+
+    if drawdown[-1] < -max_drawdown_threshold:
+        return target_exposure / 2  # Reduce exposure by half during significant drawdowns
+    return target_exposure
+
+def pd_pct_view(df):
+    for c in df.columns:
+        df[c] = df[c].apply(lambda x: (f'{x:.2%}'))
+    return df
+
+def compute(df, filters, target_exposure, risk_management='Drawdown Control'):
+    # Month over month percent change
+    mom = df.pct_change() + 1
+    months_ret = [[n, return_by_m_month(mom, m)] for n, m in filters]
+
+    returns = []
+    drawdowns = []
+    assets = []
+
+    strategy_exposure = target_exposure
+
+    for month in mom.index[:-1]:
+        if len(returns) > 1 and risk_management == 'Drawdown Control':
+            strategy_exposure = adjust_exposure_for_drawdown(returns, 0.25, target_exposure)
+
+        perf, top_df = performance(month, strategy_exposure, mom, months_ret)
+        assets.append(top_df)
+        returns.append(perf)
+        drawdown = calculate_drawdown(returns)
+        drawdowns.append(drawdown[-1])
+
+    # Return of the first 12 months not considered
+    returns = pd.Series(returns[12:], index=mom.index[13:])
+    # Apply index to drawdowns
+    drawdowns = pd.Series(drawdowns[12:], index=mom.index[13:])
+    
+    return returns, drawdowns, assets
+
+# input df and filters
+# output list of sizes of each symbol by month
+def compute_sizes(df, filters):
+    sizes_df = pd.DataFrame(index=df.index, columns=df.columns)
+    
+    # fill with 0
+    sizes_df = sizes_df.fillna(0)
+    
+    # Month over month percent change
+    mom = df.pct_change() + 1
+    months_ret = [[n, return_by_m_month(mom, m)] for n, m in filters]
+    
+    for month in mom.index:
+        top_df = performance_raw(month, mom, months_ret)
+        
+        top_len = len(top_df.columns)
+        size = 1 / top_len
+            
+        for col in top_df.columns:
+            sizes_df.loc[month, col] =  size
+
+    return sizes_df
+    
 def run(symbol_benchmark, symbolsDate_dict):
     '## Price History Trend'
     st.info('For optimal viewing, use a PC or tablet or rotate your mobile device to landscape.')
@@ -219,89 +338,11 @@ def run(symbol_benchmark, symbolsDate_dict):
         if show_price:
             st.dataframe(df, use_container_width=True)
 
-        
-        @st.cache_data(ttl = 28800,show_spinner=False)
-        def return_by_m_month(df,m):
-            return df.rolling(m).apply(np.prod)
-
-        def get_top(month):
-            top = mom.columns
-            for n,ret in months_ret:
-                top = ret.loc[month,top].nlargest(n).index
-            return top
-
-        def performance(month, strategy_exposure):
-            top = get_top(month)
-            mon_top = mom.loc[month:,top]
-            cur_mon_top = mon_top[:1] # current month performance
-            next_mon_top = mon_top[1:2] # next month performance
-
-            # apply transaction cost = 0,1%
-            next_mon_top = next_mon_top - 0.001
-
-            # apply tax =  0,1%
-            next_mon_top = next_mon_top - 0.001
-
-            portfolio = next_mon_top
-            
-            # apply strategy exposure
-            cash = 1 - strategy_exposure
-            portfolio = portfolio * strategy_exposure + cash
-            
-            perf = portfolio.mean(axis=1).values[0]
-            return perf, next_mon_top
-        
-        # Drawdown Control Algorithm
-        def calculate_drawdown(returns_list):
-            drawdowns = []
-            max_return = 0
-            for r in returns_list:
-                max_return = max(max_return, r)
-                drawdown = (r - max_return) / max_return
-                drawdowns.append(drawdown)
-            return drawdowns
-
-        def adjust_exposure_for_drawdown(portfolio_values, max_drawdown_threshold, target_exposure):
-            drawdown = calculate_drawdown(portfolio_values)
-            if drawdown[-1] < -0.3:
-                return target_exposure / 3
-
-            if drawdown[-1] < -max_drawdown_threshold:
-                return target_exposure / 2  # Reduce exposure by half during significant drawdowns
-            return target_exposure
-
-        @st.cache_data(ttl = 28800,show_spinner=False)
-        def pd_pct_view(df):
-            for c in df.columns:
-                df[c] = df[c].apply(lambda x: (f'{x:.2%}'))
-            return df
-
+    
         with st.spinner('Computing...'):
-            # Month over month precent change
-            mom = df.pct_change()+1
-            months_ret = [[n,return_by_m_month(mom,m)] for n,m in filters]
-
-            returns = []
-            drawdowns = []
-            assets = []
-            
-            strategy_exposure = target_exposure
-            
-            for month in mom.index[:-1]:
-                if len(returns) > 1 and risk_management == 'Drawdown Control':
-                    strategy_exposure = adjust_exposure_for_drawdown(returns, 0.25, target_exposure)
-                
-                perf, top_df = performance(month, strategy_exposure)
-                assets.append(top_df)
-                returns.append(perf)
-                drawdown = calculate_drawdown(returns)
-                drawdowns.append(drawdown[-1])
-
-
-            # Return of the first 12 months not consider
-            returns = pd.Series(returns[12:],index=mom.index[13:])
-            # apply index to drawdowns
-            drawdowns = pd.Series(drawdowns[12:],index=mom.index[13:])
+            mom = df.pct_change() + 1
+            months_ret = [[n, return_by_m_month(mom, m)] for n, m in filters]
+            returns, drawdowns, assets = compute(df, filters, target_exposure, risk_management=risk_management)
             
         st.success('Computation success!')
                 
@@ -362,7 +403,7 @@ def run(symbol_benchmark, symbolsDate_dict):
         current = mom.index[-2]
         
         # Portfolio returns daily
-        top_tickers = get_top(current).to_list()
+        top_tickers = get_top(current, mom, months_ret).to_list()
         daily_return_df = get_daily_return(pool, top_tickers, start_date)
         
         # filter daily return where index > current
@@ -421,10 +462,10 @@ def run(symbol_benchmark, symbolsDate_dict):
             st.write("### Live Trading")
             
             last_month = mom.index[-2]
-            last_top = get_top(last_month)
+            last_top = get_top(last_month, mom, months_ret)
             
             next_month = mom.index[-1]
-            next_top = get_top(next_month)
+            next_top = get_top(next_month, mom, months_ret)
             
             st.write(f'Portfolio turnover for **{next_month}**')
             # sell assets

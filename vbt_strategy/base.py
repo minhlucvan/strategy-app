@@ -27,7 +27,7 @@ class BaseStrategy(object):
     stock_dfs = []
     symbols = []
     market = ''
-    pf_kwargs = dict(fees=0.0005, slippage=0.001, sl_stop=0.15, freq='1D')
+    pf_kwargs = dict(fees=0.0005, slippage=0.001, freq='1D')
     pf = None
     output_bool = False
     stacked_bool = False
@@ -38,6 +38,7 @@ class BaseStrategy(object):
     include_bm = False
     rs_dfs = None
     rs_df = None
+    timeframe = 'D'
     
     def __init__(self, symbolsDate_dict:dict):
         self.symbolsDate_dict = symbolsDate_dict
@@ -70,11 +71,11 @@ class BaseStrategy(object):
     
     def get_stocks_stacked(self, symbolsDate_dict:dict):
         symbolsDate_dict_cp = symbolsDate_dict.copy()
-        
         if self.include_bm and self.bm_symbol is not None:
-            symbolsDate_dict_cp['symbols'].append(self.bm_symbol)
-        
-        self.stocks_df = get_stocks(symbolsDate_dict_cp, column='close')
+            if self.bm_symbol not in symbolsDate_dict_cp['symbols']:
+                symbolsDate_dict_cp['symbols'].append(self.bm_symbol)
+            
+        self.stocks_df = get_stocks(symbolsDate_dict_cp, column='close', timeframe=self.timeframe)
         
         if self.include_bm and self.bm_symbol is not None:
             self.bm_price = self.stocks_df[self.bm_symbol]
@@ -83,7 +84,7 @@ class BaseStrategy(object):
     def init_stocks(self, symbolsDate_dict:dict):
         for symbol in symbolsDate_dict['symbols']:
             if symbol!='':
-                stock_df = self.datas.get_stock(symbol, self.start_date, self.end_date)
+                stock_df = self.datas.get_stock(symbol, self.start_date, self.end_date, timeframe=self.timeframe)
                 if stock_df.empty:
                     print(f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
                 else:

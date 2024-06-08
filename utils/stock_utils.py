@@ -18,8 +18,8 @@ from utils.misc import retry
 CACHE_TTL = 60 * 60 * 24  # 1 day
 requests = requests_cache.CachedSession('cache/demo_cache', expire_after=CACHE_TTL, allowable_codes=[200])
 
-MAX_RETRIES = 5
-RETRY_WAIT_TIME = 3
+MAX_RETRIES = 10
+RETRY_WAIT_TIME = 10
 
 
 def get_stock_bars(ticker, time, stock_type, count_back, resolution='1'):
@@ -192,16 +192,24 @@ def get_stock_bars_very_long_term_cached(
     start_date=None,
     end_date=None
 ):
+    if resolution == '1D':
+        resolution = 'D'
+    elif resolution == '1W':
+        resolution = 'W'
+    elif resolution == '1M':
+        resolution = 'M'
+        
+    mindays = 1
+    if resolution == 'W':
+        mindays = 8
+    elif resolution == 'M':
+        mindays = 32
+        
     resolution_slug = f"_{resolution.lower()}" if resolution != 'D' else ''
 
     long_terms_cache_file = f'./data/prices/{stock_type}_{ticker}{resolution_slug}.csv'
     short_terms_cache_file = f'./data/caches/{stock_type}_{ticker}{resolution_slug}_{datetime.now().strftime("%Y%m%d")}.csv'
 
-    mindays = 1
-    if resolution == 'W':
-        mindays = 7
-    elif resolution == 'M':
-        mindays = 30
 
     if os.path.exists(long_terms_cache_file) and not invalidate_cache_file(long_terms_cache_file, mindays=mindays) and not refresh:
         print(f'Loading data from csv file: {long_terms_cache_file}')
@@ -2068,4 +2076,31 @@ def get_stock_ratio(ticker='MWG'):
     else:
         print(f"Request failed with status code {response.status_code}")
         return None
+
+def get_last_trading_date():
+    # Get the last trading date
+    res = get_stock_bars_long_term(ticker='VN30', stock_type='index', count_back=1)
     
+    data = res['data']
+    
+    last_data = data[-1]
+    
+    tradingDate = last_data['tradingDate'] #'2024-06-07T00:00:00.000Z'
+    
+    tradingDate = datetime.strptime(tradingDate, '%Y-%m-%dT%H:%M:%S.%fZ')
+    
+    return tradingDate
+    
+def get_first_trade_date_of_week():
+    # Get the first trading date of the week
+    res = get_stock_bars_long_term(ticker='VN30', stock_type='index',  resolution='W', count_back=1)
+    
+    data = res['data']
+    
+    first_data = data[-1]
+    
+    tradingDate = first_data['tradingDate'] #'2024-06-07T00:00:00.000Z'
+    
+    tradingDate = datetime.strptime(tradingDate, '%Y-%m-%dT%H:%M:%S.%fZ')
+    
+    return tradingDate

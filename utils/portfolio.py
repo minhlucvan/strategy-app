@@ -12,6 +12,7 @@ import vectorbt as vbt
 import streamlit as st
 
 from utils.db import init_connection, get_SymbolName
+from utils.stock_utils import get_last_trading_date
 
 warnings.filterwarnings('ignore')
 # Initialize connection.
@@ -224,10 +225,11 @@ class Portfolio(object):
 
         return True
 
-    def check_records(self, dt: date) -> pd.DataFrame:
+    def check_records(self, dt: date,  last_trading_date=None, first_trade_date_of_week=None) -> pd.DataFrame:
         '''
         Check all the portfolios which there're transations on dt:date
         '''
+        is_today = dt == date.today()
         results = []
         for i in self.df.index:
             try:
@@ -235,16 +237,28 @@ class Portfolio(object):
                 records_df = pf.orders.records_readable.sort_values(by=[
                                                                     'Timestamp'])
                 records_df['date'] = records_df['Timestamp'].dt.date
-                records_df = records_df[records_df['date'] == dt]
+                name = self.df.loc[i, 'name']
+                # TODO: store the timeformat in the database
+                if name.startswith('MOMTOP_'):
+                    st.write(records_df.tail())
+                    # MONTOP is weekly strategy so we need to check the first trading day of the week
+                    records_df = records_df[records_df['date'] == pd.to_datetime(first_trade_date_of_week).date()]
+                elif is_today:
+                    records_df = records_df[records_df['date'] == pd.to_datetime(last_trading_date).date()]
+                else:
+                    records_df = records_df[records_df['date'] == dt]
+
                 if len(records_df) > 0:
                     for index, row in records_df.iterrows():
                         symbol_str = self.df.loc[i, 'symbols']
-                        if type(row['Column']) == tuple and type(row['Column'][-1]) == str:
+                        if type(row['Column']) == str:
+                            symbol_str = row['Column']  
+                        elif type(row['Column']) == tuple and type(row['Column'][-1]) == str:
                             symbol_str = row['Column'][-1]
                         
                         record = row.to_dict()
                         record['Symbol'] = symbol_str
-                        record['Name'] = self.df.loc[i, 'name']
+                        record['Name'] = name
                         
                         # drop column
                         record.pop('Column')

@@ -19,6 +19,7 @@ from .MARS import MARSStrategy
 from .RRG import RRGStrategy
 from .MMA import MMAStrategy
 from .MMARS import MMARSStrategy
+from .MOMTOP import MOMTOPStrategy
 
 
 __all__ = [
@@ -42,7 +43,8 @@ __all__ = [
     "MARSStrategy",
     "RRGStrategy",
     "MMAStrategy",
-    "MMARSStrategy"
+    "MMARSStrategy",
+    "MOMTOPStrategy"
 ]
 
 strategy_list = [
@@ -66,5 +68,6 @@ strategy_list = [
     "MARS",
     "RRG",
     "MMA",
-    "MMARS"
+    "MMARS",
+    "MOMTOP"
 ]

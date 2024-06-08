@@ -26,7 +26,7 @@ class RRGStrategy(BaseStrategy):
     def run(self, calledby='add'):
         stocks_df = self.stocks_df
         bm_df = self.bm_price
-        
+         
         rs_ratio = [98, 99, 100, 101, 102],
         rs_momentum = [98, 98.5, 99, 99.5, 100, 100.5, 101, 101.5, 102],
         rs_window = [60, 100, 150, 200, 225, 250, 275, 300]

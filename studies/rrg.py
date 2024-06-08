@@ -353,6 +353,7 @@ windows = [60, 100, 150, 200, 225, 250, 275, 300]
     
     RRG_indicator = get_RRGInd().run(prices=stocks_df[sSel], bm_price=bm_price, ratio=rs_ratio_mins, momentum=rs_momentum_mins, window=windows, param_product=True)
     sizes = RRG_indicator.size.shift(periods=1)
+    
     init_vbtsetting()
     pf_kwargs = dict(fees=0.001, slippage=0.001, freq='1D')
     pf = vbt.Portfolio.from_orders(

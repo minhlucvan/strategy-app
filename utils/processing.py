@@ -38,7 +38,7 @@ def get_us_stock(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
 
 
 @lru_cache
-def get_vn_stock(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
+def get_vn_stock(symbol: str, start_date: str, end_date: str, timeframe='1D') -> pd.DataFrame:
     """get vietnam stock data
 
     Args:
@@ -59,7 +59,7 @@ def get_vn_stock(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
         ticker=symbol,
         stock_type='stock',
         count_back=300,
-        resolution="D",
+        resolution=timeframe,
         start_date=start_date,
         end_date=end_date,
     )
@@ -75,7 +75,7 @@ def get_vn_stock(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
     return stock_df   
 
 @lru_cache
-def get_vn_index(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
+def get_vn_index(symbol: str, start_date: str, end_date: str, timeframe='D') -> pd.DataFrame:
     """get vietnam stock data
 
     Args:
@@ -96,7 +96,7 @@ def get_vn_index(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
         ticker=symbol,
         stock_type='index',
         count_back=300,
-        resolution="D",
+        resolution=timeframe,
         start_date=start_date,
         end_date=end_date,
     )
@@ -271,7 +271,7 @@ class AKData(object):
         self.market = market
 
     @vbt.cached_method
-    def get_stock(self, symbol: str, start_date: datetime.datetime, end_date: datetime.datetime) -> pd.DataFrame:
+    def get_stock(self, symbol: str, start_date: datetime.datetime, end_date: datetime.datetime, timeframe='1D') -> pd.DataFrame:
         stock_df = pd.DataFrame()
         print(f"AKData-get_stock: {symbol}, {self.market}")
         symbol_df = load_symbol(symbol)
@@ -294,7 +294,7 @@ class AKData(object):
 
             try:
                 stock_df = eval(func)(symbol=symbol_full, start_date=start_date.strftime(
-                    "%Y%m%d"), end_date=end_date.strftime("%Y%m%d"))
+                    "%Y%m%d"), end_date=end_date.strftime("%Y%m%d"), timeframe=timeframe)
             except Exception as e:
                 print(f"AKData-get_stock {func} error: {e}")
 
@@ -432,13 +432,13 @@ class AKData(object):
 #     return stock_dfs
 
 @st.cache_data
-def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level='factor'):
+def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level='factor', timeframe='D'):
     datas = AKData(symbolsDate_dict['market'])
     stocks_dfs = {}
     for symbol in symbolsDate_dict['symbols']:
         if symbol != '':
             stock_df = datas.get_stock(
-                symbol, symbolsDate_dict['start_date'], symbolsDate_dict['end_date'])
+                symbol, symbolsDate_dict['start_date'], symbolsDate_dict['end_date'], timeframe)
             if stock_df.empty:
                 print(
                     f"Warning: stock '{symbol}' is invalid or missing. Ignore it")

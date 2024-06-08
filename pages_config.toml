@@ -29,11 +29,6 @@ name = "Simulator"
 icon = ":test_tube:"
 
 [[pages]]
-path = "pages/Stock.py"
-name = "Stock Details"
-icon = ":scroll:"
-
-[[pages]]
 path = "pages/Strategy.py"
 name = "Strategy"
 icon = ":gear:"
@@ -42,3 +37,8 @@ icon = ":gear:"
 path = "pages/Study.py"
 name = "Study"
 icon = ":books:"
+
+[[pages]]
+path = "pages/Stock.py"
+name = "Stock Details"
+icon = ":scroll:"

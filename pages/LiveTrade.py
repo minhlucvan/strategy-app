@@ -7,6 +7,7 @@ import json
 import streamlit as st
 
 from utils.riskfolio import get_pfOpMS
+from utils.stock_utils import get_first_trade_date_of_week, get_last_trading_date
 
 st.set_page_config(page_title="BForecast Strategy App")
 
@@ -111,13 +112,14 @@ def main():
         # show_PortforlioDetail(portfolio.df, index)
 
     ##无选择portforlio
-    num_portfolio = len(portfolio.df)
-    for i in range(num_portfolio):
+    for index in selected_pfs:
         # st.write(f"updating portfolio('{portfolio.df.iloc[i]['name']}')")
-        if not portfolio.update(portfolio.df.iloc[i]['id']):
-            st.error(f"Fail to update portfolio('{portfolio.df.iloc[i]['name']}')")
-            
-    check_df = portfolio.check_records(dt=today)
+        if not portfolio.update(portfolio.df.loc[index]['id']):
+            st.error(f"Fail to update portfolio('{portfolio.df.iloc[index]['name']}')")
+
+    last_trading_date = get_last_trading_date()
+    first_trade_date_of_week =  get_first_trade_date_of_week()
+    check_df = portfolio.check_records(dt=today, last_trading_date=last_trading_date, first_trade_date_of_week=first_trade_date_of_week)
 
     # send the notification to telegram users
     if len(check_df) == 0:
