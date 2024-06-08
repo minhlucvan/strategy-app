@@ -38,6 +38,7 @@ class BaseStrategy(object):
     include_bm = False
     rs_dfs = None
     rs_df = None
+    is_live = False
     timeframe = 'D'
     
     def __init__(self, symbolsDate_dict:dict):

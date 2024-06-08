@@ -30,10 +30,16 @@ class Portfolio(object):
     """
     manage the database of portforlio, the pf file in directory
     """
-
-    def __init__(self):
+    allocation_dict =  {}
+    is_live = False
+    
+    def __init__(self, is_live=False):
         self.df = pd.read_sql("SELECT * FROM portfolio", connection)
         self.df.set_index('id', inplace=True, drop=False)
+        self.is_live = is_live
+
+    def allocate(self, allocation_dict: dict):
+        self.allocation_dict = allocation_dict
 
     def add(self, symbolsDate_dict: dict, strategyname: str, strategy_param, pf, description="desc", name=None) -> bool:
         """
@@ -240,7 +246,6 @@ class Portfolio(object):
                 name = self.df.loc[i, 'name']
                 # TODO: store the timeformat in the database
                 if name.startswith('MOMTOP_'):
-                    st.write(records_df.tail())
                     # MONTOP is weekly strategy so we need to check the first trading day of the week
                     records_df = records_df[records_df['date'] == pd.to_datetime(first_trade_date_of_week).date()]
                 elif is_today:
@@ -272,9 +277,37 @@ class Portfolio(object):
                 continue
         
         result_df = pd.DataFrame(results)
-
+        if self.is_live:
+            result_df = self.ajust_positions(result_df)
+                
         return result_df
 
+    def ajust_positions(self, result_df: pd.DataFrame) -> bool:
+        capital = self.allocation_dict['capital']
+        # modify position to size to match the asset allocation
+        for asset in self.allocation_dict['assets']:
+            asset_ratio = self.allocation_dict['assets'][asset]
+            
+            if asset_ratio > 1:
+                asset_ratio = asset_ratio / 100.0
+            
+            asset_capital = capital * asset_ratio
+            asset_trades_df = result_df[result_df['Name'] == asset]
+            asset_buy_df = asset_trades_df[asset_trades_df['Side'] == 'Buy']
+            num_asset_buy = len(asset_buy_df)
+            buy_capital = asset_capital / num_asset_buy
+                        
+            for i, row in asset_buy_df.iterrows():
+                price = row['Price']
+                size = int(buy_capital / price)
+                
+                size = max(size, 100)
+                
+                size = size - size % 100
+                
+                result_df.loc[i, 'Size'] = size
+                
+        return result_df
     def get_byName(self, svalue: str = 'MOM_AAPL') -> pd.DataFrame:
         result_df = self.df[self.df['name'] == svalue]
         return result_df

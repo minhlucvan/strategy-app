@@ -5,7 +5,7 @@ icon = ":bar_chart:"
 
 [[pages]]
 path = "pages/Fund.py"
-name = "Fund Overview"
+name = "Funding"
 icon = ":moneybag:"
 
 [[pages]]

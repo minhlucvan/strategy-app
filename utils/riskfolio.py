@@ -96,14 +96,15 @@ def report(
 # report(returns, w)
 
 
-def get_pfOpMS(stocks_df, rm="MV", show_report=False):
+def get_pfOpMS(stocks_df, rm="MV", show_report=False, return_w=False, plot=True):
     '''
     calculate portfolio Optimized max sharpe ratio
     '''
     pct_df = pd.DataFrame()
-    stocks_df.dropna(axis=1, how='any', inplace=True)
+    
     for symbol in stocks_df.columns:
         pct_df[symbol] = stocks_df[symbol].pct_change().dropna()
+        
     port = rp.Portfolio(returns=pct_df)
     method_mu='hist'
     method_cov='hist'
@@ -129,12 +130,18 @@ def get_pfOpMS(stocks_df, rm="MV", show_report=False):
     for symbol, row in weights_df.iterrows():
         pfs_df['Optimized Portfolio'] += stocks_df[symbol].pct_change() * row["weights"] * 100
         i+=1
-	# Display everything on Streamlit
+	
+ # Display everything on Streamlit
     weights_df['Ticker'] = weights_df.index
-    fig = px.pie(weights_df.iloc[0:10], values='weights', names='Ticker', title='Optimized Max Shape Portfolio Weights')
-    st.plotly_chart(fig)
+    if plot:
+        fig = px.pie(weights_df.iloc[0:10], values='weights', names='Ticker', title='Optimized Max Shape Portfolio Weights')
+        st.plotly_chart(fig)
+    
     # Plot Optimized Portfolio
     pf = get_pfByWeight(stocks_df, weights_df['weights'].values)
+    if return_w:
+        return pf, weights_df
+    
     return pf
 
 def FactorExposure(main_df:pd.DataFrame, factors_df:pd.DataFrame)-> pd.DataFrame:

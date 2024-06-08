@@ -3,9 +3,11 @@ import numpy as np
 import pytz
 from datetime import datetime, date
 import json
+import plotly.graph_objects as go
 
 import streamlit as st
 
+from utils.local_fund import fe_local_fund
 from utils.riskfolio import get_pfOpMS
 from utils.stock_utils import get_first_trade_date_of_week, get_last_trading_date
 
@@ -92,9 +94,14 @@ def main():
     # select date on the sidebar
     today = st.sidebar.date_input("Current Date", datetime.now().date())
     
-    st.header("Portfolio Board")
+    st.header("Live Trading")
     selected_pfs = []
-    portfolio = Portfolio()
+    fund = fe_local_fund(is_live=True)
+    
+    fund.readStocks()
+    
+    portfolio = fund.portfolio
+    
     selected_pfs = show_PortfolioTable(portfolio.df)
 
     ##多portfolio比较
@@ -104,6 +111,12 @@ def main():
     if len(selected_pfs) == 0:
         st.info("Please select portfolios.")
         st.stop()
+        
+    # plot pie chart for selected portfolios
+    st.markdown("#### Portfolio Allocation")
+    fund_df = fund.fund_df
+    fig = go.Figure(data=[go.Pie(labels=fund_df['Ticker'], values=fund_df['Portfolio (%)'])])
+    st.plotly_chart(fig, use_container_width=True)
     
     for index in selected_pfs:
         pf = vbt.Portfolio.loads(portfolio.df.loc[index, 'vbtpf'])
@@ -120,7 +133,8 @@ def main():
     last_trading_date = get_last_trading_date()
     first_trade_date_of_week =  get_first_trade_date_of_week()
     check_df = portfolio.check_records(dt=today, last_trading_date=last_trading_date, first_trade_date_of_week=first_trade_date_of_week)
-
+    check_df = portfolio.ajust_positions(check_df)
+    
     # send the notification to telegram users
     if len(check_df) == 0:
         st.success("No signal found.")
@@ -130,16 +144,7 @@ def main():
         signals_by_name = check_df.groupby('Name')
         for name, signals in signals_by_name:
             st.write(f"##### {name} 📊")
-            for i, row in signals.iterrows():
-                # Formatted message with Markdown and emojis
-                message = f"""
-                        - ↔️ **Side:** {row['Side']}
-                        - 💹 **Symbol:** {row['Symbol']}
-                        - 💲 **Price:** {row['Price']}
-                        - 📏 **Size:** {row['Size']}
-                        - 🕒 **Timestamp:** {row['Timestamp']}
-                        """
-                st.markdown(message)
+            st.dataframe(signals[['Side', 'Symbol', 'Price', 'Size', 'Timestamp']], use_container_width=True)
 
 if __name__ == "__main__":
     if check_password():
