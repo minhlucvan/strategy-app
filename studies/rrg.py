@@ -328,25 +328,30 @@ def plot_RRG(symbol_benchmark, stocks_df):
     plot_AnimateRRG(rs_ratio_df, sSel, tail_length)
 
 # @vbt.cached_method
-def RRG_Strategy(symbol_benchmark, stocks_df, RARM_obj= 'sharpe_ratio', output_bool=False, ret_param=False):
+def RRG_Strategy(symbol_benchmark,
+stocks_df,
+RARM_obj= 'sharpe_ratio',
+output_bool=False,
+ret_param=False,
+bm_df=None,
+rs_ratio_mins = [98, 99, 100, 101, 102],
+rs_momentum_mins = [98, 98.5, 99, 99.5, 100, 100.5, 101, 101.5, 102],
+windows = [60, 100, 150, 200, 225, 250, 275, 300]
+):
     stocks_df[stocks_df<0] = np.nan
     symbols_target = []
     for s in stocks_df.columns:
         if s != symbol_benchmark:
             symbols_target.append(s)
     sSel = symbols_target
-    # sSel = st.multiselect("Please select symbols:", symbols_target, 
-    #                         format_func=lambda x: get_SymbolName(x)+'('+x+')', 
-    #                         default = symbols_target)
-    # Build param grid
-    rs_ratio_mins = [98, 99, 100, 101, 102]
-    rs_momentum_mins = [98, 98.5, 99, 99.5, 100, 100.5, 101, 101.5, 102]
-    windows = [60, 100, 150, 200, 225, 250, 275, 300]
 
     param_product = vbt.utils.params.create_param_product([rs_ratio_mins, rs_momentum_mins, windows])
     param_tuples = list(zip(*param_product))
     param_columns = pd.MultiIndex.from_tuples(param_tuples, names=['rs_ratio', 'rs_momentum', 'rs_window'])
-    RRG_indicator = get_RRGInd().run(prices=stocks_df[sSel], bm_price=stocks_df[symbol_benchmark], ratio=rs_ratio_mins, momentum=rs_momentum_mins, window=windows, param_product=True)
+    
+    bm_price = stocks_df[symbol_benchmark] if bm_df is None else bm_df
+    
+    RRG_indicator = get_RRGInd().run(prices=stocks_df[sSel], bm_price=bm_price, ratio=rs_ratio_mins, momentum=rs_momentum_mins, window=windows, param_product=True)
     sizes = RRG_indicator.size.shift(periods=1)
     init_vbtsetting()
     pf_kwargs = dict(fees=0.001, slippage=0.001, freq='1D')

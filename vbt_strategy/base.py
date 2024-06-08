@@ -161,7 +161,7 @@ class BaseStrategy(object):
         """
             update the strategy with the param dictiorary saved in portfolio
         """
-        if len(self.stock_dfs) == 0:
+        if not self.validate():
             return None
         else:
             for k, v in param_dict.items():
@@ -169,6 +169,7 @@ class BaseStrategy(object):
                     self.param_dict[k] = v
                 else:
                     self.param_dict[k] = [v]
+            
             self.run(calledby='update')
             return self.pf
 
@@ -186,7 +187,7 @@ class BaseStrategy(object):
         n_days = len(price)
         wfms_df = pd.DataFrame(columns=OOS, index=Runs)
 
-        update_bar = st.progress(0)
+        update_bar = st.progress(0) if calledby == 'add' else None
         max_return = float('-inf')
         max_entries = np.full_like(price, False)
         max_exits = np.full_like(price, False)
@@ -222,7 +223,8 @@ class BaseStrategy(object):
                     max_exits = tmp_exits
                     max_R = R
                     max_O = O
-            update_bar.progress((i+1) / len(Runs))
+            if calledby == 'add':
+                update_bar.progress((i+1) / len(Runs))
         if self.output_bool:
             with st.expander("RUNS/OOS annualized returns' table"):
                 st.table(wfms_df.style.format(formatter="{:.2%}").background_gradient(cmap='YlGn'),)

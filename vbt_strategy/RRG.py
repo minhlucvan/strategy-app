@@ -12,6 +12,7 @@ from utils.processing import get_stocks_events
 from .base import BaseStrategy
 from utils.vbt import plot_CSCV
 
+
 class RRGStrategy(BaseStrategy):
     '''Relative Rotation Graph strategy'''
     _name = "RRG"
@@ -24,13 +25,33 @@ class RRGStrategy(BaseStrategy):
     @vbt.cached_method
     def run(self, calledby='add'):
         stocks_df = self.stocks_df
-        self.bm_price = stocks_df[self.bm_symbol]
-           
+        bm_df = self.bm_price
+        
+        rs_ratio = [98, 99, 100, 101, 102],
+        rs_momentum = [98, 98.5, 99, 99.5, 100, 100.5, 101, 101.5, 102],
+        rs_window = [60, 100, 150, 200, 225, 250, 275, 300]
+        
+        if calledby == 'update':
+            rs_ratio = self.param_dict['rs_ratio']
+            rs_momentum = self.param_dict['rs_momentum']
+            rs_window = self.param_dict['rs_window']
+    
+
         # 5. Build portfolios
         if self.param_dict['WFO'] != 'None':
             raise NotImplementedError('WFO not implemented')
         else:
-            pf, params_dict = RRG_Strategy(self.bm_symbol, stocks_df, output_bool=True, ret_param=True, RARM_obj=self.param_dict['RARM'])
+            pf, params_dict = RRG_Strategy(
+                self.bm_symbol,
+                stocks_df,
+                output_bool=self.output_bool,
+                ret_param=True,
+                RARM_obj=self.param_dict['RARM'],
+                bm_df=bm_df,
+                rs_momentum_mins=rs_momentum,
+                rs_ratio_mins=rs_ratio,
+                windows=rs_window,
+            )
             if calledby == 'add':
                 RARMs = eval(f"pf.{self.param_dict['RARM']}()")
                 if isinstance(RARMs, pd.Series):
@@ -38,9 +59,10 @@ class RRGStrategy(BaseStrategy):
                     if self.output_bool:
                         plot_CSCV(pf, idxmax, self.param_dict['RARM'])
                     pf = pf[idxmax]
-                
+
                     self.param_dict.update(params_dict)
                 else:
                     self.param_dict.update(params_dict)
+                    
         self.pf = pf
         return True

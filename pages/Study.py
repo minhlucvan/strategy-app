@@ -29,5 +29,5 @@ if check_password():
         except Exception as e:
             raise e
     else:
-        st.write("Please select a study.")
+        st.info("Please select a study.")
         

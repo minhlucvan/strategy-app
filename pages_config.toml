@@ -1,0 +1,44 @@
+[[pages]]
+path = "pages/Dashboard.py"
+name = "Dashboard"
+icon = ":bar_chart:"
+
+[[pages]]
+path = "pages/Fund.py"
+name = "Fund Overview"
+icon = ":moneybag:"
+
+[[pages]]
+path = "pages/LiveTrade.py"
+name = "Live Trading"
+icon = ":chart_with_upwards_trend:"
+
+[[pages]]
+path = "pages/Portfolio.py"
+name = "Portfolio"
+icon = ":briefcase:"
+
+[[pages]]
+path = "pages/Screener.py"
+name = "Stock Screener"
+icon = ":mag:"
+
+[[pages]]
+path = "pages/Simmulator.py"
+name = "Simulator"
+icon = ":test_tube:"
+
+[[pages]]
+path = "pages/Stock.py"
+name = "Stock Details"
+icon = ":scroll:"
+
+[[pages]]
+path = "pages/Strategy.py"
+name = "Strategy"
+icon = ":gear:"
+
+[[pages]]
+path = "pages/Study.py"
+name = "Study"
+icon = ":books:"

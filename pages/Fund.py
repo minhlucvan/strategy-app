@@ -9,6 +9,7 @@ import akshare as ak
 
 import plotly.express as px
 import humanize
+import matplotlib.cm
 
 from utils.component import  check_password, input_dates
 from utils.dataroma import *
@@ -150,8 +151,7 @@ def run():
 
     with st.expander("Portfolio Table"):
         st.dataframe(df[['Stock', 'Portfolio (%)']]
-                            .style.format({'Portfolio (%)':'{0:,.2f}'})
-                            .background_gradient(cmap='YlGn'), 
+                            .style.format({'Portfolio (%)':'{0:,.2f}'}), 
                         use_container_width=True
                         )
 

@@ -115,7 +115,12 @@ if check_password():
         st.plotly_chart(fig_cum_returns_optimized)
         
         st.subheader("Optimized Max Sharpe Portfolio Weights")
-        st.dataframe(weights_df)
+        
+        weights_df = weights_df[weights_df.weights > 0.003]
+        
+        fig = px.pie(weights_df, values='weights', names=weights_df.index, title='Optimized Max Sharpe Portfolio Weights')
+        st.plotly_chart(fig)
+        st.plotly_chart(fig)
         
         st.subheader("Optimized Max Sharpe Portfolio Performance")
         st.image(fig_efficient_frontier)

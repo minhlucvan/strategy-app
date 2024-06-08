@@ -93,8 +93,9 @@ class DivArbStrategy(BaseStrategy):
             group_list.extend([n]*num_symbol)
         group_by = pd.Index(group_list, name='group')
 
+
         # 5. Build portfolios
-        if self.param_dict['WFO'] != 'None':
+        if calledby == 'add'  and self.param_dict['WFO'] != 'None':
             entries, exits = self.maxRARM_WFO(
                 close_price, entries, exits, calledby)
             pf = vbt.Portfolio.from_signals(

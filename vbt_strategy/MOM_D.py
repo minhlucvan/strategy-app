@@ -122,6 +122,8 @@ class MOM_DStrategy(BaseStrategy):
         smooth_period = self.param_dict['smooth_period']
         entry_threshold = self.param_dict['entry_threshold']
         exit_threshold = self.param_dict['exit_threshold']
+        
+        st.write(f"window: {window}, smooth_period: {smooth_period}, entry_threshold: {entry_threshold}, exit_threshold: {exit_threshold}")
 
         close_price = self.stock_dfs[0][1].close
         open_price = self.stock_dfs[0][1].open
@@ -129,7 +131,7 @@ class MOM_DStrategy(BaseStrategy):
         # 2. calculate the indicators
         mom_indicator = get_MomDInd().run(close_price, window=window, smooth_period=smooth_period,
                                           entry_threshold=entry_threshold, exit_threshold=exit_threshold, param_product=True)
-
+        
         # 3. remove all the name in param_def from param_dict
         for param in self.param_def:
             del self.param_dict[param['name']]

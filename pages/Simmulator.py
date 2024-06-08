@@ -2,7 +2,9 @@ import streamlit as st
 
 from utils.component import input_SymbolsDate, check_password, form_SavePortfolio, params_selector
 from utils.db import get_SymbolName
+from utils.processing import get_stocks
 from utils.vbt import display_pfbrief
+from plotly import graph_objects as go
 
 if check_password():
     symbolsDate_dict = input_SymbolsDate()
@@ -17,6 +19,13 @@ if check_password():
         
         defalut_strategies = []
         selected_strategies = st.multiselect("Please select strategies", strategy_list, defalut_strategies)
+        
+        stocks_df = get_stocks(symbolsDate_dict, 'close')
+        
+        fig = go.Figure()
+        for symbol in symbolsDate_dict['symbols']:
+            fig.add_trace(go.Scatter(x=stocks_df.index, y=stocks_df[symbol], mode='lines', name=get_SymbolName(symbol)))
+        st.plotly_chart(fig, use_container_width=True)
         
         params = params_selector({})
         for strategyname in selected_strategies:
