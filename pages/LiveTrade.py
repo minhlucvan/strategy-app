@@ -123,8 +123,6 @@ def show_trade_form(prefix, row, trader):
         execute_trade(trader, side, row['Symbol'], price, volume, price_type)
 
 def main():
-    # select date on the sidebar
-    today = st.sidebar.date_input("Current Date", datetime.now().date())
     
     trader_list =  get_trader_list()
     
@@ -140,6 +138,9 @@ def main():
     
     if account is not None:
         trader.use_account(account['id'])
+        
+    # select date on the sidebar
+    today = st.sidebar.date_input("Current Date", datetime.now().date())
     
     st.header("Live Trading")
     selected_pfs = []

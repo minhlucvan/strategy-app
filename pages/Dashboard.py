@@ -17,9 +17,6 @@ import streamlit as st
 from pages.LiveTrade import show_PortfolioTable, show_PortforlioDetail
 from utils.riskfolio import get_pfOpMS
 
-st.set_page_config(page_title="BForecast Strategy App")
-
-
 def show_PortforlioYearly(pf_row):
     end_date = date.today()
     end_date = datetime(year=end_date.year, month=end_date.month,
