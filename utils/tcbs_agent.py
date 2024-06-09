@@ -136,11 +136,21 @@ class TCBSAgent:
 
     def need_otp(self):
         return self.api.need_otp()
+    
+    def get_total_stock_of_account(self, symbol, account_id):
+        stocks_df = self.get_stocks()
+        stocks_df = stocks_df[stocks_df['accountNo'] == account_id]
+        stocks_df = stocks_df[stocks_df['symbol'] == symbol]
+        return stocks_df['volume'].sum()
 
     def place_stock_order(self, account_id, side, symbol, price, volume, order_type):
         return self.api.place_stock_order(account_id, side, symbol, price, volume, order_type)
 
-    def preorder_stock(self, type, symbol, price, price_type, volume, start_date=None, end_date=None):
+    def preorder_stock(self, type, symbol, price, price_type, volume, start_date=None, end_date=None, full_amount=False):
+        
+        if full_amount:
+            volume =  self.get_total_stock_of_account(symbol, self.account_id)
+            
         return self.api.preorder_stock(
             tcbs_id=self.tcbs_id, 
             custodyId=self.custodyId, 
