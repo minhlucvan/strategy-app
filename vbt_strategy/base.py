@@ -113,6 +113,9 @@ class BaseStrategy(object):
                 rs = self.stock_dfs[i][1]['close'] / self.bm_price
                 self.rs_dfs.append((self.stock_dfs[i][0], rs))
 
+    def enable_live(self):
+        self.is_live = True
+    
     def log(self, txt, dt=None, doprint=False):
         pass
 

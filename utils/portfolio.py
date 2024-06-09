@@ -175,6 +175,9 @@ class Portfolio(object):
             f"vbt_strategy"), f"{strategyname}Strategy")
         strategy = strategy_cli(symbolsDate_dict)
         
+        if self.is_live:
+            strategy.enable_live()
+        
         pf = strategy.update(param_dict)
         if pf is None:
             return False

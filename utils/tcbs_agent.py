@@ -6,6 +6,33 @@ import pandas as pd
 from utils.config import deep_value
 from utils.tcbs_api import TCBSAPI
 
+def load_calender_data_tp_df(data):
+    # List to store parsed data
+    parsed_data = []
+
+    # Parse the JSON data
+    for timeline_entry in data['timeline']:
+        date = timeline_entry['date']
+        for event in timeline_entry['events']:
+            event_data = {
+                'date': date,
+                'defType': event['defType'],
+                'evName': event['evName'],
+                'mkCode': event['mkCode'],
+            }
+            
+            # Add stockInfo if it exists
+            if 'stockInfo' in event:
+                stock_info = event['stockInfo']
+                event_data.update(stock_info)
+            
+            parsed_data.append(event_data)
+
+    # Convert to DataFrame
+    df = pd.DataFrame(parsed_data)
+    
+    return df
+
 class TCBSAgent:
     config = None
     auth_token = None
@@ -184,28 +211,6 @@ class TCBSAgent:
         
         data = self.api.get_market_calendar(self.tcbs_id, from_date, to_date)
         
-        # List to store parsed data
-        parsed_data = []
-
-        # Parse the JSON data
-        for timeline_entry in data['timeline']:
-            date = timeline_entry['date']
-            for event in timeline_entry['events']:
-                event_data = {
-                    'date': date,
-                    'defType': event['defType'],
-                    'evName': event['evName'],
-                    'mkCode': event['mkCode'],
-                }
-                
-                # Add stockInfo if it exists
-                if 'stockInfo' in event:
-                    stock_info = event['stockInfo']
-                    event_data.update(stock_info)
-                
-                parsed_data.append(event_data)
-
-        # Convert to DataFrame
-        df = pd.DataFrame(parsed_data)
+        df = load_calender_data_tp_df(data)
         
         return df

@@ -4,10 +4,13 @@ from datetime import timezone
 
 import streamlit as st
 import vectorbt as vbt
+import datetime
 
 from indicators.EventArb import generate_arbitrage_signal, get_EventArbInd
 from utils.processing import get_stocks_events
-
+from utils.tcbs_agent import load_calender_data_tp_df
+from utils.tcbs_api import TCBSAPI
+import utils.config as cfg
 from .base import BaseStrategy
 from utils.vbt import plot_CSCV
 
@@ -42,6 +45,7 @@ class DivArbStrategy(BaseStrategy):
     def run(self, calledby='add'):
         stocks_df = self.stocks_df
         self.bm_symbol = 'VN30'
+        symbols = self.symbolsDate_dict['symbols']
         
         bm_df= self.datas.get_stock(self.bm_symbol, self.start_date, self.end_date)
         self.bm_price = bm_df['close']
@@ -54,8 +58,35 @@ class DivArbStrategy(BaseStrategy):
         close_price = stocks_df
         
         events_df = get_stocks_events(self.symbolsDate_dict, 'cashDividend')
+                
+        if self.is_live:
+            tcbs_id = cfg.get_config('tcbs.info.TCBSId')
+            auth_token = cfg.get_config('tcbs.info.authToken')
+                        
+            tcbs_api = TCBSAPI(auth_token=auth_token)
+            
+            from_date = datetime.datetime.now().strftime('%Y-%m-%d')
+            to_date = (datetime.datetime.now() + datetime.timedelta(days=30)).strftime('%Y-%m-%d')
         
-        
+            new_events = tcbs_api.get_market_calendar(tcbs_id=tcbs_id, from_date=from_date, to_date=to_date)
+            
+            new_events_df = load_calender_data_tp_df(new_events)
+            
+            # filter defType = 'stock.div010'
+            new_events_df = new_events_df[new_events_df['defType'] == 'stock.div010']
+            
+            # filter the events that are not in the symbols
+            new_events_df = new_events_df[new_events_df['mkCode'].isin(symbols)]
+            
+            for i, row in new_events_df.iterrows():
+                date = row['date']
+                date = datetime.datetime.strptime(date, '%Y-%m-%d')
+                index_value = pd.Timestamp(date).tz_localize('UTC')
+                
+                if row['mkCode'] in events_df.columns:
+                    events_df = pd.concat([events_df, pd.DataFrame(index=[index_value], columns=events_df.columns)], axis=0) 
+                    events_df[row['mkCode']][index_value] = row['ratio'] * 10_000
+                            
         dividend_threshold = self.param_dict['dividend_threshold']
         
         # if the dividend is less than the threshold, set it to nan
