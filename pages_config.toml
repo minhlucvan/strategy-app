@@ -31,7 +31,7 @@ icon = ":test_tube:"
 [[pages]]
 path = "pages/Strategy.py"
 name = "Strategy"
-icon = ":gear:"
+icon = ":dart:"
 
 [[pages]]
 path = "pages/Study.py"
@@ -42,3 +42,8 @@ icon = ":books:"
 path = "pages/Stock.py"
 name = "Stock Details"
 icon = ":scroll:"
+
+[[pages]]
+path = "pages/Configure.py"
+name = "Configuration"
+icon = ":gear:"

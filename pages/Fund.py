@@ -251,6 +251,9 @@ def run():
             rm = st.selectbox('Select Risk Measures', rms_dict.keys(),
                               format_func=lambda x: x+' (' + rms_dict[x] + ')')
         stocks_df = get_stocks(symbolsDate_dict, 'close')
+        
+        stocks_df = stocks_df.dropna()
+        
         pf = get_pfOpMS(stocks_df, rm)
         plot_pf(pf, select=False,
                 name=f"{fund_name}-Max Sharpe Weights", show_recents=False)

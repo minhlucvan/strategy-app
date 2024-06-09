@@ -13,6 +13,7 @@ from .bank_pricing_study import run as run_bank_pricing
 from .steven_fomula_study import run as run_steven_fomula
 from .relative_comparsion_study import run as run_relative_comparsion
 from .stock_issue_study import run as run_stock_issue
+from .tcbs_agent_study import run as run_tcbs_agent
 
 study_list = [
     {
@@ -78,5 +79,9 @@ study_list = [
     {
         "name": "Relative Comparsion",
         "module": run_relative_comparsion
+    },
+    {
+        "name": "TCBS Agent",
+        "module": run_tcbs_agent
     }
 ]

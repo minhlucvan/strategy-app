@@ -7,9 +7,10 @@ import plotly.graph_objects as go
 
 import streamlit as st
 
-from utils.local_fund import fe_local_fund
+from utils.fe_local_fund import fe_local_fund
 from utils.riskfolio import get_pfOpMS
 from utils.stock_utils import get_first_trade_date_of_week, get_last_trading_date
+from utils.trader import get_trader, get_trader_list
 
 st.set_page_config(page_title="BForecast Strategy App")
 
@@ -90,9 +91,55 @@ def show_PortforlioDetail(portfolio_df, index):
     else:
         return False
 
+def execute_trade(trader, side, symbol, price, volume, price_type="ATO"):
+    st.write(f"Executing trade for {volume} shares of {symbol} at {price}...")
+    # place_preorder(self, type='NB', symbol=None, price='', price_type='ATO', volume='0', start_date=None, end_date=None):
+    type = 'NB' if side == 'Buy' else 'NS'
+    price = int(price)
+    volume = int(volume)
+    price_type = price_type
+    trader.place_preorder(
+        type=type,
+        symbol=symbol,
+        price=price,
+        volume=volume,
+        price_type=price_type,
+    )
+    st.success("Trade executed successfully.")
+
+def show_trade_form(prefix, row, trader):
+    id = prefix + row['Side'] + row['Symbol']
+    side = st.selectbox("Side", ["Buy", "Sell"], index=0 if row['Side'] == "Buy" else 1, key=f'{id}_side')
+    price = st.number_input("Price", value=row['Price'], key=f'{id}_price')
+    volume = st.number_input("Volume", value=row['Size'], key=f'{id}_volume')
+    price_type = st.selectbox("Price Type", ["LO", "ATO", "ATC"], index=0, key=f'{id}_price_type')
+    
+    full_amount = st.checkbox("Full Amount", key=f'{id}_full_amount')
+    
+    amount = int(price * volume)
+    st.write(f"**Total**: {amount:,} VND")
+    
+    if st.button("Execute", key=f'{id}_execute'):
+        execute_trade(trader, side, row['Symbol'], price, volume, price_type)
+
 def main():
     # select date on the sidebar
     today = st.sidebar.date_input("Current Date", datetime.now().date())
+    
+    trader_list =  get_trader_list()
+    
+    # select broker
+    broker = st.sidebar.selectbox("Broker", trader_list)
+    
+    trader = get_trader(broker)
+
+    account_list = trader.get_account_list()
+    
+    # select account
+    account = st.sidebar.selectbox("Account", account_list, format_func=lambda x: x['name'], index=0)
+    
+    if account is not None:
+        trader.use_account(account['id'])
     
     st.header("Live Trading")
     selected_pfs = []
@@ -145,7 +192,11 @@ def main():
         for name, signals in signals_by_name:
             st.write(f"##### {name} 📊")
             st.dataframe(signals[['Side', 'Symbol', 'Price', 'Size', 'Timestamp']], use_container_width=True)
-
+            
+            # execute the trades
+            for i, row in signals.iterrows():
+                with st.expander(f"{row['Side']} {row['Symbol']}"):
+                    show_trade_form(name, row, trader)
 if __name__ == "__main__":
     if check_password():
         main()
