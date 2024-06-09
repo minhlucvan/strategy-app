@@ -191,6 +191,9 @@ class Portfolio(object):
         sharpe_ratio = round(pf.stats('sharpe_ratio')[0], 2)
         maxdrawdown = round(pf.stats('max_dd')[0]/100.0, 2)
         annual_return = pf.annualized_return()
+    
+        if pd.isna(maxdrawdown):
+            maxdrawdown = 0.0
         
         if isinstance(annual_return, pd.Series) and len(annual_return) > 0:
             annual_return = round(annual_return.iloc[-1], 2)

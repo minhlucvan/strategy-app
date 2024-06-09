@@ -177,3 +177,35 @@ class TCBSAgent:
 
     def get_account_info(self):
         return self.api.get_account_info(self.tcbs_id)
+
+    def get_market_calendar(self, from_date=None, to_date=None):
+        from_date = from_date or datetime.datetime.now().strftime('%Y-%m-%d')
+        to_date = to_date or (datetime.datetime.now() + datetime.timedelta(days=30)).strftime('%Y-%m-%d')
+        
+        data = self.api.get_market_calendar(self.tcbs_id, from_date, to_date)
+        
+        # List to store parsed data
+        parsed_data = []
+
+        # Parse the JSON data
+        for timeline_entry in data['timeline']:
+            date = timeline_entry['date']
+            for event in timeline_entry['events']:
+                event_data = {
+                    'date': date,
+                    'defType': event['defType'],
+                    'evName': event['evName'],
+                    'mkCode': event['mkCode'],
+                }
+                
+                # Add stockInfo if it exists
+                if 'stockInfo' in event:
+                    stock_info = event['stockInfo']
+                    event_data.update(stock_info)
+                
+                parsed_data.append(event_data)
+
+        # Convert to DataFrame
+        df = pd.DataFrame(parsed_data)
+        
+        return df

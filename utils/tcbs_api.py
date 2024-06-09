@@ -148,3 +148,14 @@ class TCBSAPI:
     def get_account_info(self, tcbs_id):
         url = f'https://apiext.tcbs.com.vn/profile/v1/profiles/{tcbs_id}?fields=accountStatus,personalInfo,basicInfo'
         return self.make_request(url)
+
+    
+    def get_market_calendar(self, tcbs_id, from_date, to_date, time_frame='1M', src='ALL', role='CUS'):
+        if tcbs_id is None:
+            raise ValueError('tcbs_id is required to get market calendar.')
+        
+        url = f'https://apiextaws.tcbs.com.vn/icalendar-service/v1/event/market/{tcbs_id}/list?fDate={from_date}&tDate={to_date}&tFrame={time_frame}&src={src}&role={role}'
+        
+        return self.make_request(url)
+    
+    

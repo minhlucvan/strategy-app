@@ -31,7 +31,7 @@ class DivArbStrategy(BaseStrategy):
         }, {
             "name": 'dividend_threshold',
             "type": "int",
-            "min": 1000,
+            "min": 0,
             "max": 10000,
             "step": 0
         }

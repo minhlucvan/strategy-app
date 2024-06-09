@@ -54,8 +54,8 @@ def run(symbol_benchmark, symbolsDate_dict):
     events_df = get_stocks_events(symbolsDate_dict, 'cashDividend')
     
     
-    days_before = st.number_input('Days before event', min_value=1, max_value=10, value=6)
-    days_after = st.number_input('Days after event', min_value=0, max_value=10, value=0)
+    days_before = st.number_input('Days before event', min_value=-10, max_value=10, value=6)
+    days_after = st.number_input('Days after event', min_value=0, max_value=30, value=0)
     dividend_threshold = st.number_input('Dividend Threshold', min_value=0, max_value=6000, value=1000)
     
     event_affection = {}

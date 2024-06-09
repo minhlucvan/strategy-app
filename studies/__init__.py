@@ -14,6 +14,7 @@ from .steven_fomula_study import run as run_steven_fomula
 from .relative_comparsion_study import run as run_relative_comparsion
 from .stock_issue_study import run as run_stock_issue
 from .tcbs_agent_study import run as run_tcbs_agent
+from .tcbs_market_calendar_study import run as run_tcbs_market_calendar
 
 study_list = [
     {
@@ -83,5 +84,9 @@ study_list = [
     {
         "name": "TCBS Agent",
         "module": run_tcbs_agent
+    },
+    {
+        "name": "TCBS Market Calendar",
+        "module": run_tcbs_market_calendar
     }
 ]
