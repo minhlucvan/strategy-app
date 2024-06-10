@@ -1,5 +1,3 @@
-# strategy-app
-
 # BeQuant Trading Platform 🐝"
 
 > Finding an edge in a developing market like the VNIndex (Vietnam's stock market index) involves identifying inefficiencies and opportunities that may not be as prevalent in more developed markets. Here are several steps and factors to consider:
