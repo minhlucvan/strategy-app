@@ -2,8 +2,7 @@
 
 # BeQuant Trading Platform 🐝"
 
-
-    Finding an edge in a developing market like the VNIndex (Vietnam's stock market index) involves identifying inefficiencies and opportunities that may not be as prevalent in more developed markets. Here are several steps and factors to consider:
+> Finding an edge in a developing market like the VNIndex (Vietnam's stock market index) involves identifying inefficiencies and opportunities that may not be as prevalent in more developed markets. Here are several steps and factors to consider:
 
 ### 1. **Market Structure Analysis**
    - **Liquidity and Volatility**: Developing markets often exhibit lower liquidity and higher volatility. This can create opportunities for traders who can manage the risks associated with these factors.
