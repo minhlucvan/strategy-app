@@ -15,9 +15,9 @@ def input_dates(by='unique'):
     end_date = datetime(year=end_date.year, month=end_date.month, day=end_date.day, tzinfo=pytz.utc)
     return start_date, end_date
 
-def form_SavePortfolio(symbolsDate_dict, strategyname:str, strategy_param:dict, pf, assets_name:str=None):
+def form_SavePortfolio(symbolsDate_dict, strategyname:str, strategy_param:dict, pf, assets_name:str=None, key=None):
     with st.expander("Edit description and Save"):
-        with st.form("form_" + strategyname):
+        with st.form("form_" + strategyname if key is None else key):
             tittle = st.text_input("Portfolio Name", value= f"{strategyname}_{assets_name}")
             # desc_str = st_quill(value= f"{strategyname},  Param_dict: {strategy_param}", html= True)
             desc_str = st.text_area("Description", value= f"{strategyname},  Param_dict: {strategy_param}")

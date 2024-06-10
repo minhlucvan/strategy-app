@@ -240,7 +240,7 @@ def plot_CSCV(pf, idxmax, RARM):
                             height=550,)
         st.plotly_chart(fig, use_container_width=True)
 
-def display_pfbrief(pf, param_dict:dict):
+def display_pfbrief(pf, param_dict:dict, key=None):
     init_vbtsetting()
     lastday_return = round(pf.returns()[-1], 2)
 
@@ -259,7 +259,7 @@ def display_pfbrief(pf, param_dict:dict):
         st.metric('Max DD', '{0:.0%}'.format(maxdrawdown))
     with cols[4]:
         param_str = dict(filter(lambda item: item[0] not in ['RARM', 'WFO'], param_dict.items()))
-        st.text_area("Parameters", value = param_str, height=2, label_visibility='collapsed',disabled=True, key=id(object()))
+        st.text_area("Parameters", value = param_str, height=2, label_visibility='collapsed',disabled=True, key=id(object()) if key is None else key)
 
 def init_vbtsetting():
     #initialize vbt setting

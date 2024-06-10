@@ -16,7 +16,7 @@ from .stock_issue_study import run as run_stock_issue
 from .tcbs_agent_study import run as run_tcbs_agent
 from .tcbs_market_calendar_study import run as run_tcbs_market_calendar
 from .stock_foregin_flow_study import run as run_stock_foregin_flow
-from .stock_liqudity_flow import run as run_stock_liqudity_flow
+from .stock_liqudity_flow_study import run as run_stock_liqudity_flow
 
 study_list = [
     {

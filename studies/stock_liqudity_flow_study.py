@@ -20,6 +20,14 @@ from utils.vbt import plot_pf
 from vbt_strategy.MOM_D import get_MomDInd
 
 from studies.market_wide import MarketWide_Strategy
+
+def plot_liquidity_bars(liquidity_series, title, x_title, y_title, legend_title):
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=liquidity_series.index, y=liquidity_series, name=legend_title))
+    # color green if positive, red if negative
+    fig.update_traces(marker_color=['green' if x >= 0 else 'red' for x in liquidity_series])
+    fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title)
+    st.plotly_chart(fig)
     
 def run(symbol_benchmark, symbolsDate_dict):
     
@@ -57,3 +65,8 @@ def run(symbol_benchmark, symbolsDate_dict):
     liquidity_change_flow_df = liquidity_change_flow_df.rolling(window=window).sum()
     
     plot_multi_line(liquidity_change_flow_df, title='Stocks Foregin Flow Change', x_title='Date', y_title='Value change', legend_title='Stocks')
+    
+    for stock in liquidity_change_flow_df.columns:
+        liquidity_df = liquidity_change_flow_df[stock]
+        
+        plot_liquidity_bars(liquidity_df, title=f'{stock} Liquidity Flow', x_title='Date', y_title='Value', legend_title='Stocks')

@@ -27,7 +27,7 @@ class BaseStrategy(object):
     stock_dfs = []
     symbols = []
     market = ''
-    pf_kwargs = dict(fees=0.0005, slippage=0.001, freq='1D')
+    pf_kwargs = dict(fees=0.0005, slippage=0.001, sl_stop=0.1, freq='1D')
     pf = None
     output_bool = False
     stacked_bool = False

@@ -20,7 +20,7 @@ from .RRG import RRGStrategy
 from .MMA import MMAStrategy
 from .MMARS import MMARSStrategy
 from .MOMTOP import MOMTOPStrategy
-
+from .LiqFlow import LiqFlowStrategy
 
 __all__ = [
     "MOMStrategy",
@@ -44,7 +44,8 @@ __all__ = [
     "RRGStrategy",
     "MMAStrategy",
     "MMARSStrategy",
-    "MOMTOPStrategy"
+    "MOMTOPStrategy",
+    "LiqFlowStrategy"
 ]
 
 strategy_list = [
@@ -69,5 +70,6 @@ strategy_list = [
     "RRG",
     "MMA",
     "MMARS",
-    "MOMTOP"
+    "MOMTOP",
+    "LiqFlow"
 ]
