@@ -17,7 +17,13 @@ from .tcbs_agent_study import run as run_tcbs_agent
 from .tcbs_market_calendar_study import run as run_tcbs_market_calendar
 from .stock_foregin_flow_study import run as run_stock_foregin_flow
 from .stock_liqudity_flow_study import run as run_stock_liqudity_flow
-from .factors_models_study import run as run_factors_models
+from .stock_factors_models_study import run as run_stock_factors_models
+from .stock_factors_value_study import run as run_stock_factors_value
+from .stock_factors_size_study import run as run_stock_factors_size
+from .stock_factors_quality_study import run as run_stock_factors_quality
+from .stock_factors_momentum_study import run as run_stock_factors_momentum
+from .stock_factors_volatility_study import run as run_stock_factors_volatility
+from .stock_factor_base_study import run as run_stock_factor_base
 
 study_list = [
     {
@@ -93,8 +99,32 @@ study_list = [
         "module": run_stock_liqudity_flow
     },
     {
-        "name": "Factors Models",
-        "module": run_factors_models
+        "name": "Stock Factors Models",
+        "module": run_stock_factors_models
+    },
+    { 
+        "name": "Stock Factor Base",
+        "module": run_stock_factor_base
+    },
+    {
+        "name": "Stock Factors Value",
+        "module": run_stock_factors_value
+    },
+    {
+        "name": "Stock Factors Size",
+        "module": run_stock_factors_size
+    },
+    {
+        "name": "Stock Factors Quality",
+        "module": run_stock_factors_quality
+    },
+    {
+        "name": "Stock Factors Momentum",
+        "module": run_stock_factors_momentum
+    },
+    {
+        "name": "Stock Factors Volatility",
+        "module": run_stock_factors_volatility
     },
     {
         "name": "TCBS Agent",

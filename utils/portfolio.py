@@ -289,6 +289,12 @@ class Portfolio(object):
         return result_df
 
     def ajust_positions(self, result_df: pd.DataFrame) -> bool:
+        if len(self.allocation_dict) == 0:
+            return result_df
+        
+        if result_df.empty:
+            return result_df
+        
         capital = self.allocation_dict['capital']
         # modify position to size to match the asset allocation
         for asset in self.allocation_dict['assets']:
@@ -296,7 +302,7 @@ class Portfolio(object):
             
             if asset_ratio > 1:
                 asset_ratio = asset_ratio / 100.0
-            
+
             asset_capital = capital * asset_ratio
             asset_trades_df = result_df[result_df['Name'] == asset]
             asset_buy_df = asset_trades_df[asset_trades_df['Side'] == 'Buy']
