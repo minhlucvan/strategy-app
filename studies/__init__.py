@@ -17,6 +17,7 @@ from .tcbs_agent_study import run as run_tcbs_agent
 from .tcbs_market_calendar_study import run as run_tcbs_market_calendar
 from .stock_foregin_flow_study import run as run_stock_foregin_flow
 from .stock_liqudity_flow_study import run as run_stock_liqudity_flow
+from .factors_models_study import run as run_factors_models
 
 study_list = [
     {
@@ -90,6 +91,10 @@ study_list = [
     {
         "name": "Stock Liqudity Flow",
         "module": run_stock_liqudity_flow
+    },
+    {
+        "name": "Factors Models",
+        "module": run_factors_models
     },
     {
         "name": "TCBS Agent",
