@@ -260,6 +260,8 @@ def display_pfbrief(pf, param_dict:dict, key=None):
     with cols[4]:
         param_str = dict(filter(lambda item: item[0] not in ['RARM', 'WFO'], param_dict.items()))
         st.text_area("Parameters", value = param_str, height=2, label_visibility='collapsed',disabled=True, key=id(object()) if key is None else key)
+    
+    return lastday_return, sharpe_ratio, maxdrawdown, annual_return
 
 def init_vbtsetting():
     #initialize vbt setting
