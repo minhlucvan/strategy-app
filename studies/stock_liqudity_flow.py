@@ -34,24 +34,26 @@ def run(symbol_benchmark, symbolsDate_dict):
     benchmark_df = get_stocks(benchmark_dict,'close')
     stocks_df = get_stocks(symbolsDate_dict,'close')
    
-    liquidity_flow_df = get_stocks(symbolsDate_dict, 'value_change_weighted')
+    liquidity_flow_df = get_stocks(symbolsDate_dict, 'value')
         
     
     # reindex the stocks_df for the liquidity_flow_df
     # stocks_df = stocks_df.reindex(liquidity_flow_df.index)
     
+    window = st.slider('Rolling window', min_value=1, max_value=100, value=10)
+    
     first_event_date = liquidity_flow_df.index[0]
     
     stocks_df = stocks_df.loc[first_event_date:]
+    
+    liquidity_flow_df = liquidity_flow_df.rolling(window=window).mean()
         
     plot_multi_line(stocks_df, title='Stocks Close Price', x_title='Date', y_title='Close Price', legend_title='Stocks')
         
-    plot_multi_line(liquidity_flow_df, title='Stocks Foregin Flow', x_title='Date', y_title='Net Foreign Volume', legend_title='Stocks')
+    plot_multi_line(liquidity_flow_df, title='Stocks Liquidity Flow', x_title='Date', y_title='Value', legend_title='Stocks')
     
-    liquidity_flow_smth_df = liquidity_flow_df.rolling(window=5).mean()
+    liquidity_change_flow_df = get_stocks(symbolsDate_dict, 'value_change_weighted')
+
+    liquidity_change_flow_df = liquidity_change_flow_df.rolling(window=window).sum()
     
-    plot_multi_line(liquidity_flow_smth_df, title='Stocks Foregin Flow Smoothed', x_title='Date', y_title='Net Foreign Volume', legend_title='Stocks')
-    
-    liquidity_flow_cum_df = liquidity_flow_df.rolling(window=21).sum()
-        
-    plot_multi_line(liquidity_flow_cum_df, title='Stocks Foregin Flow Cumulative', x_title='Date', y_title='Net Foreign Volume', legend_title='Stocks')
+    plot_multi_line(liquidity_change_flow_df, title='Stocks Foregin Flow Change', x_title='Date', y_title='Value change', legend_title='Stocks')
