@@ -327,8 +327,7 @@ class AKData(object):
                     stock_df.columns = [
                         'date', 'open', 'close', 'high', 'low', 'volume', 'amount']
                 else:
-                    stock_df.columns = ['date', 'open', 'close', 'high', 'low', 'volume', 'amount',
-                                        'amplitude', 'changepercent', 'pricechange', 'turnoverratio']
+                    pass
                 stock_df.index = pd.to_datetime(stock_df['date'], utc=True)
         return stock_df
 
@@ -479,6 +478,11 @@ def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level=
                 print(
                     f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
             else:
+                stock_df['value'] = stock_df['close'] * stock_df['volume']
+                stock_df['price_change'] = stock_df['close'].pct_change()
+                stock_df['volume_change'] = stock_df['volume'].pct_change()
+                
+                stock_df['value_change_weighted'] = stock_df['price_change'] * stock_df['volume_change']
                 stocks_dfs[symbol] = stock_df if stack else stock_df[column]
     
     stocks_df = pd.DataFrame()
