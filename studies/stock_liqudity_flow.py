@@ -20,7 +20,6 @@ from utils.vbt import plot_pf
 from vbt_strategy.MOM_D import get_MomDInd
 
 from studies.market_wide import MarketWide_Strategy
-
     
 def run(symbol_benchmark, symbolsDate_dict):
     
@@ -37,8 +36,6 @@ def run(symbol_benchmark, symbolsDate_dict):
    
     liquidity_flow_df = get_stocks(symbolsDate_dict, 'value_change_weighted')
         
-    # stocks index tz
-    st.write(stocks_df.index[0].tz)
     
     # reindex the stocks_df for the liquidity_flow_df
     # stocks_df = stocks_df.reindex(liquidity_flow_df.index)
@@ -55,6 +52,6 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     plot_multi_line(liquidity_flow_smth_df, title='Stocks Foregin Flow Smoothed', x_title='Date', y_title='Net Foreign Volume', legend_title='Stocks')
     
-    liquidity_flow_cum_df = liquidity_flow_smth_df.cumsum()
+    liquidity_flow_cum_df = liquidity_flow_df.rolling(window=21).sum()
         
     plot_multi_line(liquidity_flow_cum_df, title='Stocks Foregin Flow Cumulative', x_title='Date', y_title='Net Foreign Volume', legend_title='Stocks')
