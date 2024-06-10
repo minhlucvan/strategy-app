@@ -14,7 +14,7 @@ from utils.component import  check_password, input_dates, input_SymbolsDate
 import matplotlib.pyplot as plt
 
 from utils.processing import get_stocks
-from studies.rrg import plot_RRG, rs_ratio, RRG_Strategy
+from studies.rrg import get_RRGInd, plot_RRG, rs_ratio, RRG_Strategy
 from utils.vbt import init_vbtsetting, plot_CSCV, plot_pf
 
 def rs_momentum_Strategy(symbol_benchmark, stocks_df, RARM_obj= 'sharpe_ratio', output_bool=False):

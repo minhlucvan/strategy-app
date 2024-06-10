@@ -47,6 +47,13 @@ class DivArbStrategy(BaseStrategy):
         self.bm_symbol = 'VN30'
         symbols = self.symbolsDate_dict['symbols']
         
+        days_before = self.param_dict['days_before']
+        days_after = self.param_dict['days_after']
+        dividend_threshold = self.param_dict['dividend_threshold']
+        
+        if isinstance(dividend_threshold, list):
+            dividend_threshold = dividend_threshold[0]
+        
         bm_df= self.datas.get_stock(self.bm_symbol, self.start_date, self.end_date)
         self.bm_price = bm_df['close']
         
@@ -58,7 +65,7 @@ class DivArbStrategy(BaseStrategy):
         close_price = stocks_df
         
         events_df = get_stocks_events(self.symbolsDate_dict, 'cashDividend')
-                
+
         if self.is_live:
             tcbs_id = cfg.get_config('tcbs.info.TCBSId')
             auth_token = cfg.get_config('tcbs.info.authToken')
@@ -87,7 +94,6 @@ class DivArbStrategy(BaseStrategy):
                     events_df = pd.concat([events_df, pd.DataFrame(index=[index_value], columns=events_df.columns)], axis=0) 
                     events_df[row['mkCode']][index_value] = row['ratio'] * 10_000
                             
-        dividend_threshold = self.param_dict['dividend_threshold']
         
         # if the dividend is less than the threshold, set it to nan
         for stock in events_df.columns:
@@ -96,10 +102,7 @@ class DivArbStrategy(BaseStrategy):
                     events_df[stock][i] = np.nan
         
         days_to_event = generate_arbitrage_signal(stocks_df, events_df)
-           
-        days_before = self.param_dict['days_before']
-        days_after = self.param_dict['days_after']
-        
+                
         # 2. calculate the indicators
         indicator = get_EventArbInd().run(
             close_price,
@@ -158,8 +161,8 @@ class DivArbStrategy(BaseStrategy):
                     pf = pf[idxmax]
                 
                     params_value = entries.columns[idxmax*num_symbol]
-                    self.param_dict = dict(zip(['days_before', 'days_after'], [int(params_value[0]), int(params_value[1])]))
+                    self.param_dict = dict(zip(['days_before', 'days_after', 'dividend_threshold'], [int(params_value[0]), int(params_value[1]), dividend_threshold]))
                 else:
-                    self.param_dict = dict(zip(['days_before', 'days_after'], [int(days_before[0]), int(days_after[0])]))     
+                    self.param_dict = dict(zip(['days_before', 'days_after', 'dividend_threshold'], [int(days_before[0]), int(days_after[0]), dividend_threshold]))     
         self.pf = pf
         return True

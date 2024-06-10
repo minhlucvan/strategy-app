@@ -266,6 +266,27 @@ def get_vn_events(symbol: str, start_date: datetime.datetime, end_date: datetime
     
     return events_df
 
+@lru_cache
+def get_vn_foregin_flow(symbol: str, start_date: datetime.datetime, end_date: datetime.datetime) -> pd.DataFrame:
+    """get vietnam stock data
+
+    Args:
+        ak_params symbol:str, start_date:str 20170301, end_date:str
+
+    Returns:
+        pd.DataFrame: _description_
+    """
+    print(f"get_vn_foregin_flow: {symbol}")
+    foregin_flow = stock_utils.get_stock_vol_foreign(symbol)
+    foregin_flow_df = stock_utils.load_stock_vol_foreign_to_dataframe(foregin_flow)
+
+    # foregin_flow_df = foregin_flow_df[foregin_flow_df.index >= start_date]
+    # foregin_flow_df = foregin_flow_df[foregin_flow_df.index <= end_date]
+    
+    # st.write(foregin_flow_df)
+    
+    return foregin_flow_df
+
 class AKData(object):
     def __init__(self, market):
         self.market = market
@@ -385,6 +406,21 @@ class AKData(object):
 
         if len(symbol_df) == 1:
             func = ('get_' + self.market + '_events').lower()
+            try:
+                stock_df = eval(func)(symbol=symbol, start_date=start_date, end_date=end_date)
+            except Exception as e:
+                print(e)
+
+        return stock_df
+    
+    @vbt.cached_method
+    def get_stock_foregin_flow(self, symbol: str, start_date: datetime.datetime, end_date: datetime.datetime) -> pd.DataFrame:
+        print(f"AKData-get_stock_foregin_flow: {symbol}, {self.market}")
+        stock_df = pd.DataFrame()
+        symbol_df = load_symbol(symbol)
+
+        if len(symbol_df) == 1:
+            func = ('get_' + self.market + '_foregin_flow').lower()
             try:
                 stock_df = eval(func)(symbol=symbol, start_date=start_date, end_date=end_date)
             except Exception as e:
@@ -546,6 +582,39 @@ def get_stocks_events(symbolsDate_dict: dict, column='label',  stack=False, stac
     for symbol in symbolsDate_dict['symbols']:
         if symbol != '':
             stock_df = datas.get_events(symbol, symbolsDate_dict['start_date'], symbolsDate_dict['end_date'])
+            if stock_df.empty:
+                print(
+                    f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
+            else:
+                stocks_dfs[symbol] = stock_df if stack else stock_df[column]
+    
+    stocks_df = pd.DataFrame()
+    if stack and stack_level == 'factor':
+        # each frame represents one stock with all factors
+        # stack the dataframes is 2 levels
+        # level 0 is the factor name, level 1 is the stock symbol
+        # eg. stocks_df['pe']['AAPL'] = 12.3
+        factor_dfs = {}
+        for symbol in stocks_dfs.keys():
+            for column in stocks_dfs[symbol].columns:
+                if column not in factor_dfs:
+                    factor_dfs[column] = pd.DataFrame()
+                factor_dfs[column][symbol] = stocks_dfs[symbol][column]
+        stocks_df = pd.concat(factor_dfs, axis=1)
+    elif stack:
+        stocks_df = pd.concat(stocks_dfs, axis=1)
+    else:
+        stocks_df = pd.DataFrame(stocks_dfs)
+                
+    return stocks_df
+
+@st.cache_data
+def get_stocks_foregin_flow(symbolsDate_dict: dict, column='close',  stack=False, stack_level='factor'):
+    datas = AKData(symbolsDate_dict['market'])
+    stocks_dfs = {}
+    for symbol in symbolsDate_dict['symbols']:
+        if symbol != '':
+            stock_df = datas.get_stock_foregin_flow(symbol, symbolsDate_dict['start_date'], symbolsDate_dict['end_date'])
             if stock_df.empty:
                 print(
                     f"Warning: stock '{symbol}' is invalid or missing. Ignore it")

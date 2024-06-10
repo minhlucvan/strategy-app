@@ -2077,6 +2077,52 @@ def get_stock_ratio(ticker='MWG'):
         print(f"Request failed with status code {response.status_code}")
         return None
 
+# https://apipubaws.tcbs.com.vn/tcanalysis/v1/data-charts/vol-foreign?ticker=MWG
+@retry(times=MAX_RETRIES, exceptions=(Exception), delay=RETRY_WAIT_TIME)
+def get_stock_vol_foreign(ticker='MWG'):
+    print(f"Getting stock vol foreign for {ticker}")
+    url = f'https://apipubaws.tcbs.com.vn/tcanalysis/v1/data-charts/vol-foreign'
+    
+    headers = {
+        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'DNT': '1',
+        'Accept-language': 'vi',
+        'sec-ch-ua-mobile': '?0',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/'
+    }
+    
+    params = {
+        'ticker': ticker
+    }
+    
+    response = requests.get(url, params=params, headers=headers)
+    
+    if response.status_code == 200:
+        json = response.json()
+        return json
+    else:
+        print(f"Request failed with status code {response.status_code}")
+        return None 
+    
+def load_stock_vol_foreign_to_dataframe(data):
+    #  {"listVolumeForeignInfoDto":[{"ticker":"MWG","foreignBuy":799100,"foreignSell":-1971900,"netForeignVol":-1172800,"accNetFVol":-1172800,"totalVolume":9444782,"rsRank":58.0,"dateReport":"07/03/2024"},   
+    list_data = data['listVolumeForeignInfoDto']
+    df = pd.DataFrame(list_data)
+
+    df['foreignBuy'] = df['foreignBuy'].astype(float)
+    df['foreignSell'] = df['foreignSell'].astype(float)
+    df['netForeignVol'] = df['netForeignVol'].astype(float)
+    df['accNetFVol'] = df['accNetFVol'].astype(float)
+    df['totalVolume'] = df['totalVolume'].astype(float)
+    df['rsRank'] = df['rsRank'].astype(float)
+
+    df['dateReport'] = pd.to_datetime(df['dateReport'], format='%d/%m/%Y').dt.tz_localize(timezone.utc)
+
+    # set index to dateReport
+    df.set_index('dateReport', inplace=True)
+
+    return df
+    
 def get_last_trading_date():
     # Get the last trading date
     res = get_stock_bars_long_term(ticker='VN30', stock_type='index', count_back=1)

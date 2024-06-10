@@ -213,7 +213,7 @@ class Portfolio(object):
                                (end_date, total_return, lastday_return, annual_return, sharpe_ratio, maxdrawdown, pf_blob, id))
                 connection.commit()
                 os.remove(config.PORTFOLIO_PATH + filename)
-                self.__init__()
+                self.__init__(is_live=self.is_live)
 
         except FileNotFoundError as e:
             print(e)
