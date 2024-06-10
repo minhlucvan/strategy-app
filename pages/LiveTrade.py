@@ -12,8 +12,6 @@ from utils.riskfolio import get_pfOpMS
 from utils.stock_utils import get_first_trade_date_of_week, get_last_trading_date
 from utils.trader import get_trader, get_trader_list
 
-st.set_page_config(page_title="BForecast Strategy App")
-
 import vectorbt as vbt
 
 from utils.vbt import plot_pf
