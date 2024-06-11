@@ -18,6 +18,10 @@ def ecdf_nb(arr):
 def calc_turnoverratio_nb(close, open, volume):
     return (close - open) / open / volume
 
+def plot_petttm(pettm):
+    fig = pettm.vbt.plot()
+    st.plotly_chart(fig, use_container_width=True)
+
 @njit
 def apply_PETOR_nb(pettm, tor,  pe_rankH, pe_rankL, tor_rank):
     entries = np.where((pettm < pe_rankL/100) & (tor < tor_rank/100), True, False)
@@ -28,7 +32,7 @@ def apply_PETOR_nb(pettm, tor,  pe_rankH, pe_rankL, tor_rank):
 class PETORStrategy(BaseStrategy):
     '''PE_TurnOverRatio strategy'''
     _name = "PETOR"
-    desc = "PE_TurnOverRatio strategy"
+    desc = "The PE_TurnOverRatio strategy aims to capture the price difference between the two dates, by using the PE ratio and the TurnOverRatio as the indicators. The strategy will buy the stock when the PE ratio is low and the TurnOverRatio is low, and sell the stock when the PE ratio is high and the TurnOverRatio is high."
     param_def = [
             {
             "name": "pe_rankL",
@@ -112,6 +116,7 @@ class PETORStrategy(BaseStrategy):
                 RARMs = eval(f"pf.{self.param_dict['RARM']}()")
                 idxmax = RARMs[RARMs != np.inf].idxmax()
                 if self.output_bool:
+                    plot_petttm(pettm)
                     plot_CSCV(pf, idxmax, self.param_dict['RARM'])
                 pf = pf[idxmax]
 

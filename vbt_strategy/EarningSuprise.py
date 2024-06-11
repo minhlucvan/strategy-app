@@ -10,7 +10,6 @@ from .base import BaseStrategy
 from utils.vbt import plot_CSCV
 
 def ecdf_nb(arr):
-    result_arr = np.full_like(arr, np.nan, dtype=np.float_)
     result_arr = arr.copy()
     for i in range(arr.shape[0]):
         result_arr[i] = ((arr <= arr[i]).mean())
@@ -19,27 +18,30 @@ def ecdf_nb(arr):
 def calc_turnoverratio_nb(close, open, volume):
     return (close - open) / open / volume
 
+def plot_petttm(pettm):
+    fig = pettm.vbt.plot()
+    st.plotly_chart(fig, use_container_width=True)
+
 @njit
-def apply_PEGTOR_nb(pegttm, tor,  peg_rankH, peg_rankL, tor_rank):
-    entries = np.where((pegttm < peg_rankL/100) & (tor < tor_rank/100), True, False)
-    exits = np.where((pegttm > peg_rankH/100) & (tor > (1-tor_rank)/100), True, False)
+def apply_PETOR_nb(pettm, tor,  pe_rankH, pe_rankL, tor_rank):
+    entries = np.where((pettm < pe_rankL/100) & (tor < tor_rank/100), True, False)
+    exits = np.where((pettm > pe_rankH/100) & (tor > (1-tor_rank)/100), True, False)
 
     return entries, exits
 
-
-class PEGTORStrategy(BaseStrategy):
-    '''PE_TurnOverRatio strategy'''
-    _name = "PEGTOR"
-    desc = """The PEG_TurnOverRatio strategy aims to capture the price difference between the two dates, by using the PEG ratio and the TurnOverRatio as the indicators. The strategy will buy the stock when the PEG ratio is low and the TurnOverRatio is low, and sell the stock when the PEG ratio is high and the TurnOverRatio is high."""
+class EarningSupriseStrategy(BaseStrategy):
+    '''EarningSupriseStrategy strategy'''
+    _name = "EarningSuprise"
+    desc = "The EarningSuprise strategy aims to capture the price difference when financial report is released, by using the Earning Suprise and the TurnOverRatio as the indicators. The strategy will buy the stock when the Earning Suprise is high and the TurnOverRatio is low, and sell the stock when the Earning Suprise is low and the TurnOverRatio is high."
     param_def = [
             {
-            "name": "peg_rankL",
+            "name": "pe_rankL",
             "type": "int",
             "min":  2,
             "max":  30,
             "step": 2   
             },
-            {"name": "peg_rankH",
+            {"name": "pe_rankH",
             "type": "int",
             "min":  70,
             "max":  99,
@@ -55,9 +57,8 @@ class PEGTORStrategy(BaseStrategy):
         ]
 
     @vbt.cached_method
-    def run(self, calledby='add')->bool:
+    def run(self, calledby='add'):
         stock_df = self.stock_dfs[0][1]
-
         #1. initialize the variables
         if 'turnoverratio' not in stock_df.columns:
             stock_df['turnoverratio'] = calc_turnoverratio_nb(stock_df.close, stock_df.open, stock_df.volume)
@@ -65,38 +66,38 @@ class PEGTORStrategy(BaseStrategy):
         close_price = stock_df.close
         open_price = stock_df.open
         tor = stock_df.turnoverratio
-        pegttm = self.datas.get_pegttm(self.stock_dfs[0][0])
+        pettm = self.datas.get_pettm(self.stock_dfs[0][0])
         self.start_date = self.start_date.replace(tzinfo=timezone.utc)
         self.end_date = self.end_date.replace(tzinfo=timezone.utc)
-        pegttm = pegttm[self.start_date: self.end_date]
-        if len(pegttm) == 0:
+        pettm = pettm[self.start_date: self.end_date]
+        
+        if len(pettm) == 0:
             return False
+        
         # tor,pettm数据源不同，进行时间数据对齐
-        # st.plotly_chart(pegttm.vbt.plot())
         ind_df = pd.DataFrame()
         ind_df['tor'] = tor
-        ind_df['pegttm'] = pegttm
-
+        ind_df['pettm'] = pettm
+        # calculate the percentage series
         tor_pers = ecdf_nb(ind_df.tor)
-        pegttm_pers = ecdf_nb(ind_df.pegttm)
-
-        peg_rankHs = self.param_dict['peg_rankH']
-        peg_rankLs = self.param_dict['peg_rankL']
+        pettm_pers = ecdf_nb(ind_df.pettm)
+        pe_rankHs = self.param_dict['pe_rankH']
+        pe_rankLs = self.param_dict['pe_rankL']
         tor_ranks = self.param_dict['tor_rank']
 
         #2. calculate the indicators
-        pegtor = vbt.IndicatorFactory(
-            class_name = "PEGTOR",
-            input_names = ["pegttm", "tor"],
-            param_names = ["peg_rankH", "peg_rankL", "tor_rank"],
+        petor = vbt.IndicatorFactory(
+            class_name = "PETOR",
+            input_names = ["pettm", "tor"],
+            param_names = ["pe_rankH", "pe_rankL", "tor_rank"],
             output_names = ["entries", "exits"]
             ).from_apply_func(
-                apply_PEGTOR_nb,
-                peg_rankH = 80,
-                peg_rankL = 20,
+                apply_PETOR_nb,
+                pe_rankH = 80,
+                pe_rankL = 20,
                 tor_rank = 20,
                 )
-        ind = pegtor.run(pegttm_pers, tor_pers, peg_rankH=peg_rankHs,  peg_rankL=peg_rankLs, 
+        ind = petor.run(pettm_pers, tor_pers, pe_rankH=pe_rankHs,  pe_rankL=pe_rankLs, 
                     tor_rank=tor_ranks, param_product=True)
 
         #3. remove all the name in param_def from param_dict
@@ -117,13 +118,15 @@ class PEGTORStrategy(BaseStrategy):
                 RARMs = eval(f"pf.{self.param_dict['RARM']}()")
                 idxmax = RARMs[RARMs != np.inf].idxmax()
                 if self.output_bool:
+                    plot_petttm(pettm)
                     plot_CSCV(pf, idxmax, self.param_dict['RARM'])
                 pf = pf[idxmax]
-                self.param_dict.update(dict(zip(['peg_rankH', 'peg_rankL', 'tor_rank'], [int(idxmax[0]), int(idxmax[1]), int(idxmax[2])])))
+
+                self.param_dict.update(dict(zip(['pe_rankH', 'pe_rankL', 'tor_rank'], [int(idxmax[0]), int(idxmax[1]), int(idxmax[2])])))
         
         if self.output_bool:
-            fig = tor_pers.vbt.plot(yaxis_title="Total Return Ratio")
-            fig = pegttm_pers.vbt.plot(yaxis_title="Rank Percentage", fig=fig)
+            fig = tor_pers.vbt.plot(yaxis_title="Total Return Ratio", yaxis_tickformat="%")
+            fig = pettm_pers.vbt.plot(yaxis_title="Rank Percentage", yaxis_tickformat=".0%", fig=fig)
             st.plotly_chart(fig, use_container_width=True)
         
         self.pf = pf
