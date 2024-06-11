@@ -118,6 +118,7 @@ def calculate_realtime_metrics(union_df):
             # calculate priceToEarning
             union_df.loc[index, ('priceToEarning', stock)] = stock_df / union_df.loc[index, ('earningPerShare', stock)]
     return union_df
+
 # calculate the ratio metrics = stock / market
 def calculate_raitio_metrics(union_df, market_df):
     ratios_df = union_df.copy()

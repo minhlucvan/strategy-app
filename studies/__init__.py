@@ -24,6 +24,7 @@ from .stock_factors_quality_study import run as run_stock_factors_quality
 from .stock_factors_momentum_study import run as run_stock_factors_momentum
 from .stock_factors_volatility_study import run as run_stock_factors_volatility
 from .stock_factor_base_study import run as run_stock_factor_base
+from .stock_financial_report_study import run as run_stock_financial_report
 
 study_list = [
     {
@@ -125,6 +126,10 @@ study_list = [
     {
         "name": "Stock Factors Volatility",
         "module": run_stock_factors_volatility
+    },
+    {
+        "name": "Stock Financial Report",
+        "module": run_stock_financial_report
     },
     {
         "name": "TCBS Agent",

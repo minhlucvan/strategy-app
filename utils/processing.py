@@ -385,7 +385,7 @@ class AKData(object):
         return stock_df    
 
     @vbt.cached_method
-    def get_financial(self, symbol: str) -> pd.DataFrame:
+    def get_financial(self, symbol: str, start_date: datetime.datetime = None, end_date: datetime.datetime = None) -> pd.DataFrame:
         print(f"AKData-get_financial: {symbol}, {self.market}")
         stock_df = pd.DataFrame()
         symbol_df = load_symbol(symbol)
@@ -394,6 +394,11 @@ class AKData(object):
             func = ('get_' + self.market + '_financial').lower()
             try:
                 stock_df = eval(func)(symbol=symbol)
+                
+                if start_date is not None and end_date is not None:
+                    stock_df = stock_df[stock_df.index >= start_date]
+                    stock_df = stock_df[stock_df.index <= end_date]
+                
             except Exception as e:
                 print(e)
 
@@ -545,7 +550,7 @@ def get_stocks_funamental(symbolsDate_dict: dict, column='close',  stack=False, 
     return stocks_df
 
 @st.cache_data
-def get_stocks_financial(symbolsDate_dict: dict, column='close',  stack=False, stack_level='factor'):
+def get_stocks_financial(symbolsDate_dict: dict, column=None,  stack=False, stack_level='factor', raw=False):
     datas = AKData(symbolsDate_dict['market'])
     stocks_dfs = {}
     
@@ -555,9 +560,15 @@ def get_stocks_financial(symbolsDate_dict: dict, column='close',  stack=False, s
             if stock_df.empty:
                 print(
                     f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
+            elif stack and stack_level == 'factor' and column is not None:
+                stocks_dfs[symbol] = stock_df[column]
+                stocks_dfs[symbol] = stock_df
             else:
-                stocks_dfs[symbol] = stock_df if stack else stock_df[column]
-        
+                stocks_dfs[symbol] = stock_df
+    
+    if raw:
+        return stocks_dfs
+    
     stocks_df = pd.DataFrame()
     
     if stack and stack_level == 'factor':
@@ -575,8 +586,10 @@ def get_stocks_financial(symbolsDate_dict: dict, column='close',  stack=False, s
     elif stack:
         stocks_df = pd.concat(stocks_dfs, axis=1)
     else:
-        stocks_df = pd.DataFrame(stocks_dfs)
-
+        for symbol in stocks_dfs:
+            stock_df = stocks_dfs[symbol]
+            stock_df['symbol'] = symbol
+            stocks_df = pd.concat([stocks_df, stock_df])
             
     return stocks_df
 
