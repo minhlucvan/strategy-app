@@ -22,28 +22,28 @@ import numpy as np
 import pandas as pd
 
 
-def calculate_value_score(metrics):
-    return 0
+# # Function to calculate value score
+# def calculate_value_score(metrics, means, stds):
+#     pe = metrics['priceToEarning']
+#     pb = metrics['priceToBook']
+#     ev_ebitda = metrics['valueBeforeEbitda']
+#     dividend_yield = metrics['dividend'] / metrics['earningPerShare']
+    
+#     # Normalize metrics using z-scores
+#     z_pe = (pe - means['priceToEarning']) / stds['priceToEarning']
+#     z_pb = (pb - means['priceToBook']) / stds['priceToBook']
+#     z_ev_ebitda = (ev_ebitda - means['valueBeforeEbitda']) / stds['valueBeforeEbitda']
+#     z_dividend_yield = (dividend_yield - means['dividend']) / stds['dividend']
+    
+#     # Composite value score
+#     value_score = -z_pe - z_pb - z_ev_ebitda + z_dividend_yield
+    
+#     return value_score
 
-# one metric uniformly applied to all stocks
-# combine other metrics to form a score
-# the score is used to rank the stocks
-# the score is linear combination of the metrics
-# parameter is a np.series of metrics
-# index: ticker,quarter,year,priceToEarning,priceToBook,valueBeforeEbitda,dividend,roe,roa,
-# daysReceivable,daysInventory,daysPayable,ebitOnInterest,earningPerShare,bookValuePerShare,
-# interestMargin,nonInterestOnToi,badDebtPercentage,provisionOnBadDebt,costOfFinancing,equityOnTotalAsset,
-# equityOnLoan,costToIncome,equityOnLiability,currentPayment,quickPayment,epsChange,ebitdaOnStock,
-# grossProfitMargin,operatingProfitMargin,postTaxMargin,debtOnEquity,debtOnAsset,debtOnEbitda,
-# shortOnLongDebt,assetOnEquity,capitalBalance,cashOnEquity,cashOnCapitalize,cashCirculation,
-# revenueOnWorkCapital,capexOnFixedAsset,revenueOnAsset,postTaxOnPreTax,ebitOnRevenue,preTaxOnEbit,
-# preProvisionOnToi,postTaxOnToi,loanOnEarnAsset,loanOnAsset,loanOnDeposit,depositOnEarnAsset,
-# badDebtOnAsset,liquidityOnLiability,payableOnEquity,cancelDebt,ebitdaOnStockChange,
-# bookValuePerShareChange,creditGrowth
-# return: magic score
+# Define the magic formula function
 def magic_formula(metrics):
-    value_score = calculate_value_score(metrics)
-    return 0
+    value_score = (metrics['priceToEarning'] + metrics['priceToBook'] ) / 2
+    return value_score
 
 def run(symbol_benchmark, symbolsDate_dict):
     st.write("## Value Factor Study")

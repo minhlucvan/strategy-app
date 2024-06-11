@@ -34,6 +34,10 @@ def main():
         })
         st.write("Updated successfully.")
     
+    # clear cache
+    if st.button("Clear Cache"):
+        config.clear_cache()
+        st.write("Cache cleared.")
     
 
 if __name__ == "__main__":

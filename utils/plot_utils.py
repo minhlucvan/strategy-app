@@ -21,3 +21,20 @@ def plot_multi_line(df, title, x_title, y_title, legend_title, price_df=None):
     for i, stock in enumerate(df.columns):
         fig.data[i].marker.color = px.colors.qualitative.Plotly[i % len(px.colors.qualitative.Plotly)]
     st.plotly_chart(fig, use_container_width=True)
+    
+def plot_single_line(df, title, x_title, y_title, legend_title):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=df.index, y=df, mode='lines', name=legend_title))
+    fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
+    st.plotly_chart(fig, use_container_width=True)
+    
+def plot_snapshot(df, title, x_title, y_title, legend_title, sorted=False):
+    display_series = df.iloc[-1] if not sorted else df.iloc[-1].sort_values(ascending=False)
+    # plot bar chart fe each stock
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=df.columns, y=display_series, name='PEB Ratio'))
+    fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
+    # update marker color by stock name
+    for i, stock in enumerate(df.columns):
+        fig.data[0].marker.color = px.colors.qualitative.Plotly[i % len(px.colors.qualitative.Plotly)]
+    st.plotly_chart(fig, use_container_width=True)

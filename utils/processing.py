@@ -62,6 +62,8 @@ def get_vn_stock(symbol: str, start_date: str, end_date: str, timeframe='1D') ->
         resolution=timeframe,
         start_date=start_date,
         end_date=end_date,
+        refresh=True,
+        force_fetch=True
     )
 
     stock_df['volume'] = stock_df['volume']

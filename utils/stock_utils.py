@@ -18,8 +18,8 @@ from utils.misc import retry
 CACHE_TTL = 60 * 60 * 24  # 1 day
 requests = requests_cache.CachedSession('cache/demo_cache', expire_after=CACHE_TTL, allowable_codes=[200])
 
-MAX_RETRIES = 10
-RETRY_WAIT_TIME = 10
+MAX_RETRIES = 5
+RETRY_WAIT_TIME = 30
 
 
 def get_stock_bars(ticker, time, stock_type, count_back, resolution='1'):

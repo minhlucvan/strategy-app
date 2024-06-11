@@ -37,3 +37,8 @@ def deep_value(dictionary, key):
 
 def get_config(key: str):
     return deep_value(config_dict, key)
+
+def clear_cache():
+    # remove ./cache/demo_cache.sqlite
+    if os.path.exists('./cache/demo_cache.sqlite'):
+        os.remove('./cache/demo_cache.sqlite')
