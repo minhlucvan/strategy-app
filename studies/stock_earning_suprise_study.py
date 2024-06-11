@@ -20,6 +20,7 @@ from utils.vbt import plot_pf
 from vbt_strategy.MOM_D import get_MomDInd
 
 from studies.market_wide import MarketWide_Strategy
+from studies.stock_custom_event_study import run as run_custom_event_study
 
 def plot_events(price_series, events_series):
     fig = go.Figure()
@@ -49,9 +50,11 @@ def run(symbol_benchmark, symbolsDate_dict):
     benchmark_dict = symbolsDate_dict.copy()
     benchmark_dict['symbols'] = [symbol_benchmark]
     
+    benchmark_df = get_stocks(benchmark_dict,'close')
     stocks_df = get_stocks(symbolsDate_dict,'close')
-    stocks_df.index = pd.to_datetime(stocks_df.index).tz_localize(None)
     
+    benchmark_df.index = pd.to_datetime(benchmark_df.index).tz_localize(None)
+    stocks_df.index = pd.to_datetime(stocks_df.index).tz_localize(None)
     financials_dfs = get_stocks_financial(symbolsDate_dict, raw=True)
     
     eps_df = pd.DataFrame()
@@ -99,13 +102,25 @@ def run(symbol_benchmark, symbolsDate_dict):
             symbol: union_df['realPriceToEarning']
         })], axis=1)
         
-    
     plot_multi_line(real_pe_df, 'Real Price to Earning', 'Date', 'Real Price to Earning', 'Real Price to Earning')
     
-    symbol = symbolsDate_dict['symbols'][0]
-    real_pe_df = real_pe_df[symbol]
-    event_df = financials_dfs[symbol]['earningPerShare']
+    real_pe_df = real_pe_df[real_pe_df.index >= stocks_df.index[0]]
     
-    event_df = event_df[event_df.index >= real_pe_df.index[0]]
+    real_pe_chage_df = real_pe_df.pct_change()
     
-    plot_events(real_pe_df, event_df)
+    stregth_real_pe_change_df = real_pe_chage_df[real_pe_chage_df < -0.2]
+    
+    # convert to stregth_real_pe_change_df tp dataframe
+    events_df = stregth_real_pe_change_df
+        
+    run_custom_event_study(symbol_benchmark, symbolsDate_dict, benchmark_df=benchmark_df, stocks_df=stocks_df, events_df=events_df, def_days_before=0, def_days_after=6)
+    
+    # for symbol in financials_dfs:
+    #     price_df = stocks_df[symbol]
+    #     symbol_real_pe_df = stregth_real_pe_change_df[symbol]
+                
+    #     plot_events(price_df, symbol_real_pe_df)
+                        
+    #     plot_single_bar(symbol_real_pe_df, '', 'Date', '', '', price_df=price_df)
+        
+    
