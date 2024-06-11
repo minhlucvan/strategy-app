@@ -12,7 +12,9 @@ class PortfolioStocks(PortfolioBase):
     def __init__(self, symbolDate_dict) -> None:
         super().__init__()
         self.symbolDate_dict = symbolDate_dict
+        self.symbols = symbolDate_dict['symbols']
         
     
     def get_assets(self):
         self.stocks_df = get_stocks(self.symbolDate_dict, 'close')
+        return self.stocks_df
