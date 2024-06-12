@@ -103,6 +103,11 @@ def plot_event_summary(events_affection_unstack_df, benchmark_df, symbol_benchma
     sharpe_ratio = daily_return.mean() / daily_return.std() * np.sqrt(252)
     st.write(f"Sharpe Ratio: {sharpe_ratio}")
 
+def plot_stock_summary(stocks_affection_df):
+    st.write("Stocks Price Change Summary")
+    fig = px.bar(stocks_affection_df, x=stocks_affection_df.index, y=stocks_affection_df.values)
+    st.plotly_chart(fig)
+
 def run(symbol_benchmark, symbolsDate_dict, benchmark_df=None, stocks_df=None, events_df=None, def_days_before=6, def_days_after=0):
     if len(symbolsDate_dict['symbols']) < 1:
         st.info("Please select symbols.")
@@ -142,3 +147,9 @@ def run(symbol_benchmark, symbolsDate_dict, benchmark_df=None, stocks_df=None, e
     
     events_affection_unstack_df = plot_event_distributions(events_df, events_affection_df, is_numeric=is_numeric)
     plot_event_summary(events_affection_unstack_df, benchmark_df, symbol_benchmark)
+    
+    # plot stock summary, plot stock that has the most event affect
+    stocks_affection_df = events_affection_df.mean()
+    
+    plot_stock_summary(stocks_affection_df)
+    
