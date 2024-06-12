@@ -11,6 +11,7 @@ import vnquant as vnquant
 
 from utils.db import load_symbol
 from utils import stock_utils
+from utils import vietstock
 from utils.stock_utils import get_stock_bars_very_long_term_cached, get_stock_balance_sheet, load_stock_balance_sheet_to_dataframe
 
 
@@ -289,6 +290,21 @@ def get_vn_foregin_flow(symbol: str, start_date: datetime.datetime, end_date: da
     
     return foregin_flow_df
 
+@lru_cache
+def get_vn_news(symbol: str, start_date: datetime.datetime, end_date: datetime.datetime) -> pd.DataFrame:
+    """get vietnam stock data
+
+    Args:
+        ak_params symbol:str, start_date:str 20170301, end_date:str
+
+    Returns:
+        pd.DataFrame: _description_
+    """
+    print(f"get_vn_news: {symbol}")
+    news_df = vietstock.get_stock_news_all(symbol, start_date, end_date)
+    
+    return news_df
+
 class AKData(object):
     def __init__(self, market):
         self.market = market
@@ -461,17 +477,20 @@ class AKData(object):
                 stock_df = stock_df['pegttm']
         return stock_df
 
-# def get_stocks(symbolsDate_dict:dict):
-#     datas = AKData(symbolsDate_dict['market'])
-#     stock_dfs = []
-#     for symbol in symbolsDate_dict['symbols']:
-#         if symbol!='':
-#                 stock_df = datas.get_stock(symbol, symbolsDate_dict['start_date'], symbolsDate_dict['end_date'])
-#                 if stock_df.empty:
-#                     st.warning(f"Warning: stock '{symbol}' is invalid or missing. Ignore it", icon= "⚠️")
-#                 else:
-#                     stock_dfs.append((symbol, stock_df))
-#     return stock_dfs
+    @vbt.cached_method
+    def get_news(self, symbol: str, start_date: datetime.datetime, end_date: datetime.datetime) -> pd.DataFrame:
+        print(f"AKData-get_news: {symbol}, {self.market}")
+        stock_df = pd.DataFrame()
+        symbol_df = load_symbol(symbol)
+
+        if len(symbol_df) == 1:
+            func = ('get_' + self.market + '_news').lower()
+            try:
+                stock_df = eval(func)(symbol=symbol, start_date=start_date, end_date=end_date)
+            except Exception as e:
+                print(e)
+
+        return stock_df
 
 @st.cache_data
 def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level='factor', timeframe='D'):
@@ -627,6 +646,45 @@ def get_stocks_events(symbolsDate_dict: dict, column='label',  stack=False, stac
     elif stack:
         stocks_df = pd.concat(stocks_dfs, axis=1)
     else:
+        stocks_df = pd.DataFrame(stocks_dfs)
+                
+    return stocks_df
+
+@st.cache_data
+def get_stocks_news(symbolsDate_dict: dict, column='title',  stack=False, stack_level='factor'):
+    datas = AKData(symbolsDate_dict['market'])
+    stocks_dfs = {}
+    for symbol in symbolsDate_dict['symbols']:
+        if symbol != '':
+            stock_df = datas.get_news(symbol, symbolsDate_dict['start_date'], symbolsDate_dict['end_date'])
+            if stock_df.empty:
+                print(
+                    f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
+            else:
+                stocks_dfs[symbol] = stock_df if stack else stock_df[column]
+    
+    stocks_df = pd.DataFrame()
+    if stack and stack_level == 'factor':
+        # each frame represents one stock with all factors
+        # stack the dataframes is 2 levels
+        # level 0 is the factor name, level 1 is the stock symbol
+        # eg. stocks_df['pe']['AAPL'] = 12.3
+        factor_dfs = {}
+        for symbol in stocks_dfs.keys():
+            for column in stocks_dfs[symbol].columns:
+                if column not in factor_dfs:
+                    factor_dfs[column] = pd.DataFrame()
+                factor_dfs[column][symbol] = stocks_dfs[symbol][column]
+        stocks_df = pd.concat(factor_dfs, axis=1)
+    elif stack:
+        stocks_df = pd.concat(stocks_dfs, axis=1)
+    else:
+        # deduplicate
+        for symbol in stocks_dfs:
+            stock_df = stocks_dfs[symbol]
+            stock_df = stock_df[~stock_df.index.duplicated()]
+            stocks_dfs[symbol] = stock_df
+            
         stocks_df = pd.DataFrame(stocks_dfs)
                 
     return stocks_df

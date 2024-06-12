@@ -7,7 +7,7 @@ import datetime as dt
 from bs4 import BeautifulSoup
 from utils.misc import retry
 
-CACHE_TTL = 60 * 60 * 24  # 1 day
+CACHE_TTL = 60 * 60 * 24 * 30  # 30 day
 requests = requests_cache.CachedSession('cache/vietstock', expire_after=CACHE_TTL, allowable_codes=[200])
 
 def parse_news_response(html_content):

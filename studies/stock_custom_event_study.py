@@ -24,7 +24,9 @@ def get_event_affection(stock_df, event_df, days_before, days_after):
     for index, row in event_df.iterrows():
         event_before_price = stock_df[stock_df.index >= row['event_before_date']].iloc[0]
         event_price = stock_df[stock_df.index >= row['event_date']].iloc[0]
-        event_after_price = stock_df[stock_df.index >= row['event_after_date']].iloc[0]
+        
+        event_after_price_df = stock_df[stock_df.index >= row['event_after_date']]
+        event_after_price = event_after_price_df.iloc[0] if not event_after_price_df.empty else np.nan
 
         if pd.isna(event_before_price) or pd.isna(event_price) or pd.isna(event_after_price):
             continue
