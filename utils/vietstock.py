@@ -118,7 +118,7 @@ def load_stock_news_to_df(html: str):
     
     return df
 
-def get_stock_news_all(code, page=1, page_size=20, from_date=None, to_date=None):
+def get_stock_news_all(code, from_date=None, to_date=None, page=1, page_size=20, ):
     results_df = pd.DataFrame()
     
     data = get_stock_news(code, page, page_size, from_date, to_date)

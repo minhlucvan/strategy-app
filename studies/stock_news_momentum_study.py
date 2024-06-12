@@ -49,7 +49,7 @@ def run(symbol_benchmark, symbolsDate_dict):
         
     price_change_dfs = {}
     
-    for i in range(-1, 6):
+    for i in range(-4, 2):
         price_change_df = (stocks_df.shift(i) - stocks_df) / stocks_df
         price_change_dfs[f"change_{i}"] = price_change_df
         
@@ -63,12 +63,22 @@ def run(symbol_benchmark, symbolsDate_dict):
     # set index to date
     price_changes_flat_df = price_changes_flat_df.set_index('date')
     
-    st.write(price_changes_flat_df)
+    threshold = st.number_input('Threshold', min_value=0.0, max_value=5.0, value=0.0)
     
+    # filter events
+    for symbol in news_df.columns.get_level_values(0).unique():
+        for index in news_df.index:
+            price_change_df = price_changes_flat_df.loc[index]
+            price_change_symbol = price_change_df[price_change_df['level_1'] == symbol]
+            price_change = price_change_symbol['change_1'].values[0]
+            if price_change > threshold:
+                news_df.loc[index][symbol] = price_change
+            else:
+                news_df.loc[index][symbol] = np.nan
+        
     # plot correlation
     corr_df = price_changes_flat_df.copy()
-    # drop columns
-    corr_df = corr_df.drop(columns=['change_0', 'level_1'])
+    corr_df = corr_df[['change_1', 'change_-1']]
     corr = corr_df.corr()
     fig = px.imshow(corr)
     st.plotly_chart(fig, use_container_width=True)
@@ -85,16 +95,6 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     # plot_utils.plot_events(stocks_df[symbol], news_df_positive['title'], label="")
     
-    # filter events
-    for symbol in news_df.columns.get_level_values(0).unique():
-        for index in news_df.index:
-            price_change_df = price_changes_flat_df.loc[index]
-            price_change_symbol = price_change_df[price_change_df['level_1'] == symbol]
-            price_change = price_change_symbol['change_1'].values[0]
-            if price_change > 0:
-                news_df.loc[index][symbol] = price_change
-            else:
-                news_df.loc[index][symbol] = np.nan
                 
     enable_simulate = st.checkbox("Enable simulate")
     

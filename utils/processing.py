@@ -300,7 +300,7 @@ def get_vn_news(symbol: str, start_date: datetime.datetime, end_date: datetime.d
     Returns:
         pd.DataFrame: _description_
     """
-    print(f"get_vn_news: {symbol}")
+    print(f"get_vn_news: {symbol} {start_date} {end_date}")
     news_df = vietstock.get_stock_news_all(symbol, start_date, end_date)
     
     return news_df
