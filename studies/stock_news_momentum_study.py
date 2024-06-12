@@ -24,10 +24,11 @@ def calculate_price_changes(stocks_df, news_df):
     return price_changes_flat_df
 
 def filter_events(news_df, price_changes_flat_df, threshold):
+    original_news = news_df.copy()
     for symbol in news_df.columns.get_level_values(0).unique():
         for index in news_df.index:
             price_change_df = price_changes_flat_df.loc[index]
-            if price_change_df['level_1'] == symbol:
+            if isinstance(price_change_df['level_1'], str) and price_change_df['level_1'] == symbol:
                 price_change_symbol  = price_change_df
                 price_change = price_change_symbol['change_1']
             else:
@@ -38,7 +39,9 @@ def filter_events(news_df, price_changes_flat_df, threshold):
                 news_df.loc[index, symbol] = price_change
             else:
                 news_df.loc[index, symbol] = np.nan
-    return news_df
+                original_news.loc[index, symbol] = np.nan
+                
+    return news_df, original_news
 
 def plot_correlation(price_changes_flat_df):
     corr_df = price_changes_flat_df[['change_1', 'change_-1']]
@@ -82,7 +85,12 @@ def run(symbol_benchmark, symbolsDate_dict):
     price_changes_flat_df = calculate_price_changes(stocks_df, news_df)
     
     threshold = st.number_input('Threshold', min_value=0.0, max_value=5.0, value=0.0)
-    news_df = filter_events(news_df, price_changes_flat_df, threshold)
+    news_df, original_news_df  = filter_events(news_df, price_changes_flat_df, threshold)
+    
+    show_data = st.checkbox("Show data")
+    if show_data:
+        display_df = original_news_df[original_news_df.notnull().all(axis=1)]
+        st.dataframe(display_df, use_container_width=True)
     
     plot_correlation(price_changes_flat_df)
     plot_scatter_matrix(price_changes_flat_df)

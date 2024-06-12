@@ -6,6 +6,7 @@ import streamlit as st
 from streamlit_quill import st_quill
 import json
 
+from utils.market_utils import get_maket_groups
 from utils.portfolio import Portfolio
 
 def input_dates(by='unique'):
@@ -101,21 +102,21 @@ def show_bar():
     """
     st.markdown(bar, unsafe_allow_html=True)
 
-def input_SymbolsGroup(market, groups_dict):        
-    group_options = groups_dict[market]['group'].keys()
+def input_SymbolsGroup(groups_dict):        
+    group_options = groups_dict['group'].keys()
     group_options = ['None'] + list(group_options)
     group_sel = st.sidebar.selectbox("Symbols' group", group_options)
     
     if group_sel == 'None':
         return {
             "name": None,
-            "benchmark": groups_dict[market]['benchmark'],
+            "benchmark": groups_dict['benchmark'],
             "symbols": []
         }
     
     return {
-        "benchmark": groups_dict[market]['benchmark'],
-        "symbols": groups_dict[market]['group'][group_sel],
+        "benchmark": groups_dict['benchmark'],
+        "symbols": groups_dict['group'][group_sel],
         "name": group_sel
     }
 
@@ -148,19 +149,17 @@ def input_SymbolsDate(group=True) -> dict:
     # market = st.sidebar.radio("Select market", ("VN",), horizontal= True)
     market = 'VN'
     
-    groups_data = {}
-    with open("funds.json", 'r', encoding='UTF-8') as f:
-        groups_data = json.load(f)
+    groups_data = get_maket_groups(market)
     
     group_dict = {
-        "benchmark": groups_data[market]['benchmark'],
+        "benchmark": groups_data['benchmark'],
         "symbols": []
     }
     
     symbols = []
     
     if group:
-        group_dict = input_SymbolsGroup(market, groups_data)
+        group_dict = input_SymbolsGroup(groups_data)
     
     if group and len(group_dict['symbols']) > 0:
         symbols = input_symbols_group(group_dict)

@@ -1017,6 +1017,22 @@
         "XPH",
         "YBC",
         "YTC"
+      ],
+      "SECTOR_AQUATIC": [
+        "AAM",
+        "ABT",
+        "ACL",
+        "ANV",
+        "ASM",
+        "CAN",
+        "CMX",
+        "DAT",
+        "FMC",
+        "IDI",
+        "KHS",
+        "SJ1",
+        "TFC",
+        "VHC"
       ]
     }
   }
