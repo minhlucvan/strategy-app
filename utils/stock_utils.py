@@ -2020,6 +2020,8 @@ def load_stock_events_to_dataframe(data):
     df = pd.DataFrame(data)
     df['date'] = pd.to_datetime(df['date'])
     
+    df['niceTitle'] = df['title'].apply(lambda x: BeautifulSoup(x, 'html.parser').text)
+    
     df['cashDividend'] = df['title'].apply(extract_dividend_amount)
     df['exDividendDate'] = df['title'].apply(extract_exdividend_date)
     
@@ -2150,3 +2152,171 @@ def get_first_trade_date_of_week():
     tradingDate = datetime.strptime(tradingDate, '%Y-%m-%dT%H:%M:%S.%fZ')
     
     return tradingDate
+
+# https://apipubaws.tcbs.com.vn/stock-insight/v1/intraday/cash-flow-latest?tickers=SSI,BCM,VHM,VIC,VRE,VJC,MSN,VNM,POW,MWG,GVR,GAS,HPG,PLX,SAB,BVH,ACB,BID,HDB,MBB,SHB,SSB,STB,TCB,TPB,VCB,VIB,VPB,FPT,CTG&timeFrame=1W
+@retry(times=MAX_RETRIES, exceptions=(Exception), delay=RETRY_WAIT_TIME)
+def get_intraday_cash_flow_latest(tickers, timeFrame='1W'):
+    url = f'https://apipubaws.tcbs.com.vn/stock-insight/v1/intraday/cash-flow-latest'
+    
+    headers = {
+        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'DNT': '1',
+        'Accept-language': 'vi',
+        'sec-ch-ua-mobile': '?0',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/'
+    }
+    
+    params = {
+        'tickers': ','.join(tickers),
+        'timeFrame': timeFrame
+    }
+    
+    response = requests.get(url, params=params, headers=headers)
+    
+    if response.status_code == 200:
+        json = response.json()
+        return json
+    else:
+        print(f"Request failed with status code {response.status_code}")
+        return None
+    
+def load_intraday_cash_flow_latest_to_dataframe(data):
+    # {
+    # "totalPage": 1,
+    # "data": [
+    #     {
+    #         "ticker": "ACB",
+    #         "comp_name": "ACB",
+    #         "ind_name": "Ngân hàng",
+    #         "ind_code": "8300",
+    #         "min_pp": -0.016,
+    #         "max_pp": -0.016,
+    #         "data": [
+    #             {
+    #                 "bp": 0.449,
+    #                 "op": 0.643,
+    #                 "p": 24400.00,
+    #                 "pp": -0.016,
+    #                 "vol": 7679882,
+    #                 "val": 187766636350,
+    #                 "mc": 108986453052800.00,
+    #                 "nstp": -33.400,
+    #                 "peravgVolume5d": 0.76,
+    #                 "rsi14": 57.48,
+    #                 "rs3d": 51.00,
+    #                 "avgrs": 55.00,
+    #                 "pPerMa5": 1.00,
+    #                 "pPerMa20": 1.01,
+    #                 "isignal": 0.042,
+    #                 "fnetVol": 0.00,
+    #                 "t": "10/06/24",
+    #                 "seq": 1717977600
+    #             }
+    #         ]
+    #     }]}
+    list_data = data['data'] if 'data' in data else data
+    df = pd.DataFrame()
+    
+    for item in list_data:
+        ticker = item['ticker']
+        comp_name = item['comp_name']
+        ind_name = item['ind_name']
+        ind_code = item['ind_code']
+        
+        data = item['data']
+        
+        df_temp = pd.DataFrame(data)
+        
+        df_temp['ticker'] = ticker
+        df_temp['comp_name'] = comp_name
+        df_temp['ind_name'] = ind_name
+        df_temp['ind_code'] = ind_code
+        
+        time = df_temp['t']
+        
+        # t format could be '10/06/24', '10/06/2024 09:00" or "6-2023"
+        if len(time) == 8:
+            df_temp['t'] = pd.to_datetime(df_temp['t'], format='%d/%m/%y')
+        elif len(time) == 16:
+            df_temp['t'] = pd.to_datetime(df_temp['t'], format='%d/%m/%Y %H:%M')
+        elif len(time) == 7:
+            df_temp['t'] = pd.to_datetime(df_temp['t'], format='%m-%Y')
+        
+        df = pd.concat([df, df_temp])    
+    
+    # # Renaming the columns
+    # df.rename(columns={
+    #     'ticker': 'ticker',
+    #     'comp_name': 'comp_name',
+    #     'ind_name': 'ind_name',
+    #     'ind_code': 'ind_code',
+    #     'min_pp': 'min_pp',
+    #     'max_pp': 'max_pp',
+    #     'bp': 'buyup_pct',
+    #     'op': 'open_pct',
+    #     'p': 'price',
+    #     'pp': 'price_change_pct',
+    #     'vol': 'volume',
+    #     'val': 'value',
+    #     'mc': 'market_cap',
+    #     'nstp': 'performance_indicator',
+    #     'peravgVolume5d': 'average_volume_5d',
+    #     'rsi14': 'RSI (14)',
+    #     'rs3d': 'RSI 3d',
+    #     'avgrs': 'average_RS',
+    #     'pPerMa5': 'price/MA(5)',
+    #     'pPerMa20': 'price/MA(20)',
+    #     'isignal': 'iSignal',
+    #     'fnetVol': 'foreign_net_volume',
+    #     't': 'date',
+    #     'seq': 'sequence'
+    # }, inplace=True)
+        
+    # set index to date
+    df.set_index('t', inplace=True)
+    
+    return df
+        
+        
+# https://apipubaws.tcbs.com.vn/stock-insight/v1/intraday/cash-flow-list?tickers=SSI,BCM,VHM,VIC,VRE,VJC,MSN,VNM,POW,MWG,GVR,GAS,HPG,PLX,SAB,BVH,ACB,BID,HDB,MBB,SHB,SSB,STB,TCB,TPB,VCB,VIB,VPB,FPT,CTG&timeFrame=1D&page=0
+def get_intraday_cash_flow_list(tickers, timeFrame='1D', page=0):
+    url = f'https://apipubaws.tcbs.com.vn/stock-insight/v1/intraday/cash-flow-list'
+    
+    headers = {
+        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'DNT': '1',
+        'Accept-language': 'vi',
+        'sec-ch-ua-mobile': '?0',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/'
+    }
+    
+    params = {
+        'tickers': ','.join(tickers),
+        'timeFrame': timeFrame,
+        'page': page
+    }
+    
+    response = requests.get(url, params=params, headers=headers)
+    
+    if response.status_code == 200:
+        json = response.json()
+        return json
+    else:
+        print(f"Request failed with status code {response.status_code}")
+        return None
+
+def get_intraday_cash_flow_list_all(tickers, timeFrame='1D'):
+    page = 0
+    res = get_intraday_cash_flow_list(tickers, timeFrame, page)
+    
+    data = res['data']
+    
+    totalPage = res['totalPage']
+    
+    while page < totalPage:
+        page += 1
+        res = get_intraday_cash_flow_list(tickers, timeFrame, page)
+        
+        data += res['data']
+        
+    return data

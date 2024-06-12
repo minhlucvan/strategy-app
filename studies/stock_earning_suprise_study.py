@@ -108,7 +108,9 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     real_pe_chage_df = real_pe_df.pct_change()
     
-    stregth_real_pe_change_df = real_pe_chage_df[real_pe_chage_df < -0.2]
+    pe_threshold = st.number_input('PE Change Threshold', min_value=-2.0, max_value=2.0, value=-0.2)
+    
+    stregth_real_pe_change_df = real_pe_chage_df[real_pe_chage_df < pe_threshold]
     
     # convert to stregth_real_pe_change_df tp dataframe
     events_df = stregth_real_pe_change_df

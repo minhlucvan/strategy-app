@@ -26,6 +26,9 @@ from .stock_factors_volatility_study import run as run_stock_factors_volatility
 from .stock_factor_base_study import run as run_stock_factor_base
 from .stock_financial_report_study import run as run_stock_financial_report
 from .stock_earning_suprise_study import run as run_stock_earning_suprise_study
+from .stock_financial_momentum_study import run as run_stock_financial_momentum_study
+from .cash_flow_study import run as run_cash_flow_study
+from .stock_news_momentum_study import run as run_stock_news_momentum_study
 
 study_list = [
     {
@@ -135,6 +138,18 @@ study_list = [
     {
         "name": "Stock Earning Suprise",
         "module": run_stock_earning_suprise_study
+    },
+    {
+        "name": "Stock Financial Momentum",
+        "module": run_stock_financial_momentum_study
+    },
+    {
+        "name": "Cash Flow",
+        "module": run_cash_flow_study
+    },
+    {
+        "name": "Stock News Momentum",
+        "module": run_stock_news_momentum_study
     },
     {
         "name": "TCBS Agent",

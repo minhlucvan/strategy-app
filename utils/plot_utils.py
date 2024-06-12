@@ -3,6 +3,7 @@ import streamlit as st
 import plotly.graph_objects as go
 import plotly.subplots as sp
 import plotly.express as px
+import pandas as pd
 
 def plot_multi_line(df, title, x_title, y_title, legend_title, price_df=None):
     df = df.copy()
@@ -22,7 +23,38 @@ def plot_multi_line(df, title, x_title, y_title, legend_title, price_df=None):
     for i, stock in enumerate(df.columns):
         fig.data[i].marker.color = px.colors.qualitative.Plotly[i % len(px.colors.qualitative.Plotly)]
     st.plotly_chart(fig, use_container_width=True)
-    
+
+def plot_multi_bar(df, title, x_title, y_title, legend_title, price_df=None):
+    if price_df is not None:
+        fig = sp.make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.01)
+        for col in df.columns:
+            fig.add_trace(go.Bar(x=df.index, y=df[col], name=col), row=1, col=1)
+            fig.add_trace(go.Scatter(x=price_df.index, y=price_df[col], mode='lines', name=col), row=2, col=1)
+        fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
+        st.plotly_chart(fig, use_container_width=True)
+        return
+    fig = go.Figure()
+    for col in df.columns:
+        fig.add_trace(go.Bar(x=df.index, y=df[col], name=col))
+    fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
+    st.plotly_chart(fig, use_container_width=True)
+
+def plot_multi_scatter(df, title, x_title, y_title, legend_title, price_df=None):
+    if price_df is not None:
+        fig = sp.make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.01)
+        for col in df.columns:
+            fig.add_trace(go.Scatter(x=df.index, y=df[col], mode='markers', name=col), row=1, col=1)
+            fig.add_trace(go.Scatter(x=price_df.index, y=price_df[col], mode='lines', name=col), row=2, col=1)
+        fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
+        st.plotly_chart(fig, use_container_width=True)
+        return
+    fig = go.Figure()
+    for col in df.columns:
+        fig.add_trace(go.Scatter
+                        (x=df.index, y=df[col], mode='markers', name=col))
+    fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
+    st.plotly_chart(fig, use_container_width=True)
+
 def plot_single_line(df, title, x_title, y_title, legend_title):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df.index, y=df, mode='lines', name=legend_title))
@@ -53,3 +85,25 @@ def plot_snapshot(df, title, x_title, y_title, legend_title, sorted=False):
     for i, stock in enumerate(df.columns):
         fig.data[0].marker.color = px.colors.qualitative.Plotly[i % len(px.colors.qualitative.Plotly)]
     st.plotly_chart(fig, use_container_width=True)
+    
+
+def plot_events(price_series, events_series, label=None):
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=price_series.index, y=price_series, mode='lines', name='Price'))
+    max_price = price_series.max()
+    min_price = price_series.min()
+    # add horizontal line for events, annotation_text = event
+    for index in events_series.index:
+        events = events_series[index]
+        
+        events = events if isinstance(events, pd.Series) else pd.Series([events])
+        for event in events:
+            # add horizontal line, x = index, y = max_price
+            fig.add_shape(type="line",
+                x0=index, y0=max_price, x1=index, y1=min_price,
+                line=dict(color="RoyalBlue",width=1))
+            # add annotation
+            fig.add_annotation(x=index, y=max_price, text=label if label is not None else event, showarrow=False, yshift=10)               
+            
+    st.plotly_chart(fig)
+    

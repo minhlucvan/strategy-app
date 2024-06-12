@@ -11,18 +11,6 @@ from utils.vbt import plot_pf
 from vbt_strategy.MOM_D import get_MomDInd
 from studies.market_wide import MarketWide_Strategy
 
-def plot_events(price_series, events_series):
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=price_series.index, y=price_series, mode='lines', name='Price'))
-    max_price = price_series.max()
-    min_price = price_series.min()
-    for index in events_series.index:
-        event = events_series[index]
-        if not pd.isna(event):
-            fig.add_shape(type="line", x0=index, y0=max_price, x1=index, y1=min_price,
-                          line=dict(color="RoyalBlue", width=1))
-            fig.add_annotation(x=index, y=max_price, text=event, showarrow=False, yshift=10)
-    st.plotly_chart(fig)
 
 def get_event_affection(stock_df, event_df, days_before, days_after):
     event_affection_df = pd.DataFrame(index=stock_df.index, columns=['event_price_change'])
@@ -46,19 +34,20 @@ def get_event_affection(stock_df, event_df, days_before, days_after):
 
     return event_affection_df['event_price_change']
 
-def plot_event_distributions(events_df, events_affection_df):
+def plot_event_distributions(events_df, events_affection_df, is_numeric=True):
     event_unstack_df = events_df.unstack().reset_index()
     event_unstack_df.columns = ['Stock', 'Date', 'Cash Dividend']
     event_unstack_df = event_unstack_df.dropna()
     event_unstack_df.index = event_unstack_df['Date']
 
-    st.write("Cash Dividend Scatter")
-    fig = px.scatter(event_unstack_df, x="Date", y="Cash Dividend", color="Stock")
-    st.plotly_chart(fig)
+    if is_numeric:
+        st.write("Cash Dividend Scatter")
+        fig = px.scatter(event_unstack_df, x="Date", y="Cash Dividend", color="Stock")
+        st.plotly_chart(fig)
 
-    st.write("Cash Dividend Distribution")
-    fig = px.histogram(event_unstack_df, x="Cash Dividend", color="Stock", marginal="box", nbins=50)
-    st.plotly_chart(fig)
+        st.write("Cash Dividend Distribution")
+        fig = px.histogram(event_unstack_df, x="Cash Dividend", color="Stock", marginal="box", nbins=50)
+        st.plotly_chart(fig)
 
     events_affection_unstack_df = events_affection_df.unstack().reset_index()
     events_affection_unstack_df.columns = ['Stock', 'Date', 'Price Change']
@@ -147,5 +136,7 @@ def run(symbol_benchmark, symbolsDate_dict, benchmark_df=None, stocks_df=None, e
     for key in event_affections.keys():
         events_affection_df[key] = event_affections[key]
     
-    events_affection_unstack_df = plot_event_distributions(events_df, events_affection_df)
+    is_numeric = type(events_df.iloc[0, 0]) in [int, float]
+    
+    events_affection_unstack_df = plot_event_distributions(events_df, events_affection_df, is_numeric=is_numeric)
     plot_event_summary(events_affection_unstack_df, benchmark_df, symbol_benchmark)
