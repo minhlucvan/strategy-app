@@ -1051,6 +1051,14 @@
         "GMC",
         "MSH",
         "TCM"
+      ],
+      "SECTOR_WOOD":[
+        "ACG",
+        "BKG",
+        "GTA",
+        "NHT",
+        "PTB",
+        "TLD"
       ]
     }
   }
