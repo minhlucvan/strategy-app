@@ -29,6 +29,7 @@ from .stock_earning_suprise_study import run as run_stock_earning_suprise_study
 from .stock_financial_momentum_study import run as run_stock_financial_momentum_study
 from .cash_flow_study import run as run_cash_flow_study
 from .stock_news_momentum_study import run as run_stock_news_momentum_study
+from .stock_headline_momentum_study import run as run_stock_headline_momentum_study
 
 study_list = [
     {
@@ -150,6 +151,10 @@ study_list = [
     {
         "name": "Stock News Momentum",
         "module": run_stock_news_momentum_study
+    },
+    {
+        "name": "Stock Headline Momentum",
+        "module": run_stock_headline_momentum_study  
     },
     {
         "name": "TCBS Agent",

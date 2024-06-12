@@ -144,7 +144,6 @@ def get_group_symbols(url: str):
     headers = {
         'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/avif,image/webp,image/apng,*/*;q=0.8,application/signed-exchange;v=b3;q=0.7',
         'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8,vi-VN;q=0.7,fr-FR;q=0.6,fr;q=0.5,de;q=0.4',
-        'Cache-Control': 'max-age=0',
         'Connection': 'keep-alive',
         'Cookie': '__gads=ID=23a84ba3642985dd-225dd1c1efe40031:T=1697534635:RT=1697534635:S=ALNI_MYrkFZ27_DnnSrsceg2yfjNe1N4NQ; __gpi=UID=00000c651a2129ed:T=1697534635:RT=1697534635:S=ALNI_MYGsWgiOZjGVAvDSSFeqB5SiTe_hw; _cc_id=b79ffaf0fbfc19b4fcaa985468c04c5a; dable_uid=undefined; cto_bidid=ASnYGV8xMkJiQlNPNGFCTVJVcWVCJTJCQ3FzU0VuZzFBMVJjSW9FJTJGN291dUdqdzF5ZUxKUUVvb1Zlek0xUlhuOTRPc3RxWE9xQUtKOHRYN0YlMkJBMWZSYmplN3N5MkozbUw5dlAyUTIlMkZqdDNWMHp1OHJJJTNE; cto_bundle=knrmOF80eDNUQm4wQk1lekg0VGFGVUwwb0V6JTJCZnklMkYxTkFKdGNpWmJwZElWcDZORVo4YTBaUGNLalhpM2pzR3BtTnpHdjB6cEFJeVQxVDlMMkNWaldMSVFhWW44TWxVOWZxU3lsZU54UjRYbWlzcEUlMkIxeHg1NVNydXFoQTUlMkZRVUk5T3BUUFB5RHZKaUNGbEJXdmIlMkIyWHoyc1kzVE1oOWxYSXJQT1hseTZaSSUyRlcxRmslM0Q; _ga=GA1.2.1939511784.1697534635; _ga_EXMM0DKVEX=GS1.1.1709646248.11.0.1709646248.60.0.0; language=vi-VN; Theme=Light; AnonymousNotification=; ASP.NET_SessionId=233fm0kc4cc1paa2mka1xzgw; __RequestVerificationToken=ZQsefvxPtvI1C4ytred5kFaQU3oHmPJNdLSGKx3fY_Il6RX2spYc3X54eeqwE0N9Kf7aCdWeMQlndZ1vevvDg5ze9NXdmnuKSN1ZjaN-_Ks1',
         'DNT': '1',

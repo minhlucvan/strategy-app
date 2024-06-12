@@ -468,7 +468,6 @@ def get_vsd_stock_news(ticker):
     headers = {
         'Accept': '*/*',
         'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8,vi-VN;q=0.7,fr-FR;q=0.6,fr;q=0.5,de;q=0.4',
-        'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
         'Content-Type': 'application/json;charset=UTF-8',
         'DNT': '1',
@@ -867,7 +866,6 @@ def get_stock_info_data(tickers):
         'authority': 'iboard-query.ssi.com.vn',
         'accept': 'application/json, text/plain, */*',
         'accept-language': 'vi',
-        'cache-control': 'no-cache',
         'content-type': 'application/json',
         'device-id': 'B62311E1-AA20-4712-93CD-DF66FC4D5FDC',
         'dnt': '1',

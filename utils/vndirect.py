@@ -8,7 +8,6 @@ def get_fund_ratios():
     headers = {
         'Accept': '*/*',
         'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8,vi-VN;q=0.7,fr-FR;q=0.6,fr;q=0.5,de;q=0.4',
-        'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
         'Content-Type': 'application/json',
         'DNT': '1',

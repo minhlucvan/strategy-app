@@ -687,6 +687,8 @@ def get_stocks_news(symbolsDate_dict: dict, column='title',  stack=False, stack_
         # deduplicate
         for symbol in stocks_dfs:
             stock_df = stocks_dfs[symbol]
+            stock_df = stock_df.groupby(stock_df.index).agg(lambda x: ', '.join(x))
+
             stock_df = stock_df[~stock_df.index.duplicated()]
             stocks_dfs[symbol] = stock_df
             
