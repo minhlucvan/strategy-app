@@ -38,17 +38,17 @@ def get_event_affection(stock_df, event_df, days_before, days_after):
 
 def plot_event_distributions(events_df, events_affection_df, is_numeric=True):
     event_unstack_df = events_df.unstack().reset_index()
-    event_unstack_df.columns = ['Stock', 'Date', 'Cash Dividend']
+    event_unstack_df.columns = ['Stock', 'Date', 'Signal']
     event_unstack_df = event_unstack_df.dropna()
     event_unstack_df.index = event_unstack_df['Date']
 
     if is_numeric:
-        st.write("Cash Dividend Scatter")
-        fig = px.scatter(event_unstack_df, x="Date", y="Cash Dividend", color="Stock")
+        st.write("Signal Scatter")
+        fig = px.scatter(event_unstack_df, x="Date", y="Signal", color="Stock")
         st.plotly_chart(fig)
 
-        st.write("Cash Dividend Distribution")
-        fig = px.histogram(event_unstack_df, x="Cash Dividend", color="Stock", marginal="box", nbins=50)
+        st.write("Signal Distribution")
+        fig = px.histogram(event_unstack_df, x="Signal", color="Stock", marginal="box", nbins=50)
         st.plotly_chart(fig)
 
     events_affection_unstack_df = events_affection_df.unstack().reset_index()
