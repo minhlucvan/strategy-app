@@ -24,23 +24,35 @@ def calculate_price_changes(stocks_df, news_df):
     
     return price_changes_flat_df
 
-def filter_events(news_df, price_changes_flat_df, threshold):
+def filter_events(news_df, price_changes_flat_df, threshold=0.0, column='change_1', text_filter=""):
     original_news = news_df.copy()
     for symbol in news_df.columns.get_level_values(0).unique():
         for index in news_df.index:
             price_change_df = price_changes_flat_df.loc[index]
             if isinstance(price_change_df['level_1'], str) and price_change_df['level_1'] == symbol:
                 price_change_symbol  = price_change_df
-                price_change = price_change_symbol['change_1']
+                price_change = price_change_symbol[column]
             else:
                 price_change_symbol = price_change_df[price_change_df['level_1'] == symbol]
-                price_change_1 = price_change_symbol['change_1']
+                price_change_1 = price_change_symbol[column]
                 price_change = price_change_1.values[0] if not price_change_1.empty else np.nan
+            
             if price_change > threshold:
                 news_df.loc[index, symbol] = price_change
             else:
                 news_df.loc[index, symbol] = np.nan
                 original_news.loc[index, symbol] = np.nan
+            
+            if text_filter and text_filter != "" and isinstance(original_news.loc[index, symbol], str):
+                slugs = text_filter.split(",")
+                
+                for slug in slugs:
+                    if slug in original_news.loc[index, symbol]:
+                        continue
+                
+                news_df.loc[index, symbol] = np.nan
+                original_news.loc[index, symbol] = np.nan
+                
                 
     return news_df, original_news
 
@@ -99,7 +111,7 @@ def run(symbol_benchmark, symbolsDate_dict):
         st.dataframe(display_df, use_container_width=True)
     
     if len(news_df.columns) == 1:
-        plot_events(news_df.iloc[:, 0], original_news_df.iloc[:, 0], label="")
+        plot_events(stocks_df.iloc[:, 0], original_news_df.iloc[:, 0], label="")
         
     plot_correlation(price_changes_flat_df)
     plot_scatter_matrix(price_changes_flat_df)

@@ -22,23 +22,6 @@ from vbt_strategy.MOM_D import get_MomDInd
 from studies.market_wide import MarketWide_Strategy
 from studies.stock_custom_event_study import run as run_custom_event_study
 
-def plot_events(price_series, events_series):
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=price_series.index, y=price_series, mode='lines', name='Price'))
-    max_price = price_series.max()
-    min_price = price_series.min()
-    # add horizontal line for events, annotation_text = event
-    for index in events_series.index:
-        event = events_series[index]
-        if not pd.isna(event):
-            # add horizontal line, x = index, y = max_price
-            fig.add_shape(type="line",
-                x0=index, y0=max_price, x1=index, y1=min_price,
-                line=dict(color="RoyalBlue",width=1))
-            # add annotation
-            fig.add_annotation(x=index, y=max_price, text=event, showarrow=False, yshift=10)                 
-            
-    st.plotly_chart(fig)
     
 def run(symbol_benchmark, symbolsDate_dict):
     
@@ -117,12 +100,4 @@ def run(symbol_benchmark, symbolsDate_dict):
         
     run_custom_event_study(symbol_benchmark, symbolsDate_dict, benchmark_df=benchmark_df, stocks_df=stocks_df, events_df=events_df, def_days_before=0, def_days_after=6)
     
-    # for symbol in financials_dfs:
-    #     price_df = stocks_df[symbol]
-    #     symbol_real_pe_df = stregth_real_pe_change_df[symbol]
-                
-    #     plot_events(price_df, symbol_real_pe_df)
-                        
-    #     plot_single_bar(symbol_real_pe_df, '', 'Date', '', '', price_df=price_df)
-        
     

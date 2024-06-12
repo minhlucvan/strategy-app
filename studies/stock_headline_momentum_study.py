@@ -3,6 +3,7 @@ import numpy as np
 import streamlit as st
 import plotly.express as px
 
+from studies.stock_news_momentum_study import filter_events, plot_correlation, plot_scatter_matrix, run_simulation
 from utils.component import input_SymbolsDate
 from utils.plot_utils import plot_events
 from utils.processing import get_stocks, get_stocks_news
@@ -24,61 +25,6 @@ def calculate_price_changes(stocks_df, news_df):
     
     return price_changes_flat_df
 
-def filter_events(news_df, price_changes_flat_df, threshold=0.0, column='change_1', text_filter=""):
-    original_news = news_df.copy()
-    for symbol in news_df.columns.get_level_values(0).unique():
-        for index in news_df.index:
-            price_change_df = price_changes_flat_df.loc[index]
-            if isinstance(price_change_df['level_1'], str) and price_change_df['level_1'] == symbol:
-                price_change_symbol  = price_change_df
-                price_change = price_change_symbol[column]
-            else:
-                price_change_symbol = price_change_df[price_change_df['level_1'] == symbol]
-                price_change_1 = price_change_symbol[column]
-                price_change = price_change_1.values[0] if not price_change_1.empty else np.nan
-            
-            if price_change > threshold:
-                news_df.loc[index, symbol] = price_change
-            else:
-                news_df.loc[index, symbol] = np.nan
-                original_news.loc[index, symbol] = np.nan
-            
-            # if text_filter and text_filter != "" and isinstance(original_news.loc[index, symbol], str):
-            #     slugs = text_filter.split(",")
-                
-            #     for slug in slugs:
-            #         if slug in original_news.loc[index, symbol]:
-            #             continue
-                
-            #     news_df.loc[index, symbol] = np.nan
-            #     original_news.loc[index, symbol] = np.nan
-                
-                
-    return news_df, original_news
-
-
-def plot_correlation(price_changes_flat_df):
-    corr_df = price_changes_flat_df[['change_1', 'change_-1']]
-    corr = corr_df.corr()
-    fig = px.imshow(corr)
-    st.plotly_chart(fig, use_container_width=True)
-
-def plot_scatter_matrix(price_changes_flat_df):
-    selected_dims = price_changes_flat_df[['change_1', 'change_-1']].columns
-    fig = px.scatter_matrix(price_changes_flat_df, dimensions=selected_dims, color='level_1')
-    st.plotly_chart(fig, use_container_width=True, height=800)
-
-def run_simulation(symbol_benchmark, symbolsDate_dict, benchmark_df, stocks_df, news_df):
-    run_custom_event_study(
-        symbol_benchmark,
-        symbolsDate_dict,
-        benchmark_df=benchmark_df,
-        stocks_df=stocks_df,
-        events_df=news_df,
-        def_days_before=0,
-        def_days_after=3
-    )
-    
 def plot_wordcloud(news_df):
     import streamlit as st
     from wordcloud import WordCloud
@@ -126,8 +72,11 @@ def run(symbol_benchmark, symbolsDate_dict):
     if benchmark_df.empty or stocks_df.empty:
         st.warning("No data available.")
         st.stop()
+        
+    new_types = ["-1", "1", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "13", "14", "15"]
+    news_type = st.selectbox("Select news type", new_types)
     
-    news_df = get_stocks_news(symbolsDate_dict, 'title')
+    news_df = get_stocks_news(symbolsDate_dict, 'title', channel_id=news_type)
     
     # Localize index to None
     for df in [news_df, stocks_df, benchmark_df]:
@@ -151,7 +100,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     plot_wordcloud(original_news_df)
     
     if len(news_df.columns) == 1:
-        plot_events(news_df.iloc[:, 0], original_news_df.iloc[:, 0], label="")
+        plot_events(stocks_df.iloc[:, 0], original_news_df.iloc[:, 0], label="")
         
     plot_correlation(price_changes_flat_df)
     plot_scatter_matrix(price_changes_flat_df)

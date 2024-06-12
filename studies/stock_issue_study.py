@@ -8,25 +8,6 @@ import plotly.graph_objs as go
 from plotly.subplots import make_subplots # creating subplots
 
 from utils.processing import get_stocks, get_stocks_events
-
-
-def plot_events(price_series, events_series):
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=price_series.index, y=price_series, mode='lines', name='Price'))
-    max_price = price_series.max()
-    min_price = price_series.min()
-    # add horizontal line for events, annotation_text = event
-    for index in events_series.index:
-        event = events_series[index]
-        if not pd.isna(event):
-            # add horizontal line, x = index, y = max_price
-            fig.add_shape(type="line",
-                x0=index, y0=max_price, x1=index, y1=min_price,
-                line=dict(color="RoyalBlue",width=1))
-            # add annotation
-            fig.add_annotation(x=index, y=max_price, text=event, showarrow=False, yshift=10)                 
-            
-    st.plotly_chart(fig)
     
 def run(symbol_benchmark, symbolsDate_dict):
     
