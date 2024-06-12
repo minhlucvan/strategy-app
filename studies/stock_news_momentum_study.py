@@ -33,11 +33,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     # copy the symbolsDate_dict
     benchmark_dict = symbolsDate_dict.copy()
     benchmark_dict['symbols'] = [symbol_benchmark]
-    
-    symbol = symbolsDate_dict['symbols'][0]
-    start_date = symbolsDate_dict['start_date']
-    end_date = symbolsDate_dict['end_date']
-    
+        
     benchmark_df = get_stocks(benchmark_dict,'close')
     stocks_df = get_stocks(symbolsDate_dict,'close')
     # value_change_weighted_df = get_stocks(symbolsDate_dict, 'volume_weighted')
@@ -77,6 +73,16 @@ def run(symbol_benchmark, symbolsDate_dict):
     fig = px.imshow(corr)
     st.plotly_chart(fig, use_container_width=True)
     
+    # plot scatter matrix
+    selected_dims = corr_df.columns
+    
+    fig = px.scatter_matrix(price_changes_flat_df,
+        dimensions=selected_dims,
+        # color by ticker
+        color='level_1',
+    )
+    st.plotly_chart(fig, use_container_width=True, height=800)
+    
     # plot_utils.plot_events(stocks_df[symbol], news_df_positive['title'], label="")
     
     # filter events
@@ -90,14 +96,14 @@ def run(symbol_benchmark, symbolsDate_dict):
             else:
                 news_df.loc[index][symbol] = np.nan
                 
-    # st.write(news_df)
-    # st.stop()
-
-    run_custom_event_study(symbol_benchmark,
-        symbolsDate_dict,
-        benchmark_df=benchmark_df,
-        stocks_df=stocks_df,
-        events_df=news_df,
-        def_days_before=0,
-        def_days_after=3)
-   
+    enable_simulate = st.checkbox("Enable simulate")
+    
+    if enable_simulate:
+        run_custom_event_study(symbol_benchmark,
+            symbolsDate_dict,
+            benchmark_df=benchmark_df,
+            stocks_df=stocks_df,
+            events_df=news_df,
+            def_days_before=0,
+            def_days_after=3)
+    
