@@ -88,7 +88,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     # plot correlation
     corr_df = news_df.copy()
-    corr_df = corr_df.drop(columns='title')
+    corr_df = corr_df.drop(columns=['title', 'price_change_forward'])
     corr = corr_df.corr()
     fig = px.imshow(corr)
     st.plotly_chart(fig, use_container_width=True)
