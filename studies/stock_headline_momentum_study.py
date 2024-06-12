@@ -123,10 +123,12 @@ def run(symbol_benchmark, symbolsDate_dict):
         
     price_changes_flat_df = calculate_price_changes(stocks_df, news_df)
     
+    st.write("Select the column and threshold to filter the news. negative column means you are looking into the future")
+    column = st.selectbox("Select column", price_changes_flat_df.columns, index=1)
     threshold = st.number_input('Threshold', min_value=0.0, max_value=5.0, value=0.0)
     
     # look into future, filter out the news that profitable
-    news_df, original_news_df  = filter_events(news_df, price_changes_flat_df, threshold=threshold, column='change_-3')
+    news_df, original_news_df  = filter_events(news_df, price_changes_flat_df, threshold=threshold, column=column)
     
     show_data = st.checkbox("Show data")
     if show_data:
