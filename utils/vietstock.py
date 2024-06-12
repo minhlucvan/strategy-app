@@ -11,7 +11,6 @@ CACHE_TTL = 60 * 60 * 24  # 1 day
 requests = requests_cache.CachedSession('cache/vietstock', expire_after=CACHE_TTL, allowable_codes=[200])
 
 def parse_news_response(html_content):
-    print(html_content)
     html_content = f"<html>{html_content}</html>"
 
     # Parse the HTML content
@@ -56,10 +55,16 @@ def get_stock_news(code, page=1, page_size=20, from_date=None, to_date=None):
     url = "https://finance.vietstock.vn/View/PagingNewsContent"
     
     if from_date is None:
-        from_date = (dt.datetime.now() - dt.timedelta(days=365)).strftime('%d/%m/%Y')
+        from_date = (dt.datetime.now() - dt.timedelta(days=365))
         
     if to_date is None:
-        to_date = dt.datetime.now().strftime('%d/%m/%Y')
+        to_date = dt.datetime.now()
+        
+    if isinstance(from_date, dt.datetime):
+        from_date = from_date.strftime('%d/%m/%Y')
+        
+    if isinstance(to_date, dt.datetime):
+        to_date = to_date.strftime('%d/%m/%Y')
 
     payload_dict = {
         'view': '1',

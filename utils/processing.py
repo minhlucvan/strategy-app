@@ -488,6 +488,9 @@ def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level=
                 stock_df['value'] = stock_df['close'] * stock_df['volume']
                 stock_df['price_change'] = stock_df['close'].pct_change()
                 stock_df['volume_change'] = stock_df['volume'].pct_change()
+                stock_df['volume_weighted'] = stock_df['price_change'] * stock_df['volume']
+                
+                stock_df['price_change_weighted'] = stock_df['price_change'] * abs(stock_df['volume_change'])
                 
                 stock_df['value_change_weighted'] = stock_df['price_change'] * stock_df['volume_change']
                 

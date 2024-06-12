@@ -35,11 +35,13 @@ def run(symbol_benchmark, symbolsDate_dict):
     benchmark_dict['symbols'] = [symbol_benchmark]
     
     symbol = symbolsDate_dict['symbols'][0]
+    start_date = symbolsDate_dict['start_date']
+    end_date = symbolsDate_dict['end_date']
     
     benchmark_df = get_stocks(benchmark_dict,'close')
     stocks_df = get_stocks(symbolsDate_dict,'close')
-    value_change_weighted_df = get_stocks(symbolsDate_dict, 'price_change')
-    news_df = vietstock.get_stock_news_all(symbol)    
+    value_change_weighted_df = get_stocks(symbolsDate_dict, 'volume_weighted')
+    news_df = vietstock.get_stock_news_all(symbol, start_date, end_date)  
     
     news_df.index = news_df.index.tz_localize(None)
     stocks_df.index = stocks_df.index.tz_localize(None)
@@ -51,34 +53,34 @@ def run(symbol_benchmark, symbolsDate_dict):
     # reindex value_change_weighted_df to news_df ffilled
     value_change_weighted_df = value_change_weighted_df.reindex(news_df.index)
     
-    value_change_weighted_2d_df = value_change_weighted_df.rolling(window=2).sum()
-    value_change_weighted_3d_df = value_change_weighted_df.rolling(window=3).sum()
-    value_change_weighted_4d_df = value_change_weighted_df.rolling(window=4).sum()
-    value_change_weighted_5d_df = value_change_weighted_df.rolling(window=5).sum()
-    value_change_weighted_6d_df = value_change_weighted_df.rolling(window=6).sum()
-    value_change_weighted_7d_df = value_change_weighted_df.rolling(window=7).sum()
-    value_change_weighted_8d_df = value_change_weighted_df.rolling(window=8).sum()
-    value_change_weighted_9d_df = value_change_weighted_df.rolling(window=9).sum()
-    value_change_weighted_10d_df = value_change_weighted_df.rolling(window=10).sum()
+    value_change_weighted_2d_df = (stocks_df.shift(2) - stocks_df) / stocks_df
+    value_change_weighted_3d_df = (stocks_df.shift(3) - stocks_df) / stocks_df
+    value_change_weighted_4d_df = (stocks_df.shift(4) - stocks_df) / stocks_df
+    value_change_weighted_5d_df = (stocks_df.shift(5) - stocks_df) / stocks_df
+    value_change_weighted_6d_df = (stocks_df.shift(6) - stocks_df) / stocks_df
+    # value_change_weighted_7d_df = value_change_weighted_df.rolling(window=7).mean()
+    # value_change_weighted_8d_df = value_change_weighted_df.rolling(window=8).mean()
+    # value_change_weighted_9d_df = value_change_weighted_df.rolling(window=9).mean()
+    # value_change_weighted_10d_df = value_change_weighted_df.rolling(window=10).mean()
     
     price_forward_df = stocks_df.shift(-3)
     price_change_forward_df = (price_forward_df - stocks_df) / stocks_df
     
     # calculate the price change for the event
     for index, row in news_df.iterrows():
+        news_df.loc[index, 'price_change_forward'] = price_change_forward_df.loc[index, symbol]
         news_df.loc[index, 'price_change'] = value_change_weighted_df.loc[index, symbol]
         news_df.loc[index, 'price_change_2d'] = value_change_weighted_2d_df.loc[index, symbol]
         news_df.loc[index, 'price_change_3d'] = value_change_weighted_3d_df.loc[index, symbol]
         news_df.loc[index, 'price_change_4d'] = value_change_weighted_4d_df.loc[index, symbol]
         news_df.loc[index, 'price_change_5d'] = value_change_weighted_5d_df.loc[index, symbol]
         news_df.loc[index, 'price_change_6d'] = value_change_weighted_6d_df.loc[index, symbol]
-        news_df.loc[index, 'price_change_7d'] = value_change_weighted_7d_df.loc[index, symbol]
-        news_df.loc[index, 'price_change_8d'] = value_change_weighted_8d_df.loc[index, symbol]
-        news_df.loc[index, 'price_change_9d'] = value_change_weighted_9d_df.loc[index, symbol]
-        news_df.loc[index, 'price_change_10d'] = value_change_weighted_10d_df.loc[index, symbol]
+        # news_df.loc[index, 'price_change_7d'] = value_change_weighted_7d_df.loc[index, symbol]
+        # news_df.loc[index, 'price_change_8d'] = value_change_weighted_8d_df.loc[index, symbol]
+        # news_df.loc[index, 'price_change_9d'] = value_change_weighted_9d_df.loc[index, symbol]
+        # news_df.loc[index, 'price_change_10d'] = value_change_weighted_10d_df.loc[index, symbol]
         
         
-        news_df.loc[index, 'price_change_forward'] = price_change_forward_df.loc[index, symbol]
     
     news_df_positive = news_df[news_df['price_change_forward'] > 0]
     
