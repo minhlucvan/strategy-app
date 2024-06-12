@@ -1033,6 +1033,24 @@
         "SJ1",
         "TFC",
         "VHC"
+      ],
+      "SECTOR_AGRI": [
+        "HAG",
+        "HKT",
+        "HNG",
+        "HSL",
+        "NSC",
+        "SSC",
+        "SVN",
+        "VIF"
+      ],
+      "SECTOR_TAILOR": [
+        "AAT",
+        "EVE",
+        "GIL",
+        "GMC",
+        "MSH",
+        "TCM"
       ]
     }
   }
