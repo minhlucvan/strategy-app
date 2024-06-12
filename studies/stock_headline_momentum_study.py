@@ -24,7 +24,7 @@ def calculate_price_changes(stocks_df, news_df):
     
     return price_changes_flat_df
 
-def filter_events(news_df, price_changes_flat_df, threshold=0.0, column='change_1'):
+def filter_events(news_df, price_changes_flat_df, threshold=0.0, column='change_1', text_filter=""):
     original_news = news_df.copy()
     for symbol in news_df.columns.get_level_values(0).unique():
         for index in news_df.index:
@@ -36,11 +36,23 @@ def filter_events(news_df, price_changes_flat_df, threshold=0.0, column='change_
                 price_change_symbol = price_change_df[price_change_df['level_1'] == symbol]
                 price_change_1 = price_change_symbol[column]
                 price_change = price_change_1.values[0] if not price_change_1.empty else np.nan
+            
             if price_change > threshold:
                 news_df.loc[index, symbol] = price_change
             else:
                 news_df.loc[index, symbol] = np.nan
                 original_news.loc[index, symbol] = np.nan
+            
+            # if text_filter and text_filter != "" and isinstance(original_news.loc[index, symbol], str):
+            #     slugs = text_filter.split(",")
+                
+            #     for slug in slugs:
+            #         if slug in original_news.loc[index, symbol]:
+            #             continue
+                
+            #     news_df.loc[index, symbol] = np.nan
+            #     original_news.loc[index, symbol] = np.nan
+                
                 
     return news_df, original_news
 
@@ -126,9 +138,10 @@ def run(symbol_benchmark, symbolsDate_dict):
     st.write("Select the column and threshold to filter the news. negative column means you are looking into the future")
     column = st.selectbox("Select column", price_changes_flat_df.columns, index=1)
     threshold = st.number_input('Threshold', min_value=0.0, max_value=5.0, value=0.0)
+    word_filter = st.text_input("Word filter", "")
     
     # look into future, filter out the news that profitable
-    news_df, original_news_df  = filter_events(news_df, price_changes_flat_df, threshold=threshold, column=column)
+    news_df, original_news_df  = filter_events(news_df, price_changes_flat_df, threshold=threshold, column=column, text_filter=word_filter)
     
     show_data = st.checkbox("Show data")
     if show_data:
