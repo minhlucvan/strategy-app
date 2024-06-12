@@ -70,7 +70,8 @@ def run(symbol_benchmark, symbolsDate_dict):
         for index in news_df.index:
             price_change_df = price_changes_flat_df.loc[index]
             price_change_symbol = price_change_df[price_change_df['level_1'] == symbol]
-            price_change = price_change_symbol['change_1'].values[0]
+            price_change_1 = price_change_symbol['change_1']
+            price_change = price_change_1.values[0] if not price_change_1.empty else np.nan
             if price_change > threshold:
                 news_df.loc[index][symbol] = price_change
             else:
