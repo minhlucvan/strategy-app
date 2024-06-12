@@ -24,21 +24,18 @@ def calculate_price_changes(stocks_df, news_df):
     
     return price_changes_flat_df
 
-def filter_events(news_df, price_changes_flat_df, threshold=0, column='change_1'):
+def filter_events(news_df, price_changes_flat_df, threshold=0.0, column='change_1'):
     original_news = news_df.copy()
     for symbol in news_df.columns.get_level_values(0).unique():
         for index in news_df.index:
             price_change_df = price_changes_flat_df.loc[index]
-            if isinstance(price_change_df[column], str) and price_change_df[column] == symbol:
+            if isinstance(price_change_df['level_1'], str) and price_change_df['level_1'] == symbol:
                 price_change_symbol  = price_change_df
                 price_change = price_change_symbol[column]
-            if isinstance(price_change_df[column], float):
-                price_change = price_change_df[column]
             else:
-                price_change_symbol = price_change_df[price_change_df[column] == symbol]
+                price_change_symbol = price_change_df[price_change_df['level_1'] == symbol]
                 price_change_1 = price_change_symbol[column]
                 price_change = price_change_1.values[0] if not price_change_1.empty else np.nan
-            
             if price_change > threshold:
                 news_df.loc[index, symbol] = price_change
             else:
@@ -86,7 +83,11 @@ def plot_wordcloud(news_df):
             if pd.isna(headline):
                 continue
             headline = headline.lower()
-            text += headline + " "
+            
+            # remove blacklisted words
+            headline = headline.replace("thông báo", "").replace("cổ phiếu", "")
+            
+            text += headline + ". "
 
     # Create and generate a word cloud image:
     wordcloud = WordCloud().generate(text)
@@ -129,7 +130,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     show_data = st.checkbox("Show data")
     if show_data:
-        display_df = original_news_df[original_news_df.notnull().all(axis=1)]
+        display_df = original_news_df[original_news_df.notnull().any(axis=1)]
         st.dataframe(display_df, use_container_width=True)
         
     plot_wordcloud(original_news_df)
