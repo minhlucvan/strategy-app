@@ -4,6 +4,7 @@ import streamlit as st
 import plotly.express as px
 
 from utils.component import input_SymbolsDate
+from utils.plot_utils import plot_events
 from utils.processing import get_stocks, get_stocks_news
 from studies.stock_custom_event_study import run as run_custom_event_study
 
@@ -76,6 +77,11 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     benchmark_df = get_stocks(benchmark_dict, 'close')
     stocks_df = get_stocks(symbolsDate_dict, 'close')
+    
+    if benchmark_df.empty or stocks_df.empty:
+        st.warning("No data available.")
+        st.stop()
+    
     news_df = get_stocks_news(symbolsDate_dict, 'title')
     
     # Localize index to None
@@ -92,6 +98,9 @@ def run(symbol_benchmark, symbolsDate_dict):
         display_df = original_news_df[original_news_df.notnull().all(axis=1)]
         st.dataframe(display_df, use_container_width=True)
     
+    if len(news_df.columns) == 1:
+        plot_events(news_df.iloc[:, 0], original_news_df.iloc[:, 0], label="")
+        
     plot_correlation(price_changes_flat_df)
     plot_scatter_matrix(price_changes_flat_df)
     

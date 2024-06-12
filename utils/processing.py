@@ -493,7 +493,7 @@ class AKData(object):
         return stock_df
 
 @st.cache_data
-def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level='factor', timeframe='D'):
+def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level='factor', timeframe='D', volume_filter=1000):
     datas = AKData(symbolsDate_dict['market'])
     stocks_dfs = {}
     for symbol in symbolsDate_dict['symbols']:
@@ -504,16 +504,21 @@ def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level=
                 print(
                     f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
             else:
-                stock_df['value'] = stock_df['close'] * stock_df['volume']
-                stock_df['price_change'] = stock_df['close'].pct_change()
-                stock_df['volume_change'] = stock_df['volume'].pct_change()
-                stock_df['volume_weighted'] = stock_df['price_change'] * stock_df['volume']
-                
-                stock_df['price_change_weighted'] = stock_df['price_change'] * abs(stock_df['volume_change'])
-                
-                stock_df['value_change_weighted'] = stock_df['price_change'] * stock_df['volume_change']
-                
-                stocks_dfs[symbol] = stock_df if stack else stock_df[column]
+                mean_vol = stock_df['volume'].rolling(window=20).mean().iloc[-1]
+                if volume_filter is not None and mean_vol < volume_filter:
+                    print(
+                        f"Warning: stock '{symbol}' has low volume. Ignore it")
+                else:
+                    stock_df['value'] = stock_df['close'] * stock_df['volume']
+                    stock_df['price_change'] = stock_df['close'].pct_change()
+                    stock_df['volume_change'] = stock_df['volume'].pct_change()
+                    stock_df['volume_weighted'] = stock_df['price_change'] * stock_df['volume']
+                    
+                    stock_df['price_change_weighted'] = stock_df['price_change'] * abs(stock_df['volume_change'])
+                    
+                    stock_df['value_change_weighted'] = stock_df['price_change'] * stock_df['volume_change']
+                    
+                    stocks_dfs[symbol] = stock_df if stack else stock_df[column]
     
     stocks_df = pd.DataFrame()
     if stack and stack_level == 'factor':
