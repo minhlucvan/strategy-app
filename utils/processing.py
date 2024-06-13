@@ -99,7 +99,7 @@ def get_stocks_financial(symbolsDate_dict: dict, column=None,  stack=False, stac
     
     for symbol in symbolsDate_dict['symbols']:
         if symbol != '':
-            stock_df = datas.get_financial(symbol)
+            stock_df = datas.get_financial(symbol, symbolsDate_dict['start_date'], symbolsDate_dict['end_date'])
             if stock_df.empty:
                 print(
                     f"Warning: stock '{symbol}' is invalid or missing. Ignore it")

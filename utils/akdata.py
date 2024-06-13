@@ -97,7 +97,7 @@ class AKData(object):
 
     @vbt.cached_method
     def get_financial(self, symbol: str, start_date: datetime.datetime = None, end_date: datetime.datetime = None) -> pd.DataFrame:
-        print(f"AKData-get_financial: {symbol}, {self.market}")
+        print(f"AKData-get_financial: {symbol}, {self.market}, {start_date} - {end_date}")
         stock_df = pd.DataFrame()
         symbol_df = load_symbol(symbol)
 
@@ -105,11 +105,13 @@ class AKData(object):
             func = ('get_' + self.market + '_financial').lower()
             try:
                 stock_df = eval(func)(symbol=symbol)
-                
+
+                stock_df.index = pd.to_datetime(stock_df.index, utc=True)
                 if start_date is not None and end_date is not None:
-                    stock_df = stock_df[stock_df.index >= start_date]
-                    stock_df = stock_df[stock_df.index <= end_date]
-                
+                    start_date = pd.to_datetime(start_date)
+                    end_date = pd.to_datetime(end_date)
+                    stock_df = stock_df[(stock_df.index >= start_date) & (stock_df.index <= end_date)]
+                    
             except Exception as e:
                 print(e)
 

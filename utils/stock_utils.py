@@ -1872,6 +1872,9 @@ def load_stock_financial_to_dataframe(data):
     # Calculate the number of months to add based on the quarter
     df['date'] = df.apply(lambda row: row['date'] + pd.DateOffset(months=(row['quarter']) * 3), axis=1)
     
+    # convert date to datetime
+    df['date'] = pd.to_datetime(df['date'])
+    
     # set index
     df['index'] = df['date']
     df.set_index('index', inplace=True)

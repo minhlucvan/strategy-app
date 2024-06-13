@@ -10,15 +10,17 @@ import plotly.graph_objs as go
 from plotly.subplots import make_subplots # creating subplots
 
 
-from studies.stock_news_momentum_study import calculate_price_changes, filter_events, plot_correlation, plot_scatter_matrix, run_simulation
+from studies.stock_financial_report_study import calculate_real_ratios
+from studies.stock_news_momentum_study import calculate_price_changes, filter_events, filter_news_by_pe_change, plot_correlation, plot_price_changes_agg, plot_scatter_matrix, run_simulation
 from utils.component import  check_password, input_dates, input_SymbolsDate
 import matplotlib.pyplot as plt
 
-from utils.plot_utils import plot_events
-from utils.processing import get_stocks, get_stocks_document
+from utils.plot_utils import plot_events, plot_multi_bar, plot_multi_line, plot_multi_scatter, plot_single_bar
+from utils.processing import get_stocks, get_stocks_document, get_stocks_financial
 from studies.rrg import plot_RRG, rs_ratio, RRG_Strategy
 from utils.vbt import plot_pf
 from vbt_strategy.MOM_D import get_MomDInd
+import utils.fin_utils as fin_utils
 
 from studies.stock_custom_event_study import run as run_custom_event_study
 
@@ -36,6 +38,8 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     benchmark_df = get_stocks(benchmark_dict, 'close')
     stocks_df = get_stocks(symbolsDate_dict, 'close')
+    stocks_df.index = pd.to_datetime(stocks_df.index).tz_localize(None)
+
     
     if benchmark_df.empty or stocks_df.empty:
         st.warning("No data available.")
@@ -43,15 +47,34 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     news_df = get_stocks_document(symbolsDate_dict, 'Title', doc_type='1')
     
+    financials_dfs = get_stocks_financial(symbolsDate_dict, raw=True)
+
+    eps_df, pe_df, pb_df, real_pe_df, real_pb_df = calculate_real_ratios(stocks_df, financials_dfs)
+    
     # Localize index to None
-    for df in [news_df, stocks_df, benchmark_df]:
+    for df in [news_df, stocks_df, benchmark_df, eps_df]:
         df.index = df.index.tz_localize(None)
+    
+    eps_df = eps_df.reindex(news_df.index, method='nearest')
+    
+    real_pe_change_df = eps_df.pct_change() * 100
+    # st.write(real_pe_change_df)
+    
+    # if len(news_df.columns) == 1:
+    plot_multi_bar(real_pe_change_df, title="Real PE Change", y_title="Real PE Change", x_title="Date")
         
-    price_changes_flat_df = calculate_price_changes(stocks_df, news_df)
+    st.write("Filter the news by the real PE change")
+
+    # news_df = filter_news_by_pe_change(news_df, real_pe_change_df)
+        
+    price_changes_flat_df = calculate_price_changes(stocks_df, news_df, lower_bound=-20, upper_bound=20)
     
     st.write("Select the column and threshold to filter the news. negative column means you are looking into the future")
-    column = st.selectbox("Select column", price_changes_flat_df.columns, index=1)
+    column = st.selectbox("Select column", price_changes_flat_df.columns, index=0)
     threshold = st.number_input('Threshold', min_value=-5.0, max_value=5.0, value=0.0)
+    no_filter = st.checkbox("No filter")
+    
+    threshold = None if no_filter else threshold
     
     news_df, original_news_df  = filter_events(news_df, price_changes_flat_df, threshold, column=column)
     
@@ -62,9 +85,16 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     if len(news_df.columns) == 1:
         plot_events(stocks_df.iloc[:, 0], original_news_df.iloc[:, 0], label="")
-        
-    plot_correlation(price_changes_flat_df)
-    plot_scatter_matrix(price_changes_flat_df)
+
+
+    columns = [f"change_{i}" for i in range(-20, 20)]
+    plot_correlation(price_changes_flat_df, columns=columns)
+    
+    # reduce half of the columns, mod 3 == 0
+    dims = [f"change_{i}" for i in range(-10, 9) if i % 3 == 0 and i != 0]
+    plot_scatter_matrix(price_changes_flat_df, selected_dims=dims)
+    
+    plot_price_changes_agg(price_changes_flat_df)
     
     enable_simulate = st.checkbox("Enable simulate")
     if enable_simulate:

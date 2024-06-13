@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 import plotly.subplots as sp
 import plotly.express as px
 import pandas as pd
+import plotly.subplots as sp
 
 def plot_multi_line(df, title, x_title, y_title, legend_title, price_df=None):
     df = df.copy()
@@ -24,22 +25,31 @@ def plot_multi_line(df, title, x_title, y_title, legend_title, price_df=None):
         fig.data[i].marker.color = px.colors.qualitative.Plotly[i % len(px.colors.qualitative.Plotly)]
     st.plotly_chart(fig, use_container_width=True)
 
-def plot_multi_bar(df, title, x_title, y_title, legend_title, price_df=None):
+def plot_multi_bar(df, title="", x_title="", y_title="", legend_title="", price_df=None):
     if price_df is not None:
+        price_df = price_df.copy()
+        min_event_date = df.index.min()
+        price_df = price_df[price_df.index >= min_event_date]
         fig = sp.make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.01)
         for col in df.columns:
             fig.add_trace(go.Bar(x=df.index, y=df[col], name=col), row=1, col=1)
             fig.add_trace(go.Scatter(x=price_df.index, y=price_df[col], mode='lines', name=col), row=2, col=1)
+        
+        # Adjust y-axis range of scatter plot to accommodate bars
+        fig.update_yaxes(range=[0, max(df.max().max(), price_df.max().max()) * 1.1], row=2, col=1)
+        
         fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
         st.plotly_chart(fig, use_container_width=True)
         return
+    
     fig = go.Figure()
     for col in df.columns:
         fig.add_trace(go.Bar(x=df.index, y=df[col], name=col))
     fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
     st.plotly_chart(fig, use_container_width=True)
 
-def plot_multi_scatter(df, title, x_title, y_title, legend_title, price_df=None):
+
+def plot_multi_scatter(df, title, x_title="", y_title="", legend_title="", price_df=None):
     if price_df is not None:
         fig = sp.make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.01)
         for col in df.columns:
@@ -61,7 +71,7 @@ def plot_single_line(df, title, x_title, y_title, legend_title):
     fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
     st.plotly_chart(fig, use_container_width=True)
     
-def plot_single_bar(df, title, x_title, y_title, legend_title, price_df=None):
+def plot_single_bar(df, title="", x_title="", y_title="", legend_title="", price_df=None):
     if price_df is not None:
         fig = sp.make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.01)
         fig.add_trace(go.Bar(x=df.index, y=df, name=legend_title), row=1, col=1)
@@ -88,6 +98,9 @@ def plot_snapshot(df, title, x_title, y_title, legend_title, sorted=False):
     
 
 def plot_events(price_series, events_series, label=None):
+    start_date = events_series.index.min()
+    price_series = price_series[price_series.index >= start_date]
+    
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=price_series.index, y=price_series, mode='lines', name='Price'))
     max_price = price_series.max()

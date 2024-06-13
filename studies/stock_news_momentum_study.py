@@ -4,16 +4,21 @@ import streamlit as st
 import plotly.express as px
 
 from utils.component import input_SymbolsDate
-from utils.plot_utils import plot_events
+from utils.plot_utils import plot_events, plot_single_bar
 from utils.processing import get_stocks, get_stocks_news
 from studies.stock_custom_event_study import run as run_custom_event_study
 
-def calculate_price_changes(stocks_df, news_df):
+def calculate_price_changes(stocks_df, news_df, lower_bound=-4, upper_bound=2):
     stocks_df = stocks_df.reindex(news_df.index, method='ffill')
     
     price_change_dfs = {}
-    for i in range(-4, 2):
+    
+    for i in range(lower_bound, upper_bound):
         price_change_df = (stocks_df.shift(i) - stocks_df) / stocks_df
+        
+        # set type to float
+        price_change_df = price_change_df.astype(float)
+        
         price_change_dfs[f"change_{i}"] = price_change_df
         
     price_changes_df = pd.concat(price_change_dfs, axis=1)
@@ -24,12 +29,28 @@ def calculate_price_changes(stocks_df, news_df):
     
     return price_changes_flat_df
 
+def filter_news_by_pe_change(news_df, pe_change_df):
+    news_df = news_df.copy()
+    for symbol in news_df.columns.get_level_values(0).unique():
+        for index in news_df.index:
+            if symbol not in pe_change_df.columns:
+                news_df.loc[index, symbol] = np.nan
+                continue
+            real_pe_change = pe_change_df.loc[index, symbol]
+            if real_pe_change < 0.0:
+                news_df.loc[index, symbol] = np.nan
+                # st.write(f"Filtering {symbol} at {index}")
+    return news_df
+
 def filter_events(news_df, price_changes_flat_df, threshold=0.0, column='change_1', text_filter=""):
+    
     original_news = news_df.copy()
     for symbol in news_df.columns.get_level_values(0).unique():
         for index in news_df.index:
             price_change_df = price_changes_flat_df.loc[index]
-            if isinstance(price_change_df['level_1'], str) and price_change_df['level_1'] == symbol:
+            if threshold is None or column == 'level_1':
+                price_change = 0
+            elif isinstance(price_change_df['level_1'], str) and price_change_df['level_1'] == symbol:
                 price_change_symbol  = price_change_df
                 price_change = price_change_symbol[column]
             else:
@@ -37,7 +58,7 @@ def filter_events(news_df, price_changes_flat_df, threshold=0.0, column='change_
                 price_change_1 = price_change_symbol[column]
                 price_change = price_change_1.values[0] if not price_change_1.empty else np.nan
             
-            if price_change > threshold:
+            if price_change >= threshold:
                 news_df.loc[index, symbol] = price_change
             else:
                 news_df.loc[index, symbol] = np.nan
@@ -56,16 +77,30 @@ def filter_events(news_df, price_changes_flat_df, threshold=0.0, column='change_
                 
     return news_df, original_news
 
-def plot_correlation(price_changes_flat_df):
-    corr_df = price_changes_flat_df[['change_1', 'change_-1']]
+def plot_correlation(price_changes_flat_df, columns=['change_1', 'change_-1']):
+    corr_df = price_changes_flat_df[columns]
     corr = corr_df.corr()
     fig = px.imshow(corr)
+    fig.update_layout(width=600, height=600)
     st.plotly_chart(fig, use_container_width=True)
 
-def plot_scatter_matrix(price_changes_flat_df):
-    selected_dims = price_changes_flat_df[['change_1', 'change_-1']].columns
+def plot_scatter_matrix(price_changes_flat_df, selected_dims=['change_1', 'change_-1']):
     fig = px.scatter_matrix(price_changes_flat_df, dimensions=selected_dims, color='level_1')
+    fig.update_layout(width=600, height=600)
     st.plotly_chart(fig, use_container_width=True, height=800)
+    
+def plot_price_changes_agg(price_changes_flat_df):
+    price_changes_agg_df = price_changes_flat_df.mean(axis=0, numeric_only=True)
+    # rename the index change_i to i
+    price_changes_agg_df.index = price_changes_agg_df.index.map(lambda x: x.split('_')[1])
+    # convert index to int
+    price_changes_agg_df.index = price_changes_agg_df.index.astype(int)
+    
+    # invert the index i = -i
+    price_changes_agg_df.index = price_changes_agg_df.index * -1
+    
+    plot_single_bar(price_changes_agg_df, title="Price Changes", y_title="Price Change", x_title="Date")
+    
 
 def run_simulation(symbol_benchmark, symbolsDate_dict, benchmark_df, stocks_df, news_df):
     run_custom_event_study(
