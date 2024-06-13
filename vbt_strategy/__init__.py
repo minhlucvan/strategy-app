@@ -21,6 +21,7 @@ from .MMA import MMAStrategy
 from .MMARS import MMARSStrategy
 from .MOMTOP import MOMTOPStrategy
 from .LiqFlow import LiqFlowStrategy
+from .FinReportArb import FinReportArbStrategy
 
 __all__ = [
     "MOMStrategy",
@@ -45,7 +46,8 @@ __all__ = [
     "MMAStrategy",
     "MMARSStrategy",
     "MOMTOPStrategy",
-    "LiqFlowStrategy"
+    "LiqFlowStrategy",
+    "FinReportArbStrategy"
 ]
 
 strategy_list = [
@@ -71,5 +73,6 @@ strategy_list = [
     "MMA",
     "MMARS",
     "MOMTOP",
-    "LiqFlow"
+    "LiqFlow",
+    "FinReportArb"
 ]

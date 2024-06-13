@@ -34,6 +34,8 @@ def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level=
                     stock_df['value_change_weighted'] = stock_df['price_change'] * stock_df['volume_change']
                     
                     stocks_dfs[symbol] = stock_df if stack else stock_df[column]
+                    
+                    stocks_dfs[symbol].index = stocks_dfs[symbol].index.tz_localize(None)
     
     stocks_df = pd.DataFrame()
     if stack and stack_level == 'factor':
@@ -260,6 +262,8 @@ def get_stocks_document(symbolsDate_dict: dict, column='title', doc_type='1', st
                     stocks_dfs[symbol].index = pd.to_datetime(stocks_dfs[symbol].index.date)
                     stocks_dfs[symbol] = stocks_dfs[symbol].groupby(stocks_dfs[symbol].index).agg(lambda x: ', '.join(x))
                     stocks_dfs[symbol] = stocks_dfs[symbol][~stocks_dfs[symbol].index.duplicated()]
+                    
+                stocks_dfs[symbol].index = stocks_dfs[symbol].index.tz_localize(None)
                     
     
     stocks_df = pd.DataFrame()

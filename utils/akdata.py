@@ -41,7 +41,8 @@ class AKData(object):
                         'date', 'open', 'close', 'high', 'low', 'volume', 'amount']
                 else:
                     pass
-                stock_df.index = pd.to_datetime(stock_df['date'], utc=True)
+                stock_df.index = pd.to_datetime(stock_df['date'])
+                stock_df.index = stock_df.index.tz_localize(None)
         return stock_df
 
     @vbt.cached_method

@@ -49,7 +49,6 @@ def generate_arbitrage_signal(stocks_df, events_df):
 
     return days_to_event_df
 
-
 # apply function for EventArb
 # entry signal: days_before_threshold days before the event
 # exit signal: days_after_threshold days after the event
@@ -60,9 +59,14 @@ def apply_EventArb_nb(close, days_to_event, days_before_threshold, days_after_th
 
     for i in range(close.shape[0]):
         for j in range(close.shape[1]):
-            if days_to_event[i, j] >= -days_before_threshold and days_to_event[i, j] < 0:
+            day_to_event = days_to_event[i, j]
+            if day_to_event == 0 and days_before_threshold == 0:
                 entries[i, j] = True
-            if days_to_event[i, j] >= days_after_threshold and days_to_event[i, j] >= 0 and days_to_event[i, j] < days_after_threshold + 3:
+            if day_to_event > 0 and  day_to_event >= days_after_threshold and day_to_event < days_after_threshold + 3:
+                exits[i, j] = True
+            elif day_to_event >= -days_before_threshold and day_to_event < 0:
+                entries[i, j] = True
+            elif day_to_event >= days_after_threshold and day_to_event >= 0 and day_to_event < days_after_threshold + 3:
                 exits[i, j] = True
 
     return entries, exits

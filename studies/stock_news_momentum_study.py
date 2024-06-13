@@ -77,6 +77,26 @@ def filter_events(news_df, price_changes_flat_df, threshold=0.0, column='change_
                 
     return news_df, original_news
 
+def get_events_signals_by_column(news_df, src_df, column='change_1'):
+    signals_df = news_df.copy()
+    
+    for symbol in news_df.columns.get_level_values(0).unique():
+        for index in news_df.index:
+            price_change_df = src_df.loc[index]
+            
+            if isinstance(price_change_df['level_1'], str) and price_change_df['level_1'] == symbol:
+                price_change_symbol  = price_change_df
+                price_change = price_change_symbol[column]
+            else:
+                price_change_symbol = price_change_df[price_change_df['level_1'] == symbol]
+                price_change_1 = price_change_symbol[column]
+                price_change = price_change_1.values[0] if not price_change_1.empty else np.nan
+            
+            signals_df.loc[index, symbol] = price_change
+                
+                
+    return signals_df
+
 def plot_correlation(price_changes_flat_df, columns=['change_1', 'change_-1']):
     corr_df = price_changes_flat_df[columns]
     corr = corr_df.corr()
