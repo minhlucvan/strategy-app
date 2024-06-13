@@ -245,7 +245,7 @@ def get_stocks_foregin_flow(symbolsDate_dict: dict, column='close',  stack=False
     return stocks_df
 
 @st.cache_data
-def get_stocks_document(symbolsDate_dict: dict, column='title', doc_type='1', stack=False, stack_level='factor'):
+def get_stocks_document(symbolsDate_dict: dict, column='title', doc_type='1', stack=False, stack_level='factor', group_by_date=False):
     datas = AKData(symbolsDate_dict['market'])
     stocks_dfs = {}
     for symbol in symbolsDate_dict['symbols']:
@@ -256,6 +256,11 @@ def get_stocks_document(symbolsDate_dict: dict, column='title', doc_type='1', st
                     f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
             else:
                 stocks_dfs[symbol] = stock_df if stack else stock_df[column]
+                if group_by_date:
+                    stocks_dfs[symbol].index = pd.to_datetime(stocks_dfs[symbol].index.date)
+                    stocks_dfs[symbol] = stocks_dfs[symbol].groupby(stocks_dfs[symbol].index).agg(lambda x: ', '.join(x))
+                    stocks_dfs[symbol] = stocks_dfs[symbol][~stocks_dfs[symbol].index.duplicated()]
+                    
     
     stocks_df = pd.DataFrame()
     if stack and stack_level == 'factor':

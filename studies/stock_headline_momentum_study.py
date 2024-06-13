@@ -3,27 +3,12 @@ import numpy as np
 import streamlit as st
 import plotly.express as px
 
-from studies.stock_news_momentum_study import filter_events, plot_correlation, plot_scatter_matrix, run_simulation
+from studies.stock_news_momentum_study import calculate_price_changes, filter_events, plot_correlation, plot_scatter_matrix, run_simulation
 from utils.component import input_SymbolsDate
 from utils.plot_utils import plot_events
 from utils.processing import get_stocks, get_stocks_news
 from studies.stock_custom_event_study import run as run_custom_event_study
 
-def calculate_price_changes(stocks_df, news_df):
-    stocks_df = stocks_df.reindex(news_df.index, method='ffill')
-    
-    price_change_dfs = {}
-    for i in range(-4, 2):
-        price_change_df = (stocks_df.shift(i) - stocks_df) / stocks_df
-        price_change_dfs[f"change_{i}"] = price_change_df
-        
-    price_changes_df = pd.concat(price_change_dfs, axis=1)
-    price_changes_df.index = news_df.index
-    
-    price_changes_flat_df = price_changes_df.stack().reset_index()
-    price_changes_flat_df = price_changes_flat_df.set_index('date')
-    
-    return price_changes_flat_df
 
 def plot_wordcloud(news_df):
     import streamlit as st

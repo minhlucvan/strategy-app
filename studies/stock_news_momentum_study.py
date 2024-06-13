@@ -25,7 +25,7 @@ def calculate_price_changes(stocks_df, news_df, lower_bound=-4, upper_bound=2):
     price_changes_df.index = news_df.index
     
     price_changes_flat_df = price_changes_df.stack().reset_index()
-    price_changes_flat_df = price_changes_flat_df.set_index('date')
+    price_changes_flat_df = price_changes_flat_df.set_index('level_0')
     
     return price_changes_flat_df
 

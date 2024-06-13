@@ -45,12 +45,12 @@ def run(symbol_benchmark, symbolsDate_dict):
         st.warning("No data available.")
         st.stop()
     
-    news_df = get_stocks_document(symbolsDate_dict, 'Title', doc_type='1')
+    news_df = get_stocks_document(symbolsDate_dict, 'Title', doc_type='1', group_by_date=True)
     
     # financials_dfs = get_stocks_financial(symbolsDate_dict, raw=True)
 
     # eps_df, pe_df, pb_df, real_pe_df, real_pb_df = calculate_real_ratios(stocks_df, financials_dfs)
-    
+    # st.write(news_df)
     # Localize index to None
     for df in [news_df, stocks_df, benchmark_df]:
         df.index = df.index.tz_localize(None)
