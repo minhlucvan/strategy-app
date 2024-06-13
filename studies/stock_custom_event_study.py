@@ -89,6 +89,11 @@ def plot_event_summary(events_affection_unstack_df, benchmark_df, symbol_benchma
     fig = px.line(events_affection_unstack_daily_cumsum_df, x=events_affection_unstack_daily_cumsum_df.index, y="Price Change")
     fig.add_trace(go.Scatter(x=benchmark_return_cumsum.index, y=benchmark_return_cumsum[symbol_benchmark], mode='lines', name='Benchmark'))
     st.plotly_chart(fig)
+    
+    st.write("Faily Return Cumsum (Devisify)")
+    st.write("By devesify, we can see the return of the strategy when allocating the same amount of money to each stock.")
+    fig = px.line(events_affection_unstack_daily_cumsum_df, x=events_affection_unstack_daily_cumsum_df.index, y="Price Change")
+    st.plotly_chart(fig)
 
     max_drawdown = events_affection_unstack_daily_cumsum_df['Price Change'].min()
     st.write(f"Max Drawdown: {max_drawdown}")
