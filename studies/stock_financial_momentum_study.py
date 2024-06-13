@@ -47,21 +47,21 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     news_df = get_stocks_document(symbolsDate_dict, 'Title', doc_type='1')
     
-    financials_dfs = get_stocks_financial(symbolsDate_dict, raw=True)
+    # financials_dfs = get_stocks_financial(symbolsDate_dict, raw=True)
 
-    eps_df, pe_df, pb_df, real_pe_df, real_pb_df = calculate_real_ratios(stocks_df, financials_dfs)
+    # eps_df, pe_df, pb_df, real_pe_df, real_pb_df = calculate_real_ratios(stocks_df, financials_dfs)
     
     # Localize index to None
-    for df in [news_df, stocks_df, benchmark_df, eps_df]:
+    for df in [news_df, stocks_df, benchmark_df]:
         df.index = df.index.tz_localize(None)
     
-    eps_df = eps_df.reindex(news_df.index, method='nearest')
+    # eps_df = eps_df.reindex(news_df.index, method='nearest')
     
-    real_pe_change_df = eps_df.pct_change() * 100
+    # real_pe_change_df = eps_df.pct_change() * 100
     # st.write(real_pe_change_df)
     
     # if len(news_df.columns) == 1:
-    plot_multi_bar(real_pe_change_df, title="Real PE Change", y_title="Real PE Change", x_title="Date")
+    # plot_multi_bar(real_pe_change_df, title="Real PE Change", y_title="Real PE Change", x_title="Date")
         
     st.write("Filter the news by the real PE change")
 
@@ -72,15 +72,15 @@ def run(symbol_benchmark, symbolsDate_dict):
     st.write("Select the column and threshold to filter the news. negative column means you are looking into the future")
     column = st.selectbox("Select column", price_changes_flat_df.columns, index=0)
     threshold = st.number_input('Threshold', min_value=-5.0, max_value=5.0, value=0.0)
-    no_filter = st.checkbox("No filter")
+    # no_filter = st.checkbox("No filter")
     
-    threshold = None if no_filter else threshold
+    # threshold = None if no_filter else threshold
     
     news_df, original_news_df  = filter_events(news_df, price_changes_flat_df, threshold, column=column)
     
     show_data = st.checkbox("Show data")
     if show_data:
-        display_df = original_news_df[original_news_df.notnull().all(axis=1)]
+        display_df = original_news_df[original_news_df.notnull().any(axis=1)]
         st.dataframe(display_df, use_container_width=True)
     
     if len(news_df.columns) == 1:
