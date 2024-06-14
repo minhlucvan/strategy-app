@@ -207,8 +207,11 @@ def params_selector(params):
         col1, col2 = st.columns([3, 1])
         with col1:
             gap = (param["max"]-param["min"]) * 0.5
-            if param["step"] == 0:
+            if param["step"] == 0 and param['type'] == 'int':
                 value = st.slider("Select " + param["name"], min_value= param["min"], max_value= param['max'], step= 1)
+                values = [value, value]
+            elif param["step"] == 0.0:
+                value = st.slider("Select " + param["name"], min_value= param["min"], max_value= param['max'], step= 0.01)
                 values = [value, value]
             else:
                 if param['type'] == 'int':
@@ -216,8 +219,7 @@ def params_selector(params):
                     bottom = max(0, param["min"] - gap)
                 else:
                     bottom = max(0.0, param["min"] - gap)
-
-                values =st.slider("Select a range of " + param["name"],
+                values = st.slider("Select a range of " + param["name"],
                                 bottom, param['max'] + gap, (param["min"], param["max"]))
         with col2:
             step_number = st.number_input("step of " + param["name"], value=param["step"])

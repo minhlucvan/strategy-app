@@ -7,6 +7,28 @@ from utils.plot_utils import plot_multi_bar, plot_multi_line, plot_single_bar, p
 from utils.processing import get_stocks, get_stocks_foregin_flow
 
 
+def plot_scatter_2_sources(df1, df2, title, x_title, y_title, legend_title):
+    data = pd.DataFrame({
+        'Ticker': df1.columns.repeat(len(df1)),
+        'Price Gap': df1.values.flatten(),
+        'Price Change after 3 Days': df2.values.flatten(),
+    })
+
+    # Plot using Plotly Express scatter plot
+    fig = px.scatter(data, x='Price Gap', y='Price Change after 3 Days', color='Ticker', 
+                    title='Correlation between Price Gaps and Changes after 3 Days',
+                    labels={'Price Gap': 'Price Gap (%)', 'Price Change after 3 Days': 'Price Change after 3 Days (%)'})
+
+    # Customize layout (optional)
+    fig.update_layout(
+        xaxis_title='Price Gap (%)',
+        yaxis_title='Price Change after 3 Days (%)',
+        title='Correlation between Price Gaps and Changes after 3 Days'
+    )
+
+    # Show the plot
+    st.plotly_chart(fig, use_container_width=True)
+
     
 def run(symbol_benchmark, symbolsDate_dict):
     
@@ -29,7 +51,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     opens_change_df = (opens_future_df - opens_df) / opens_df
     
     # filter the gaps_df > 0.02 or < -0.02
-    gaps_df = gaps_df[(gaps_df > 0.02) | (gaps_df < -0.02)]
+    gaps_df = gaps_df[(gaps_df > 0.07) | (gaps_df < -0.07)]
     
     ratio_df = opens_change_df / gaps_df
     
@@ -41,29 +63,11 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     plot_multi_bar(ratio_df, title='Open Change vs Gap', x_title='Date', y_title='Ratio', legend_title='Stocks')
     
-    gaps_down_df = gaps_df[gaps_df < -0.07]
+    # gaps_down_df = gaps_df[gaps_df < -0.07]
 
-    gaps_df = gaps_down_df
+    # gaps_df = gaps_down_df
 
     # Prepare data for plotting
     # Flatten the DataFrames to make them suitable for Plotly
-    data = pd.DataFrame({
-        'Ticker': opens_df.columns.repeat(len(opens_df)),
-        'Price Gap': gaps_df.values.flatten(),
-        'Price Change after 3 Days': opens_change_df.values.flatten(),
-    })
 
-    # Plot using Plotly Express scatter plot
-    fig = px.scatter(data, x='Price Gap', y='Price Change after 3 Days', color='Ticker', 
-                    title='Correlation between Price Gaps and Changes after 3 Days',
-                    labels={'Price Gap': 'Price Gap (%)', 'Price Change after 3 Days': 'Price Change after 3 Days (%)'})
-
-    # Customize layout (optional)
-    fig.update_layout(
-        xaxis_title='Price Gap (%)',
-        yaxis_title='Price Change after 3 Days (%)',
-        title='Correlation between Price Gaps and Changes after 3 Days'
-    )
-
-    # Show the plot
-    st.plotly_chart(fig, use_container_width=True)
+    plot_scatter_2_sources(gaps_df, opens_change_df, title='Correlation between Price Gaps and Changes after 3 Days', x_title='Price Gap', y_title='Price Change after 3 Days', legend_title='Ticker')

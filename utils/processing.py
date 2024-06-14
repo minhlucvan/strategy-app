@@ -8,7 +8,7 @@ import streamlit as st
 from utils.akdata import AKData
     
 @st.cache_data
-def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level='factor', timeframe='D', volume_filter=1000):
+def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level='factor', timeframe='D', volume_filter=5000, value_filter=None):
     datas = AKData(symbolsDate_dict['market'])
     stocks_dfs = {}
     for symbol in symbolsDate_dict['symbols']:
@@ -20,7 +20,12 @@ def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level=
                     f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
             else:
                 mean_vol = stock_df['volume'].rolling(window=20).mean().iloc[-1]
-                if volume_filter is not None and mean_vol < volume_filter:
+                mean_value = stock_df['close'].rolling(window=20).mean().iloc[-1] * mean_vol
+                
+                if value_filter is not None and mean_value < value_filter:
+                    print(
+                        f"Warning: stock '{symbol}' has low value. Ignore it")
+                elif volume_filter is not None and mean_vol < volume_filter:
                     print(
                         f"Warning: stock '{symbol}' has low volume. Ignore it")
                 else:

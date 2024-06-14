@@ -22,6 +22,7 @@ from .MMARS import MMARSStrategy
 from .MOMTOP import MOMTOPStrategy
 from .LiqFlow import LiqFlowStrategy
 from .FinReportArb import FinReportArbStrategy
+from .GapsRecover import GapsRecoverStrategy
 
 __all__ = [
     "MOMStrategy",
@@ -47,7 +48,8 @@ __all__ = [
     "MMARSStrategy",
     "MOMTOPStrategy",
     "LiqFlowStrategy",
-    "FinReportArbStrategy"
+    "FinReportArbStrategy",
+    "GapsRecoverStrategy"
 ]
 
 strategy_list = [
@@ -74,5 +76,6 @@ strategy_list = [
     "MMARS",
     "MOMTOP",
     "LiqFlow",
-    "FinReportArb"
+    "FinReportArb",
+    "GapsRecover"
 ]

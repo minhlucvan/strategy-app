@@ -191,8 +191,10 @@ def get_stock_bars_very_long_term_cached(
     set_index=True,
     start_date=None,
     end_date=None
-):
-    if resolution == '1D':
+):  
+    if resolution is None:
+        resolution = 'D'
+    elif resolution == '1D':
         resolution = 'D'
     elif resolution == '1W':
         resolution = 'W'

@@ -65,7 +65,7 @@ def plot_pf(pf, name= "", select=True, bm_symbol=None, bm_price=None, show_recen
     if len(subplots) > 0:
         fig = pf.plot(subplots=subplots, )
         # st.plotly_chart(fig, use_container_width=True)
-        if bm_symbol:
+        if bm_symbol and bm_price is not None:
             fig.add_trace(go.Scatter(
                                     x = bm_price.index,
                                     y = bm_price.vbt.to_returns().cumsum(axis=0) + 1, 
@@ -82,7 +82,7 @@ def plot_pf(pf, name= "", select=True, bm_symbol=None, bm_price=None, show_recen
     tab1, tab2, tab3 = st.tabs(["Return's stats", "Orders' records", "Final Positions"])
     with tab1:
         # show Return's stats
-        if bm_symbol:
+        if bm_symbol and bm_price is not None:
             st.text(f'Benchmark is {get_SymbolName(bm_symbol)}({bm_symbol})')
             st.text(pf.returns_stats(benchmark_rets=bm_price.vbt.to_returns())) 
         else:

@@ -40,6 +40,9 @@ class BaseStrategy(object):
     rs_df = None
     is_live = False
     timeframe = '1D'
+    value_filter = False
+    value_threshold = 500_000_000
+    
     
     def __init__(self, symbolsDate_dict:dict,):
         self.symbolsDate_dict = symbolsDate_dict
@@ -47,8 +50,8 @@ class BaseStrategy(object):
         self.symbols = symbolsDate_dict['symbols']
         self.start_date = symbolsDate_dict['start_date']
         self.end_date = symbolsDate_dict['end_date']
-        self.bm_symbol = symbolsDate_dict['benchmark']
-        self.timeframe = symbolsDate_dict['timeframe']
+        self.bm_symbol = symbolsDate_dict['benchmark'] if 'benchmark' in symbolsDate_dict else 'VN30'
+        self.timeframe = symbolsDate_dict['timeframe'] if 'timeframe' in symbolsDate_dict else 'D'
         self.datas = AKData(self.market)
         self.stock_dfs = []
         self.param_dict = {}
@@ -78,7 +81,10 @@ class BaseStrategy(object):
             if self.bm_symbol not in symbolsDate_dict_cp['symbols']:
                 symbolsDate_dict_cp['symbols'].append(self.bm_symbol)
             
-        self.stocks_df = get_stocks(symbolsDate_dict_cp, column='close', timeframe=self.timeframe)
+        self.stocks_df = get_stocks(symbolsDate_dict_cp,
+            column='close',
+            timeframe=self.timeframe,
+            value_filter=self.value_filter)
         
         if self.include_bm and self.bm_symbol is not None:
             self.bm_price = self.stocks_df[self.bm_symbol]
