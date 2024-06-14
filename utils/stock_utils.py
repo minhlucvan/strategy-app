@@ -2119,7 +2119,7 @@ def load_stock_vol_foreign_to_dataframe(data):
     df['totalVolume'] = df['totalVolume'].astype(float)
     df['rsRank'] = df['rsRank'].astype(float)
 
-    df['dateReport'] = pd.to_datetime(df['dateReport'], format='%d/%m/%Y').dt.tz_localize(timezone.utc)
+    df['dateReport'] = pd.to_datetime(df['dateReport'], format='%d/%m/%Y')
 
     # set index to dateReport
     df.set_index('dateReport', inplace=True)

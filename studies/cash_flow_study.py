@@ -34,6 +34,7 @@ def calculate_price_changes(prices_df):
 
 
 def add_price_changes_to_df(df, price_changes):
+    df['fnetVolSum'] = df['fnetVol'].cumsum()
     for i, row in df.iterrows():
         if i in price_changes['price_change_1'].index:
             ticker = row['ticker']
@@ -102,7 +103,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     display_description()
     plot_correlation_matrix(df)
 
-    default_dims = ['bp', 'op', 'pp', 'nstp', 'rsi14']
+    default_dims = ['bp', 'op', 'pp', 'nstp', 'fnetVol']
     selected_dims = st.multiselect('Select dimensions', df.columns, default=default_dims)
     plot_scatter_matrix(df, selected_dims)
     
@@ -112,3 +113,6 @@ def run(symbol_benchmark, symbolsDate_dict):
     for dim in selected_dims:
         plot_multi_scatter(dims_df[dim], title=dim, x_title='Date', y_title=dim, legend_title='Ticker')
 
+        dim_changes_df = dims_df[dim].pct_change()
+        
+        plot_multi_bar(dim_changes_df, title=f'{dim} Change', x_title='Date', y_title=f'{dim} Change', legend_title='Ticker')
