@@ -2276,8 +2276,8 @@ def load_intraday_cash_flow_latest_to_dataframe(data):
     # set date  = t
     df['date'] = df['t']
     
-    # convert 08-2023 to 2023-08-01
-    df['date'] = df['date'].apply(lambda x: pd.to_datetime(x, format='%m-%Y'))
+    # convert 08-2023 to end of month
+    df['date'] = df['date'].apply(lambda x: pd.to_datetime(x) + pd.offsets.MonthEnd(0))
         
     # set index to date
     df.set_index('date', inplace=True)
