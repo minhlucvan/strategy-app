@@ -1,4 +1,5 @@
 from utils.data_vn import *
+from utils.data_bin import *
 
 class AKData(object):
     def __init__(self, market):

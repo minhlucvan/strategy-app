@@ -19,13 +19,17 @@ class RRGStrategy(BaseStrategy):
     desc = "Relative Rotation Graph strategy aiming to capture the price difference between the benchmark and the stocks. the strategy shown that for a bunch of stocks, the price of the stock will be raised before the benchmark price and drop after the benchmark price, the strategy aims to capture the price difference between the two dates"
     stacked_bool = True
     output_bool = False
-    bm_symbol = 'VN30'
     include_bm = True
+    
 
     @vbt.cached_method
     def run(self, calledby='add'):
         stocks_df = self.stocks_df
         bm_df = self.bm_price
+        
+        if stocks_df.empty:
+            st.warning("No data available.")
+            st.stop()
          
         rs_ratio = [98, 99, 100, 101, 102]
         rs_momentum = [98, 98.5, 99, 99.5, 100, 100.5, 101, 101.5, 102]

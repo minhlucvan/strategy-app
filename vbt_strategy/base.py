@@ -39,14 +39,16 @@ class BaseStrategy(object):
     rs_dfs = None
     rs_df = None
     is_live = False
-    timeframe = 'D'
+    timeframe = '1D'
     
-    def __init__(self, symbolsDate_dict:dict):
+    def __init__(self, symbolsDate_dict:dict,):
         self.symbolsDate_dict = symbolsDate_dict
         self.market = symbolsDate_dict['market']
         self.symbols = symbolsDate_dict['symbols']
         self.start_date = symbolsDate_dict['start_date']
         self.end_date = symbolsDate_dict['end_date']
+        self.bm_symbol = symbolsDate_dict['benchmark']
+        self.timeframe = symbolsDate_dict['timeframe']
         self.datas = AKData(self.market)
         self.stock_dfs = []
         self.param_dict = {}

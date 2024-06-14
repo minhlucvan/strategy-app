@@ -6,7 +6,7 @@ import plotly.express as px
 import pandas as pd
 import plotly.subplots as sp
 
-def plot_multi_line(df, title, x_title, y_title, legend_title, price_df=None):
+def plot_multi_line(df, title="", x_title="", y_title="", legend_title="", price_df=None):
     df = df.copy()
     if price_df is not None:
         fig = sp.make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.01)

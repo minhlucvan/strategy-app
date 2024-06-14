@@ -4,7 +4,8 @@ import numpy as np
 
 import streamlit as st
 from streamlit_quill import st_quill
-import json
+import utils.data_vn as data_vn
+import utils.data_bin as data_bin
 
 from utils.market_utils import get_maket_groups
 from utils.portfolio import Portfolio
@@ -121,17 +122,7 @@ def input_SymbolsGroup(groups_dict):
     }
 
 def input_Symbols_wildcard(market):
-    if market == 'US':
-        symbols_string = st.sidebar.text_input("Enter all stock tickers to be included in portfolio separated by commas \
-                                WITHOUT spaces, e.g. 'AMZN,NFLX,GOOG,AAPL'", '', key="textinput" + "_symbols").upper()
-    elif market == 'CN':
-        symbols_string = st.sidebar.text_input("Enter all stock tickers to be included in portfolio separated by commas \
-                                WITHOUT spaces, e.g. '601318,000001'", '', key="textinput" + "_symbols")
-    elif market == 'VN':
-        symbols_string = st.sidebar.text_input("Enter Tickers", '', key="textinput" + "_symbols")
-    else:
-        symbols_string = st.sidebar.text_input("Enter all stock tickers to be included in portfolio separated by commas \
-                                WITHOUT spaces, e.g. '00700,01171'", '', key="textinput" + "_symbols")
+    symbols_string = st.sidebar.text_input("Enter Tickers", '', key="textinput" + "_symbols")
     symbols = []
     if len(symbols_string) > 0:
         symbols = symbols_string.strip().split(',')
@@ -147,7 +138,7 @@ def input_symbols_group(group_dict):
 
 def input_SymbolsDate(group=True) -> dict:
     # market = st.sidebar.radio("Select market", ("VN",), horizontal= True)
-    market = 'VN'
+    market = st.sidebar.selectbox("Select market", ("VN", "BIN"))
     
     groups_data = get_maket_groups(market)
     
@@ -178,6 +169,16 @@ def input_SymbolsDate(group=True) -> dict:
     # upper case
     symbols = [symbol.upper() for symbol in symbols]
     
+    # timeframe
+    timeframes = ['1D', '1W', '1M', '4h', '1h', '15m', '5m']
+    
+    if market == 'VN':
+        timeframes = data_vn.get_intervals()
+    elif market == 'BIN':
+        timeframes = data_bin.get_intervals()
+    
+    timeframe = st.sidebar.selectbox('Timeframe', timeframes, index=0)
+    
     return {
             "market":   market,
             "symbols":  symbols,
@@ -185,7 +186,8 @@ def input_SymbolsDate(group=True) -> dict:
             "end_date": end_date,
             "goup_symbols": group_symbols,
             "benchmark": benmark_symbols,
-            "group_name": group_name
+            "group_name": group_name,
+            "timeframe": timeframe
         }
 
 def params_selector(params):

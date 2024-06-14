@@ -19,6 +19,13 @@ def main():
     tcbs_info_str = json.dumps(tcbs_info_raw, indent=4) if tcbs_info_raw else ''
     tcbs_info = st.text_area("TCBS Info", tcbs_info_str)
     
+    # binance secrets
+    binance_api_key = config_dict.get('binance', {}).get('api_key', '')
+    binance_api_secret = config_dict.get('binance', {}).get('api_secret', '')
+    
+    binance_api_key_input = st.text_input("Binance API Key", binance_api_key)
+    binance_api_secret_input = st.text_input("Binance API Secret", binance_api_secret)
+    
     # update button
     if st.button("Update"):
         tcbs_info_parsed = json.loads(tcbs_info)
@@ -30,6 +37,10 @@ def main():
             },
             "telegram": {
                 "token": telegram_token
+            },
+            "binance": {
+                "api_key": binance_api_key_input,
+                "api_secret": binance_api_secret_input
             }
         })
         st.write("Updated successfully.")

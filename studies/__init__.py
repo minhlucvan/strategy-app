@@ -30,6 +30,7 @@ from .stock_financial_momentum_study import run as run_stock_financial_momentum_
 from .cash_flow_study import run as run_cash_flow_study
 from .stock_news_momentum_study import run as run_stock_news_momentum_study
 from .stock_headline_momentum_study import run as run_stock_headline_momentum_study
+from .relative_stregth_compasion_study import run as run_relative_stregth_compasion
 
 study_list = [
     {
@@ -155,6 +156,10 @@ study_list = [
     {
         "name": "Stock Headline Momentum",
         "module": run_stock_headline_momentum_study  
+    },
+    {
+        "name": "Relative Strength Compasion",
+        "module": run_relative_stregth_compasion
     },
     {
         "name": "TCBS Agent",

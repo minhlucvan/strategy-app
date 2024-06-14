@@ -21,6 +21,9 @@ def run(symbol_benchmark, symbolsDate_dict):
     first_date = df.index[0]
     last_date = df.index[-1]
     
+    # st.write(prices_df)
+    # st.stop()
+    
     # filter prices_df by first_date
     prices_df = prices_df[prices_df.index >= first_date]
     prices_df = prices_df[prices_df.index <= last_date]
@@ -58,14 +61,18 @@ def run(symbol_benchmark, symbolsDate_dict):
             # st.stop()
             if row['ticker'] not in prices_change_df.columns:
                 continue
+            val = prices_change_df.loc[i][row['ticker']]
             
-            value = prices_change_df.loc[i][row['ticker']].values[0]
+            if isinstance(val, pd.Series):
+                val = val.values[0]
+            
+            value = val
             # st.write(value)
             # st.stop()
             df.loc[i, 'price_change'] = value
     
     corr_df = df.copy()
-    corr_df = corr_df.drop(columns=['ticker', 'seq', 'comp_name', 'ind_name', 'ind_code', 'p'])
+    corr_df = corr_df.drop(columns=['ticker', 'seq', 'comp_name', 'ind_name', 'ind_code', 'p', 't'])
     corr = corr_df.corr()
     fig = px.imshow(corr)
     st.plotly_chart(fig, use_container_width=True)

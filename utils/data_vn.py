@@ -14,29 +14,8 @@ from utils import stock_utils
 from utils import vietstock
 from utils.stock_utils import get_stock_bars_very_long_term_cached, get_stock_balance_sheet, load_stock_balance_sheet_to_dataframe
 
-
-@lru_cache
-def get_us_symbol() -> dict:
-    assets_df = ak.stock_us_spot_em()
-    symbol_dict = {}
-    for index, row in assets_df.iterrows():
-        symbol = row['代码'].split('.')[1]
-        symbol_dict[symbol] = row['代码']
-    return symbol_dict
-
-
-@lru_cache
-def get_us_stock(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
-    """get us stock data
-
-    Args:
-        ak_params symbol:str, start_date:str, end_date:str
-
-    Returns:
-        pd.DataFrame: _description_
-    """
-    return ak.stock_us_hist(symbol=symbol, start_date=start_date, end_date=end_date, adjust="qfq")
-
+def get_intervals():
+    return ['D', 'W', 'M', '1h', '30m', '15m', '5m', '3m', '1m']
 
 @lru_cache
 def get_vn_stock(symbol: str, start_date: str, end_date: str, timeframe='1D') -> pd.DataFrame:
