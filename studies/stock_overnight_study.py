@@ -28,7 +28,11 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     opens_change_df = (opens_future_df - opens_df) / opens_df
     
+    # filter the gaps_df > 0.02 or < -0.02
+    gaps_df = gaps_df[(gaps_df > 0.02) | (gaps_df < -0.02)]
+    
     ratio_df = opens_change_df / gaps_df
+    
     
     
     plot_multi_bar(gaps_df, title='Stocks Gaps', x_title='Date', y_title='Gap', legend_title='Stocks')
@@ -37,10 +41,9 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     plot_multi_bar(ratio_df, title='Open Change vs Gap', x_title='Date', y_title='Ratio', legend_title='Stocks')
     
-    ratio_mean_df = ratio_df.mean(axis=0, skipna=True)
-        
-    plot_single_bar(ratio_mean_df, title='Mean Open Change vs Gap', x_title='Stocks', y_title='Ratio', legend_title='Mean')
+    gaps_down_df = gaps_df[gaps_df < -0.07]
 
+    gaps_df = gaps_down_df
 
     # Prepare data for plotting
     # Flatten the DataFrames to make them suitable for Plotly
