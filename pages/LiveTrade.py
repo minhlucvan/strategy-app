@@ -53,7 +53,7 @@ def select_portfolios(portfolio_df, default_selected=False):
         selected_ids = list(edited_df[edited_df.Select].index)
         return selected_ids
 
-def show_PortfolioTable(portfolio_df, default_selected=True):
+def show_PortfolioTable(portfolio_df, default_selected=False):
     ## using new st.data_editor
     def stringlist_to_set(strlist: list):
         slist = []

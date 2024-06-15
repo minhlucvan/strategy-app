@@ -2,6 +2,7 @@ import json
 import utils.vietstock as vietstock
 import utils.data_bin as data_bin
 import streamlit as st
+import pandas as pd
 
 fund_file = "funds.json"
 
@@ -13,6 +14,10 @@ def get_extra_group(group: dict):
         elif group["provider"] == "binance":
             data = data_bin.get_symbol_groups(group['code'])
             extra_group = data['symbol'].values.tolist()
+        elif group["provider"] == "csv":
+            df = pd.read_csv(group['path'])
+            tickers = df[group['column']].values.tolist()
+            extra_group = tickers
         else:
             print(f"Provider {group['provider']} not implemented")
         

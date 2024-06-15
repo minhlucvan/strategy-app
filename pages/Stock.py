@@ -6,6 +6,7 @@ from utils.stock_utils import get_stock_overview, get_stock_ratio
 from utils.vbt import display_pfbrief
 import pandas as pd
 from studies.magic_fomula_study import run as run_magic_fomula
+import utils.db as db
 
 def show_stock(symbol):
     st.write("## Stocks insignt board")
@@ -58,13 +59,33 @@ def show_stock_compare(symbols):
     st.write("Historical data")
     symbol_benchmark = 'VN30'
     run_magic_fomula(symbol_benchmark=symbol_benchmark, symbolsDate_dict=symbolsDate_dict)
+    
+def show_stocks(symbolsDate_dict: dict):
+    st.write("## Stocks insignt board")
+
+    df = db.load_symbols()
+    
+    exchanges = df['exchange'].unique()
+    symbols = df['symbol'].unique()
+    
+    selected_exchanges = st.multiselect("Select exchange", exchanges)
+    selected_symbols = st.multiselect("Select symbols", symbols)
+    
+    if len(selected_symbols) > 0:
+        df = df[df['symbol'].isin(selected_symbols)]
         
+    if len(selected_exchanges) > 0:
+        df = df[df['exchange'].isin(selected_exchanges)]
+    
+    st.write("Stocks")
+    st.dataframe(df)
+
     
 if check_password():
     symbolsDate_dict = input_SymbolsDate()
     
     if len(symbolsDate_dict['symbols']) < 1:
-        st.info("Please select symbols.")
+        show_stocks(symbolsDate_dict)
         st.stop()
     
     if len(symbolsDate_dict['symbols']) == 1:

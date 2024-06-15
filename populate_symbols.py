@@ -4,13 +4,50 @@ import akshare as ak
 import pandas as pd
 import utils.data_bin as bin
 
-connection = sqlite3.connect('db/portfolio.db')
-cursor = connection.cursor()
+class PortfolioDB:
+    def __init__(self, db_path):
+        self.db_path = db_path
 
-def gen_vn_symbol():
-    print('Fetching vn index data...')
+    def __enter__(self):
+        self.connection = sqlite3.connect(self.db_path)
+        self.cursor = self.connection.cursor()
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.connection.commit()
+        self.connection.close()
+
+    def execute_query(self, query, params=None):
+        if params:
+            self.cursor.execute(query, params)
+        else:
+            self.cursor.execute(query)
+
+    def drop_table(self, table_name):
+        self.execute_query(f"DROP TABLE IF EXISTS {table_name}")
+
+    def create_stock_table(self):
+        self.execute_query("""
+            CREATE TABLE stock (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT NOT NULL,
+                symbol TEXT NOT NULL,
+                exchange TEXT NOT NULL,
+                is_etf BOOLEAN NOT NULL,
+                category TEXT NOT NULL,
+                market TEXT NOT NULL
+            )
+        """)
+
+    def insert_stock(self, name, symbol, exchange, is_etf, category, market):
+        self.execute_query("""
+            INSERT INTO stock (name, symbol, exchange, is_etf, category, market)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (name, symbol, exchange, is_etf, category, market))
+
+def fetch_vn_symbol_data():
+    print('Fetching VN index data...')
     assets_dfs = pd.read_html('https://vi.wikipedia.org/wiki/Danh_s%C3%A1ch_c%C3%B4ng_ty_tr%C3%AAn_s%C3%A0n_giao_d%E1%BB%8Bch_ch%E1%BB%A9ng_kho%C3%A1n_Vi%E1%BB%87t_Nam')
-    
     assets_df = pd.DataFrame()
     
     for df in assets_dfs:
@@ -18,59 +55,62 @@ def gen_vn_symbol():
             assets_df = pd.concat([assets_df, df])
             print(f'Added {len(df)} records')
     
-    # drop nan rows
-    assets_df = assets_df.dropna(subset=['CK', 'SÀN', 'TÊN CÔNG TY'])
+    # Clean data
+    assets_df.dropna(subset=['CK', 'SÀN', 'TÊN CÔNG TY'], inplace=True)
+    assets_df.drop_duplicates(subset=['CK'], inplace=True)
+    assets_df = assets_df[assets_df['SÀN'].isin(['HSX', 'HNX', 'Upcom'])]
     
-    # drop duplicates CK
-    assets_df = assets_df.drop_duplicates(subset=['CK'])
+    # upeprcase columns
+    assets_df['SÀN'] = assets_df['SÀN'].str.upper()
     
-    # select only SÀN in HSX, HNX
-    assets_df = assets_df[assets_df['SÀN'].isin(['HSX', 'HNX'])]
+    # deduplicate ticker
+    assets_df['CK'] = assets_df['CK'].str.replace(' ', '')
+    assets_df['CK'] = assets_df['CK'].str.replace('-', '')
+    assets_df['CK'] = assets_df['CK'].str.replace('(', '')
+    assets_df['CK'] = assets_df['CK'].str.replace(')', '')
+    assets_df['CK'] = assets_df['CK'].str.replace('.', '')
+    
+    # drop duplicates
+    assets_df.drop_duplicates(subset=['CK'], inplace=True)
+    
+    return assets_df
+
+def fetch_usdt_data():
+    print('Fetching USDT data...')
+    return bin.get_all_USDT_tickers()
+
+def populate_vn_symbols(db):
+    assets_df = fetch_vn_symbol_data()
     
     for index, row in assets_df.iterrows():
-        symbol = row['CK']
-        exchange = row['SÀN']
-        name = row['TÊN CÔNG TY']
-        
-        cursor.execute("""
-            INSERT INTO stock (name, symbol, exchange, is_etf, category)
-            VALUES (?, ?, ?, false, 'STOCK')
-        """, (name, symbol, exchange))
-    
+        db.insert_stock(row['TÊN CÔNG TY'], row['CK'], row['SÀN'], False, 'STOCK', 'VN')
     print(f'Successfully inserted {len(assets_df)} records into stock table')
 
-def gen_vn_index_symbol():
+def populate_vn_index_symbols(db):
     data = [
-        ('VN30', 'VN30', 'HSX', False, 'INDEX'),
-        ('E1VFVN30', 'E1VFVN30', 'HSX', True, 'ETF'),
-        ('FUEVN100', 'FUEVN100', 'HSX', True, 'ETF'),
-        ('HNX-INDEX', 'HNX-INDEX', 'HNX', False, 'INDEX'),
-        ('HNX30-INDEX', 'HNX30-INDEX', 'HNX', False, 'INDEX'),
+        ('VN30', 'VN30', 'HSX', False, 'INDEX', 'VN'),
+        ('E1VFVN30', 'E1VFVN30', 'HSX', True, 'ETF', 'VN'),
+        ('FUEVN100', 'FUEVN100', 'HSX', True, 'ETF', 'VN'),
+        ('HNX-INDEX', 'HNX-INDEX', 'HNX', False, 'INDEX', 'VN'),
+        ('HNX30-INDEX', 'HNX30-INDEX', 'HNX', False, 'INDEX', 'VN'),
     ]
-    
     for row in data:
-        cursor.execute("""
-            INSERT INTO stock (name, symbol, exchange, is_etf, category)
-            VALUES (?, ?, ?, ?, ?)
-        """, row)
+        db.insert_stock(*row)
         print(f'Successfully inserted {row[0]} into stock table')
 
-def gen_usdt_symbols():
-    print('Fetching USDT data...')
-    tickers_df = bin.get_all_USDT_tickers()
-    
+def populate_usdt_symbols(db):
+    tickers_df = fetch_usdt_data()
     for ticker in tickers_df['symbol']:
-        print(f'Inserting {ticker} into stock table')
-        cursor.execute("""
-            INSERT INTO stock (name, symbol, exchange, is_etf, category)
-            VALUES (?, ?, ?, false, 'CRYPTO')
-        """, (ticker, ticker, 'BINANCE'))
+        db.insert_stock(ticker, ticker, 'BINANCE', False, 'CRYPTO', 'USDT')
+    print(f'Successfully inserted {len(tickers_df)} records into stock table')
 
-def clear_table():
-    cursor.execute("DELETE FROM stock")
+def main():
+    with PortfolioDB('db/portfolio.db') as db:
+        db.drop_table('stock')
+        db.create_stock_table()
+        populate_vn_symbols(db)
+        populate_vn_index_symbols(db)
+        populate_usdt_symbols(db)
 
-clear_table()    
-gen_vn_symbol()
-gen_vn_index_symbol()
-gen_usdt_symbols()
-connection.commit()
+if __name__ == '__main__':
+    main()

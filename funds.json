@@ -1045,6 +1045,28 @@
         "WSS",
         "X20"
       ]
+    },
+    "extraGroup": {
+      "VNLIQIDITY": {
+        "provider": "csv",
+        "path": "data/intraday_total_value_filtered.csv",
+        "column": "symbol"
+      },
+      "HNXLIQIDITY": {
+        "provider": "csv",
+        "path": "data/intraday_total_value_hnx.csv",
+        "column": "symbol"
+      },
+      "HSXLIQIDITY": {
+        "provider": "csv",
+        "path": "data/intraday_total_value_hsx.csv",
+        "column": "symbol"
+      },
+      "UPCOMLIQIDITY": {
+        "provider": "csv",
+        "path": "data/intraday_total_value_upcom.csv",
+        "column": "symbol"
+      }
     }
   },
   "BIN": {

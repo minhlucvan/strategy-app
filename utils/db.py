@@ -23,11 +23,14 @@ def init_connection():
 connection, cursor = init_connection()
 
 @cache
-def load_symbols():
+def load_symbols(market:str=None):
         # cursor.execute("SELECT strategy_id, symbol, exchange, name FROM strategy_stock \
         #                     JOIN stock ON stock.id = strategy_stock.stock_id")
         # symbols_df = cursor.fetchall()
-        result_df = pd.read_sql("SELECT * FROM stock", connection)
+        query = "SELECT * FROM stock"
+        if market:
+            query += f" WHERE market='{market}'"
+        result_df = pd.read_sql(query, connection)
         return result_df
 
 @cache

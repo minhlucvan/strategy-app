@@ -2329,3 +2329,109 @@ def get_intraday_cash_flow_list_all(tickers, timeFrame='1D'):
         data += res['data']
         
     return data
+
+# https://apipubaws.tcbs.com.vn/stock-insight/v1/stock/intraday-snapshots?tickers=A32,AAH,AAS,ABB,ABC,ABI,ABW,ACE,ACM,ACS,ACV,AFX,AG1,AGF,AGP,AGX,AIC,ALV,AMD,AMP,AMS,ANT,APC,APF,APL,APP,APT,ART,ASA,ATA,ATB,ATG,AVC,AVF,B82,BAL,BBH,BBM,BBT,BCA,BCB,BCO,BCP,BCR,BCV,BDG,BDT,BDW,BEL,BGW
+@retry(times=MAX_RETRIES, exceptions=(Exception), delay=RETRY_WAIT_TIME)
+def get_intraday_snapshots(tickers):
+    print(f"Getting intraday snapshots for {len(tickers)} tickers")
+    url = f'https://apipubaws.tcbs.com.vn/stock-insight/v1/stock/intraday-snapshots'
+    
+    headers = {
+        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'DNT': '1',
+        'Accept-language': 'vi',
+        'sec-ch-ua-mobile': '?0',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/'
+    }
+    
+    params = {
+        'tickers': ','.join(tickers)
+    }
+    
+    response = requests.get(url, params=params, headers=headers)
+    
+    if response.status_code == 200:
+        json = response.json()
+        return json['data']
+    else:
+        print(f"Request failed with status code {response.status_code}")
+        return None
+
+def load_intraday_snapshots_to_dataframe(data):
+    # {
+    #     "NTP": {
+    #         "startTrad": 1718330400,
+    #         "data": [
+    #             [
+    #                 62800.0,
+    #                 17500.0,
+    #                 0.0
+    #             ],
+    #             [
+    #                 62800.0,
+    #                 2300.0,
+    #                 3.0
+    #             ],
+    #             [
+    #                 63800.0,
+    #                 24800.0,
+    #                 6.0
+    #             ],
+    #     }
+    # }
+    stocks_dfs = {}
+    
+    for ticker, item in data.items():
+        startTrad = item['startTrad']
+        data = item['data']
+        
+        df_temp = pd.DataFrame(data, columns=['price', 'volume', 'trades'])
+        
+        df_temp['ticker'] = ticker
+        df_temp['startTrad'] = startTrad
+        
+        # convert startTrad to datetime
+        df_temp['startTrad'] = pd.to_datetime(df_temp['startTrad'], unit='s')
+        
+        # set index to startTrad + interval 5 minutes
+        df_temp['index'] = df_temp['startTrad'] + pd.to_timedelta(df_temp.index * 5, unit='m')
+        
+        # set time = time + 7 hours
+        df_temp['index'] = df_temp['index'] + pd.to_timedelta(7, unit='h')
+        
+        # when hour >= 12 hour = hour + 1
+        df_temp['index'] = df_temp['index'].apply(lambda x: x + pd.to_timedelta(1, unit='h') if x.hour >= 12 else x)
+        
+        df_temp.set_index('index', inplace=True)
+
+        stocks_dfs[ticker] = df_temp
+        
+    factor_dfs = {}
+    for symbol in stocks_dfs:
+        for column in stocks_dfs[symbol].columns:
+            if column not in factor_dfs:
+                factor_dfs[column] = pd.DataFrame()
+            factor_dfs[column][symbol] = stocks_dfs[symbol][column]
+    
+    stocks_df = pd.concat(factor_dfs, axis=1)
+    
+    # drop date column
+    # stocks_df = stocks_df.drop(columns='date')
+        
+    return stocks_df
+
+def get_intraday_snapshots_all(tickers):
+    print(f"Getting intraday snapshots for {len(tickers)} tickers")
+    # break the tickers into chunks of 50
+    chunk_size = 50
+    chunks = [tickers[i:i + chunk_size] for i in range(0, len(tickers), chunk_size)]
+    
+    data = {}
+    
+    for chunk in chunks:
+        res = get_intraday_snapshots(chunk)
+        data.update(res)
+    
+    df = load_intraday_snapshots_to_dataframe(data)
+    
+    return df    
