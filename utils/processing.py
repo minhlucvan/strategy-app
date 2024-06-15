@@ -37,8 +37,10 @@ def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level=
                     stock_df['price_change_weighted'] = stock_df['price_change'] * abs(stock_df['volume_change'])
                     
                     stock_df['value_change_weighted'] = stock_df['price_change'] * stock_df['volume_change']
-                    
-                    stocks_dfs[symbol] = stock_df if stack else stock_df[column]
+
+                    stocks_dfs[symbol] = stock_df
+                    if stack:
+                        stocks_dfs[symbol] = stock_df[column]
                     
                     stocks_dfs[symbol].index = stocks_dfs[symbol].index.tz_localize(None)
     
@@ -61,6 +63,8 @@ def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level=
         stocks_df = stocks_df.drop(columns='date')
     elif stack:
         stocks_df = pd.concat(stocks_dfs, axis=1)
+    elif len(stocks_dfs) == 1:
+        return stocks_dfs[symbol]
     else:
         stocks_df = pd.DataFrame(stocks_dfs)
                 

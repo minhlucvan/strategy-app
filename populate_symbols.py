@@ -98,6 +98,14 @@ def populate_vn_index_symbols(db):
         db.insert_stock(*row)
         print(f'Successfully inserted {row[0]} into stock table')
 
+def populate_vn_derivative(db):
+    data = [
+        ('VN30F1M', 'VN30F1M', 'HSX', False, 'DERIVATIVE', 'VN')
+    ]
+    for row in data:
+        db.insert_stock(*row)
+        print(f'Successfully inserted {row[0]} into stock table')
+
 def populate_usdt_symbols(db):
     tickers_df = fetch_usdt_data()
     for ticker in tickers_df['symbol']:
@@ -111,6 +119,7 @@ def main():
         populate_vn_symbols(db)
         populate_vn_index_symbols(db)
         populate_usdt_symbols(db)
+        populate_vn_derivative(db)
 
 if __name__ == '__main__':
     main()

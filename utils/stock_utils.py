@@ -297,7 +297,7 @@ def load_data_into_dataframe(data, set_index=True):
         df['tradingDate'] = df['tradingDate'].dt.tz_localize(None)
         
                 
-        df['tradingDate'] = df['tradingDate'].dt.date
+        # df['tradingDate'] = df['tradingDate'].dt.date
         
         df['tradingDate'] = pd.to_datetime(df['tradingDate'])
     

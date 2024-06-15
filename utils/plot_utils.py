@@ -97,7 +97,8 @@ def plot_snapshot(df, title, x_title, y_title, legend_title, sorted=False):
     st.plotly_chart(fig, use_container_width=True)
     
 
-def plot_events(price_series, events_series, label=None):
+
+def plot_events(price_series, events_series, label=None, annotate_sign=False):
     start_date = events_series.index.min()
     price_series = price_series[price_series.index >= start_date]
     
@@ -105,18 +106,27 @@ def plot_events(price_series, events_series, label=None):
     fig.add_trace(go.Scatter(x=price_series.index, y=price_series, mode='lines', name='Price'))
     max_price = price_series.max()
     min_price = price_series.min()
-    # add horizontal line for events, annotation_text = event
+
+    # Add horizontal line for events, annotation_text = event
     for index in events_series.index:
         events = events_series[index]
         
         events = events if isinstance(events, pd.Series) else pd.Series([events])
         for event in events:
-            # add horizontal line, x = index, y = max_price
+            # Determine the color based on price movement
+            if annotate_sign and price_series[index] >= price_series.shift(1)[index]:
+                line_color = "green"
+            elif annotate_sign and price_series[index] < price_series.shift(1)[index]:
+                line_color = "red"
+            else:
+                line_color = "blue"
+            
+            # Add horizontal line, x = index, y = max_price
             fig.add_shape(type="line",
                 x0=index, y0=max_price, x1=index, y1=min_price,
-                line=dict(color="RoyalBlue",width=1))
-            # add annotation
-            fig.add_annotation(x=index, y=max_price, text=label if label is not None else event, showarrow=False, yshift=10)               
+                line=dict(color=line_color, width=1))
             
-    st.plotly_chart(fig)
+            # Add annotation
+            fig.add_annotation(x=index, y=max_price, text=label if label is not None else event, showarrow=False, yshift=10)
     
+    st.plotly_chart(fig)

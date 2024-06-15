@@ -45,7 +45,7 @@ def get_vn_stock(symbol: str, start_date: str, end_date: str, timeframe='1D') ->
         refresh=True,
         force_fetch=True
     )
-
+    
     stock_df['volume'] = stock_df['volume']
     stock_df['date'] = stock_df.index
     
@@ -94,6 +94,45 @@ def get_vn_index(symbol: str, start_date: str, end_date: str, timeframe='D') -> 
     return stock_df    
 
 @lru_cache
+def get_vn_derivative(symbol: str, start_date: str, end_date: str, timeframe='D') -> pd.DataFrame:
+    """get vietnam stock data
+
+    Args:
+        ak_params symbol:str, start_date:str 20170301, end_date:str
+
+    Returns:
+        pd.DataFrame: _description_
+    """
+    
+    # 20180101 ->  '%Y-%m-%d'
+    if len(start_date) == 8:
+        start_date = start_date[0:4] + '-' + start_date[4:6] + '-' + start_date[6:]
+    
+    if len(end_date) == 8:
+        end_date = end_date[0:4] + '-' + end_date[4:6] + '-' + end_date[6:]
+
+    stock_df = get_stock_bars_very_long_term_cached(
+        ticker=symbol,
+        stock_type='derivative',
+        count_back=300,
+        resolution=timeframe,
+        start_date=start_date,
+        end_date=end_date,
+        refresh=True,
+        force_fetch=True
+    )
+
+    stock_df['volume'] = stock_df['volume']
+    stock_df['date'] = stock_df.index
+    
+    # sort by index
+    stock_df = stock_df.sort_index()
+    
+    stock_df = stock_df[['date', 'open', 'close', 'high', 'low', 'volume']]
+    
+    return stock_df
+
+@lru_cache
 def get_vn_etf(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
     """get vietnam etf data
 
@@ -125,7 +164,9 @@ def get_vn_etf(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
     stock_df['date'] = stock_df.index
     
     # covert to date
-    # stock_df['date'] = stock_df['date'].dt.date
+    # stock_df['date'] = stock_df['date'].
+    
+    st.write(stock_df)
     
     # sort by index
     stock_df = stock_df.sort_index()

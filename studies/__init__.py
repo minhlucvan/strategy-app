@@ -34,6 +34,7 @@ from .relative_stregth_compasion_study import run as run_relative_stregth_compas
 from .stock_overnight_study import run as run_stock_overnight_study
 from .stock_gaps_recover_study import run as run_stock_gaps_recover_study
 from .stock_intraday_study import run as run_stock_intraday_study
+from .vn30f_gaps_recover_study import run as run_vn30f_gaps_recover_study
 
 study_list = [
     {
@@ -171,6 +172,10 @@ study_list = [
     {
         "name": "Stock Gaps Recover",
         "module": run_stock_gaps_recover_study
+    },
+    {
+        "name": "VN30F Gaps Recover",
+        "module": run_vn30f_gaps_recover_study
     },
     {
         "name": "Stock Intraday",
