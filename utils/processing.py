@@ -38,9 +38,7 @@ def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level=
                     
                     stock_df['value_change_weighted'] = stock_df['price_change'] * stock_df['volume_change']
 
-                    stocks_dfs[symbol] = stock_df
-                    if stack:
-                        stocks_dfs[symbol] = stock_df[column]
+                    stocks_dfs[symbol] = stock_df if stack else stock_df[column]
                     
                     stocks_dfs[symbol].index = stocks_dfs[symbol].index.tz_localize(None)
     
