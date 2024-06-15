@@ -53,7 +53,7 @@ def select_portfolios(portfolio_df, default_selected=False):
         selected_ids = list(edited_df[edited_df.Select].index)
         return selected_ids
 
-def show_PortfolioTable(portfolio_df, default_selected=False):
+def show_PortfolioTable(portfolio_df):
     ## using new st.data_editor
     def stringlist_to_set(strlist: list):
         slist = []
@@ -69,12 +69,10 @@ def show_PortfolioTable(portfolio_df, default_selected=False):
     if 'symbolsSel' not in st.session_state:
         st.session_state['symbolsSel'] = symbols
 
-    sSel = st.multiselect("Please select symbols:", symbols, 
-                                format_func=lambda x: x,
-                                help='empty means all')
+    run_all = st.checkbox("Run All", key='run_all')
 
     df = selectpf_bySymbols(portfolio_df, st.session_state['symbolsSel'])
-    selectpf = select_portfolios(df, default_selected=default_selected)
+    selectpf = select_portfolios(df, default_selected=run_all)
     return(selectpf)
 
 def show_PortforlioDetail(portfolio_df, index):
