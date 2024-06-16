@@ -15,6 +15,7 @@ from utils.calendar_utils import get_last_working_day_before
 import pytz
 
 from utils.misc import retry
+
 CACHE_TTL = 60 * 60 * 24  # 1 day
 requests = requests_cache.CachedSession('cache/demo_cache', expire_after=CACHE_TTL, allowable_codes=[200])
 
@@ -244,7 +245,7 @@ def get_stock_bars_very_long_term_cached(
 
         return data
     else:
-        print(f'Fetching data from API: {stock_type}_{ticker}')
+        print(f'Fetching data from API: {stock_type} {ticker} {resolution}')
         data = get_stock_bars_very_long_term(
             ticker=ticker, stock_type=stock_type, count_back=count_back, resolution=resolution, total_page=total_page)
         df = load_data_into_dataframe(data, set_index=set_index)
@@ -2183,7 +2184,7 @@ def get_intraday_cash_flow_latest(tickers, timeFrame='1W'):
         print(f"Request failed with status code {response.status_code}")
         return None
     
-def load_intraday_cash_flow_latest_to_dataframe(data):
+def load_intraday_cash_flow_latest_to_dataframe(data, timeFrame='1W'):
     # {
     # "totalPage": 1,
     # "data": [
@@ -2235,16 +2236,23 @@ def load_intraday_cash_flow_latest_to_dataframe(data):
         df_temp['ind_name'] = ind_name
         df_temp['ind_code'] = ind_code
         
-        time = df_temp['t']
+        def convert_time(time):
+            print(f"Converting time {time}")
+            # t format could be '10/06/24', '10/06/2024 09:00" or "6-2023"
+            #  10/06/2024 09:00
+            if re.match(r'\d{2}/\d{2}/\d{4} \d{2}:\d{2}', time):
+                return pd.to_datetime(time, format='%d/%m/%Y %H:%M')
+            elif re.match(r'\d{2}/\d{2}/\d{2}', time):
+                return pd.to_datetime(time, format='%d/%m/%y')
+            elif re.match(r'\d{2}-\d{4}', time):
+                return pd.to_datetime(time, format='%m-%Y')
+            else:
+                return time
+                
         
-        # t format could be '10/06/24', '10/06/2024 09:00" or "6-2023"
-        if len(time) == 8:
-            df_temp['t'] = pd.to_datetime(df_temp['t'], format='%d/%m/%y')
-        elif len(time) == 16:
-            df_temp['t'] = pd.to_datetime(df_temp['t'], format='%d/%m/%Y %H:%M')
-        elif len(time) == 7:
-            df_temp['t'] = pd.to_datetime(df_temp['t'], format='%m-%Y')
+        df_temp['t'] = df_temp['t'].apply(convert_time)
         
+                    
         df = pd.concat([df, df_temp])    
     
     # # Renaming the columns
@@ -2278,8 +2286,10 @@ def load_intraday_cash_flow_latest_to_dataframe(data):
     # set date  = t
     df['date'] = df['t']
     
-    # convert 08-2023 to end of month
-    df['date'] = df['date'].apply(lambda x: pd.to_datetime(x) + pd.offsets.MonthEnd(0))
+    if timeFrame == '1M':
+        # convert 08-2023 to end of month
+        df['date'] = df['date'].apply(lambda x: pd.to_datetime(x) + pd.offsets.MonthEnd(0))
+    
         
     # set index to date
     df.set_index('date', inplace=True)

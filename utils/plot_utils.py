@@ -65,23 +65,35 @@ def plot_multi_scatter(df, title, x_title="", y_title="", legend_title="", price
     fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
     st.plotly_chart(fig, use_container_width=True)
 
-def plot_single_line(df, title, x_title, y_title, legend_title):
+def plot_single_line(df, title="", x_title="", y_title="", legend_title=""):
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=df.index, y=df, mode='lines', name=legend_title))
     fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
     st.plotly_chart(fig, use_container_width=True)
     
-def plot_single_bar(df, title="", x_title="", y_title="", legend_title="", price_df=None):
+def plot_single_bar(df, title="", x_title="", y_title="", legend_title="", price_df=None, line_df=None):
+    if line_df is not None:
+        return plot_single_bar_with_line(df, title, x_title, y_title, legend_title, line_df)
     if price_df is not None:
-        fig = sp.make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.01)
-        fig.add_trace(go.Bar(x=df.index, y=df, name=legend_title), row=1, col=1)
-        fig.add_trace(go.Scatter
-                        (x=price_df.index, y=price_df, mode='lines', name=legend_title), row=2, col=1)
-        fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
-        st.plotly_chart(fig, use_container_width=True)
-        return
+        return plot_single_bar_with_price(df, title, x_title, y_title, legend_title, price_df)
+    
     fig = go.Figure()
     fig.add_trace(go.Bar(x=df.index, y=df, name=legend_title))
+    fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
+    st.plotly_chart(fig, use_container_width=True)
+def plot_single_bar_with_price(df, title, x_title, y_title, legend_title, price_df):
+    fig = sp.make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.01)
+    fig.add_trace(go.Bar(x=df.index, y=df, name=legend_title), row=1, col=1)
+    fig.add_trace(go.Scatter
+                    (x=price_df.index, y=price_df, mode='lines', name=legend_title), row=2, col=1)
+    fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
+    st.plotly_chart(fig, use_container_width=True)
+    
+def plot_single_bar_with_line(df, title, x_title, y_title, legend_title, line_df):
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=df.index, y=df, name=legend_title))
+    fig.add_trace(go.Scatter
+                    (x=line_df.index, y=line_df, mode='lines', name=legend_title))
     fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
     st.plotly_chart(fig, use_container_width=True)
     
@@ -130,3 +142,58 @@ def plot_events(price_series, events_series, label=None, annotate_sign=False):
             fig.add_annotation(x=index, y=max_price, text=label if label is not None else event, showarrow=False, yshift=10)
     
     st.plotly_chart(fig)
+
+
+def plot_double_side_bars(dataframe, top_bar_col, bottom_bar_col, line_col, top_bar_name, bottom_bar_name, line_name, title):
+    fig = go.Figure()
+
+    # Add bottom_bar_col as negative bars
+    fig.add_trace(go.Bar(
+        x=dataframe.index,
+        y=dataframe[bottom_bar_col],
+        name=bottom_bar_name,
+        marker_color='red'
+    ))
+
+    # Add top_bar_col as positive bars
+    fig.add_trace(go.Bar(
+        x=dataframe.index,
+        y=dataframe[top_bar_col],
+        name=top_bar_name,
+        marker_color='green'
+    ))
+    
+    # Add line_col as line
+    fig.add_trace(go.Scatter(
+        x=dataframe.index,
+        y=dataframe[line_col],
+        mode='lines',
+        name=line_name,
+        line=dict(color='blue', width=2)
+    ))
+
+    # Update layout for better visualization
+    fig.update_layout(
+        barmode='relative',
+        title=title,
+        xaxis_title='Date',
+        yaxis_title='Volume',
+        yaxis=dict(
+            title='Volume',
+            titlefont_size=16,
+            tickfont_size=14,
+        ),
+        xaxis=dict(
+            title='Date',
+            titlefont_size=16,
+            tickfont_size=14,
+        ),
+        legend=dict(
+            x=0,
+            y=1.0,
+            bgcolor='rgba(255, 255, 255, 0)',
+            bordercolor='rgba(255, 255, 255, 0)'
+        )
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)

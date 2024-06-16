@@ -8,7 +8,9 @@ import streamlit as st
 from utils.akdata import AKData
     
 @st.cache_data
-def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level='factor', timeframe='D', volume_filter=5000, value_filter=None):
+def get_stocks(symbolsDate_dict: dict, column=None, stack=False, stack_level='factor', timeframe=None, volume_filter=5000, value_filter=None, single=False):   
+    timeframe = timeframe if timeframe is not None else symbolsDate_dict.get('timeframe', 'D')
+                 
     datas = AKData(symbolsDate_dict['market'])
     stocks_dfs = {}
     for symbol in symbolsDate_dict['symbols']:
@@ -38,9 +40,12 @@ def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level=
                     
                     stock_df['value_change_weighted'] = stock_df['price_change'] * stock_df['volume_change']
 
-                    stocks_dfs[symbol] = stock_df if stack else stock_df[column]
+                    stocks_dfs[symbol] = stock_df[column] if column is not None else stock_df
                     
                     stocks_dfs[symbol].index = stocks_dfs[symbol].index.tz_localize(None)
+                    
+                    if single:
+                        return stock_df
     
     stocks_df = pd.DataFrame()
     if stack and stack_level == 'factor':
@@ -61,8 +66,8 @@ def get_stocks(symbolsDate_dict: dict, column='close', stack=False, stack_level=
         stocks_df = stocks_df.drop(columns='date')
     elif stack:
         stocks_df = pd.concat(stocks_dfs, axis=1)
-    elif len(stocks_dfs) == 1:
-        return stocks_dfs[symbol]
+    # elif len(stocks_dfs) == 1:
+    #     return stocks_dfs[symbol]
     else:
         stocks_df = pd.DataFrame(stocks_dfs)
                 
@@ -221,7 +226,7 @@ def get_stocks_news(symbolsDate_dict: dict, column='title',  stack=False, stack_
     return stocks_df
 
 @st.cache_data
-def get_stocks_foregin_flow(symbolsDate_dict: dict, column='close',  stack=False, stack_level='factor'):
+def get_stocks_foregin_flow(symbolsDate_dict: dict, column='netForeignVol',  stack=False, stack_level='factor'):
     datas = AKData(symbolsDate_dict['market'])
     stocks_dfs = {}
     for symbol in symbolsDate_dict['symbols']:

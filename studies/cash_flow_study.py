@@ -18,7 +18,8 @@ def load_data(symbolsDate_dict, timeframes):
 def filter_prices(prices_df, df):
     first_date = df.index[0]
     last_date = df.index[-1]
-    prices_df = prices_df[(prices_df.index >= first_date) & (prices_df.index <= last_date)]
+    after_last_date = last_date + timedelta(days=1)
+    prices_df = prices_df[(prices_df.index >= first_date) & (prices_df.index <= after_last_date)]
     return prices_df
 
 

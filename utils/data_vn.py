@@ -15,7 +15,7 @@ from utils import vietstock
 from utils.stock_utils import get_stock_bars_very_long_term_cached, get_stock_balance_sheet, load_stock_balance_sheet_to_dataframe
 
 def get_intervals():
-    return ['D', 'W', 'M', '1h', '30m', '15m', '5m', '3m', '1m']
+    return ['D', 'W', 'M', '60', '30', '15', '5', '1']
 
 @lru_cache
 def get_vn_stock(symbol: str, start_date: str, end_date: str, timeframe='1D') -> pd.DataFrame:

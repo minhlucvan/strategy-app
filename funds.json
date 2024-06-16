@@ -1066,6 +1066,11 @@
         "provider": "csv",
         "path": "data/intraday_total_value_upcom.csv",
         "column": "symbol"
+      },
+      "UPCOMLIQIDITY2": {
+        "provider": "csv",
+        "path": "data/intraday_total_upcom_2.csv",
+        "column": "symbol"
       }
     }
   },

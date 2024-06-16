@@ -9,6 +9,7 @@ import plotly.express as px
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 
+from studies.vn30_volality_study import calculate_vix_index
 from utils.component import check_password, input_dates, input_SymbolsDate
 import matplotlib.pyplot as plt
 
@@ -37,18 +38,6 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     plot_multi_line(stocks_df, title='Stocks', x_title='Date', y_title='Price', legend_title='Stocks')
 
-    stocks_atr = vbt.ATR.run(high, low, stocks_df, window=14)
+    vix_index = calculate_vix_index(stocks_df)
     
-    stocks_atr_df = stocks_atr.atr[14]
-    
-    stocks_atr_df = stocks_atr_df
-    
-    plot_multi_line(stocks_atr_df, title='ATR', x_title='Date', y_title='ATR', legend_title='Stocks')
-    
-    plot_snapshot(stocks_atr_df, title='ATR', x_title='Stocks', y_title='ATR', legend_title='Stocks', sorted=False)
-        
-    stocks_atr_long_df = stocks_atr_df.rolling(window=100).mean()
-    
-    plot_multi_line(stocks_atr_long_df, title='ATR Long', x_title='Date', y_title='ATR', legend_title='Stocks')
-    
-    plot_snapshot(stocks_atr_long_df, title='ATR Long', x_title='Stocks', y_title='ATR', legend_title='Stocks', sorted=False)
+    st.write(vix_index)

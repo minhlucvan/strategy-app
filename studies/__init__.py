@@ -35,6 +35,10 @@ from .stock_overnight_study import run as run_stock_overnight_study
 from .stock_gaps_recover_study import run as run_stock_gaps_recover_study
 from .stock_intraday_study import run as run_stock_intraday_study
 from .vn30f_gaps_recover_study import run as run_vn30f_gaps_recover_study
+from .vn30f_foregin_flow import run as run_vn30f_foregin_flow
+from .vn30_hedging_flow import run as run_vn30_hedging_flow
+from .vn_30_cash_flow_study import run as run_vn_30_cash_flow_study
+from .vn30_volality_study import run as run_vn30_volality_study
 
 study_list = [
     {
@@ -176,6 +180,22 @@ study_list = [
     {
         "name": "VN30F Gaps Recover",
         "module": run_vn30f_gaps_recover_study
+    },
+    {
+        "name": "VN30F Foregin Flow",
+        "module": run_vn30f_foregin_flow
+    },
+    {
+        "name": "VN30 Hedging Flow",
+        "module": run_vn30_hedging_flow
+    },
+    {
+        "name": "VN30 Cash Flow",
+        "module": run_vn_30_cash_flow_study
+    },
+    {
+        "name": "VN30 Volality",
+        "module": run_vn30_volality_study
     },
     {
         "name": "Stock Intraday",
