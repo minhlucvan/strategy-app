@@ -77,7 +77,8 @@ def run(symbol_benchmark, symbolsDate_dict, closes_df=None, opens_df=None, def_g
     
     # get last row that has any signal
     lastest_gap_signal = gaps_df.dropna(axis=0, how='all')
-    lastest_gap_signal = lastest_gap_signal.iloc[-1].dropna()
+    # last 10 signals
+    lastest_gap_signal = lastest_gap_signal.dropna(axis=1, how='all').tail(10)
     
     st.write("Lastest Gap Signal")
     st.write(lastest_gap_signal)

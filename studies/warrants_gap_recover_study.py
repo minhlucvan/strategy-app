@@ -82,6 +82,6 @@ def run(symbol_benchmark, symbolsDate_dict):
         symbolsDate_dict,
         closes_df=closes_df,
         opens_df=opens_df,
-        def_gap_pct=0.2,
+        def_gap_pct=0.18,
         def_days_after=3
     )
