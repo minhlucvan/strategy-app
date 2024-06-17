@@ -54,7 +54,7 @@ def get_stock_bars(ticker, time, stock_type, count_back, resolution='1'):
         print(f"Failed to retrieve data. Status code: {response.status_code}")
         return None
 
-
+@retry(times=MAX_RETRIES, exceptions=(Exception), delay=RETRY_WAIT_TIME)
 def get_stock_bars_long_term(ticker, stock_type, time=None, count_back=500, resolution='D'):
     timestamp = int(datetime.now().timestamp()) if time is None else time
     url = f"https://apipubaws.tcbs.com.vn/stock-insight/v2/stock/bars-long-term"
@@ -202,7 +202,7 @@ def get_stock_bars_very_long_term_cached(
     elif resolution == '1M':
         resolution = 'M'
         
-    mindays = 1
+    mindays = 3
     if resolution == 'W':
         mindays = 8
     elif resolution == 'M':
@@ -861,7 +861,6 @@ def get_warrants_data():
     else:
         print(f"Request failed with status code {response.status_code}")
         return None
-
 
 def get_stock_info_data(tickers):
     url = 'https://iboard-query.ssi.com.vn/v2/stock/multiple'
@@ -2127,6 +2126,40 @@ def load_stock_vol_foreign_to_dataframe(data):
     # set index to dateReport
     df.set_index('dateReport', inplace=True)
 
+    return df
+
+def get_last_trading_history(tickers, stock_type="coveredWarr"):
+    dts = {}
+    
+    for ticker in tickers:
+        res = get_stock_bars_long_term(ticker=ticker, stock_type=stock_type, count_back=1, resolution='D')
+        
+        if res is None:
+            dts[ticker] = None
+            continue
+        
+        data = res['data']
+        
+        if len(data) > 0:
+            last_data = data[-1]
+            dts[ticker] = last_data
+        else:
+            dts[ticker] = None
+    df = pd.DataFrame(dts)
+    
+    # open, high, low, close, volume, tradingDate
+    df = df.T
+    
+    # to numeric
+    df['open'] = pd.to_numeric(df['open'])
+    df['high'] = pd.to_numeric(df['high'])
+    df['low'] = pd.to_numeric(df['low'])
+    df['close'] = pd.to_numeric(df['close'])
+    df['volume'] = pd.to_numeric(df['volume'])
+    
+    # drop tradingDate
+    # df.drop('tradingDate', axis=1, inplace=True)
+    
     return df
     
 def get_last_trading_date():

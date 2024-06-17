@@ -6,10 +6,13 @@ class AKData(object):
         self.market = market
 
     @vbt.cached_method
-    def get_stock(self, symbol: str, start_date: datetime.datetime, end_date: datetime.datetime, timeframe='1D') -> pd.DataFrame:
+    def get_stock(self, symbol: str, start_date: datetime.datetime, end_date: datetime.datetime, timeframe='1D', stock_type=None) -> pd.DataFrame:
         stock_df = pd.DataFrame()
         print(f"AKData-get_stock: {symbol}, {self.market}")
         symbol_df = load_symbol(symbol)
+        
+        if stock_type is not None:
+            symbol_df = pd.DataFrame([{'category': stock_type}])
         
         # hot fix for vietnam stock
         if symbol == 'E1VFVN30':

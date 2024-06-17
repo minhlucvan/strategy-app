@@ -9,7 +9,7 @@ from utils.processing import get_stocks, get_stocks_foregin_flow
 
 
     
-def run(symbol_benchmark, symbolsDate_dict):
+def run(symbol_benchmark, symbolsDate_dict, closes_df=None, opens_df=None, def_gap_pct=0.07, def_days_after=3):
     
     if len(symbolsDate_dict['symbols']) < 1:
         st.info("Please select symbols.")
@@ -19,12 +19,11 @@ def run(symbol_benchmark, symbolsDate_dict):
     benchmark_dict = symbolsDate_dict.copy()
     benchmark_dict['symbols'] = [symbol_benchmark]
     
-    benchmark_df = get_stocks(benchmark_dict,'close')
-    closes_df = get_stocks(symbolsDate_dict,'close')
-    opens_df = get_stocks(symbolsDate_dict,'open')
+    closes_df = get_stocks(symbolsDate_dict,'close') if closes_df is None else closes_df
+    opens_df = get_stocks(symbolsDate_dict,'open') if opens_df is None else opens_df
     
-    gap_pct = st.slider('Gap Percentage', min_value=0.0, max_value=0.2, value=0.07, step=0.01)
-    days_after = st.slider('Days After', min_value=1, max_value=30, value=3, step=1)
+    gap_pct = st.slider('Gap Percentage', min_value=0.0, max_value=0.2, value=def_gap_pct, step=0.01)
+    days_after = st.slider('Days After', min_value=1, max_value=30, value=def_days_after, step=1)
     
     gaps_df = (opens_df - closes_df.shift(1)) / closes_df.shift(1)
     
@@ -76,4 +75,9 @@ def run(symbol_benchmark, symbolsDate_dict):
     annual_return = final_return / total_signal * 252 / (end_date - start_date).days
     st.write(f'Annual Return: {annual_return}')
     
+    # get last row that has any signal
+    lastest_gap_signal = gaps_df.dropna(axis=0, how='all')
+    lastest_gap_signal = lastest_gap_signal.iloc[-1].dropna()
     
+    st.write("Lastest Gap Signal")
+    st.write(lastest_gap_signal)

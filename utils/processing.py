@@ -8,7 +8,7 @@ import streamlit as st
 from utils.akdata import AKData
     
 @st.cache_data
-def get_stocks(symbolsDate_dict: dict, column=None, stack=False, stack_level='factor', timeframe=None, volume_filter=5000, value_filter=None, single=False):   
+def get_stocks(symbolsDate_dict: dict, column=None, stack=False, stack_level='factor', timeframe=None, volume_filter=5000, value_filter=None, single=False, stock_type=None):
     timeframe = timeframe if timeframe is not None else symbolsDate_dict.get('timeframe', 'D')
                  
     datas = AKData(symbolsDate_dict['market'])
@@ -16,7 +16,7 @@ def get_stocks(symbolsDate_dict: dict, column=None, stack=False, stack_level='fa
     for symbol in symbolsDate_dict['symbols']:
         if symbol != '':
             stock_df = datas.get_stock(
-                symbol, symbolsDate_dict['start_date'], symbolsDate_dict['end_date'], timeframe)
+                symbol, symbolsDate_dict['start_date'], symbolsDate_dict['end_date'], timeframe, stock_type=stock_type)
             if stock_df.empty:
                 print(
                     f"Warning: stock '{symbol}' is invalid or missing. Ignore it")

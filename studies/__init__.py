@@ -39,6 +39,7 @@ from .vn30f_foregin_flow import run as run_vn30f_foregin_flow
 from .vn30_hedging_flow import run as run_vn30_hedging_flow
 from .vn_30_cash_flow_study import run as run_vn_30_cash_flow_study
 from .vn30_volality_study import run as run_vn30_volality_study
+from .warrants_gap_recover_study import run as run_warrants_gap_recover_study
 
 study_list = [
     {
@@ -208,5 +209,9 @@ study_list = [
     {
         "name": "TCBS Market Calendar",
         "module": run_tcbs_market_calendar
+    },
+    {
+        "name": "Warrants Gap Recover",
+        "module": run_warrants_gap_recover_study  
     }
 ]
