@@ -165,11 +165,17 @@ def plot_AnimatedRSVIX(rs_df, vix_df, symbols, tail_length):
     fig = go.Figure(fig_dict)
     st.plotly_chart(fig, use_container_width=True)
 
-# Example usage
-# symbols = ['stock_a', 'stock_b']
-# rs_df = pd.DataFrame(...) # RS data with columns as stock symbols
-# vix_df = pd.DataFrame(...) # VIX data with columns as stock symbols
-# plot_AnimatedRSVIX(rs_df, vix_df, symbols, tail_length=30)
+def calculate_hist_volatility(prices, window=21):
+    # calculate the log returns
+    log_returns = np.log(prices / prices.shift(1))
+    
+    # calculate the variance
+    variance = log_returns.rolling(window=window).std() ** 2
+    
+    # calculate the volatility
+    volatility = variance.rolling(window=window).std()
+    
+    return volatility
 
 # Calculate 30-day variance by interpolating the two variances,
 # depending on the time to expiration of each. Take the square root to get volatility as standard deviation.
@@ -192,6 +198,11 @@ def calculate_vix_index(prices):
 
 # Example usage
 def run(symbol_benchmark, symbolsDate_dict):
+    
+    if len(symbolsDate_dict['symbols']) < 1:
+        st.info("Please select symbols.")
+        st.stop()
+    
     # Fetching stock data
     stocks_df = get_stocks(symbolsDate_dict, 'close')
     benchmark_df = get_stocks(symbolsDate_dict, 'close', benchmark=True)
@@ -206,24 +217,28 @@ def run(symbol_benchmark, symbolsDate_dict):
     # Calculating VIX
     vix_df = calculate_vix_index(stocks_df)
     
-    vix_df = vix_df.rolling(14).mean()
+    vix_df = vix_df.rolling(5).mean()
     
     # calculate the rsi
     rsi_ind = vbt.RSI.run(stocks_df, window=14)
 
     rsi_df = rsi_ind.rsi[14]
     
+    hv_df = calculate_hist_volatility(stocks_df)
+    
     # Plotting
-    plot_AnimatedRSVIX(rsi_df, vix_df, stocks_df.columns, tail_length=3)
+    plot_AnimatedRSVIX(rsi_df, hv_df, stocks_df.columns, tail_length=3)
 
     # voldemom_index = rsi * vix
-    voldemom_index = rsi_df * vix_df
+    voldemom_index = rsi_df * hv_df
     
-    # clip 0, 3
-    voldemom_index = voldemom_index.clip(0, 3)
+    voldemom_index = voldemom_index.rolling(21).mean()
     
     plot_multi_bar(voldemom_index, title='Voldemom Index', x_title='Date', y_title='Voldemom Index', legend_title='Stocks')
     
+    
+    voldemom_index_price_weighted = voldemom_index * stocks_df.pct_change()
+    
+    plot_multi_bar(voldemom_index_price_weighted, title='Voldemom Index Price Weighted', x_title='Date', y_title='Price', legend_title='Stocks')
+
     plot_multi_line(stocks_df, title='Stock Prices', x_title='Date', y_title='Price', legend_title='Stocks')
-    
-    

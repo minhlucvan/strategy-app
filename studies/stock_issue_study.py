@@ -54,7 +54,6 @@ def run(symbol_benchmark, symbolsDate_dict):
         # find 6 days before the event
         event_df['event_date'] = event_df.index
         
-        event_df['event_date'] = pd.to_datetime(event_df['event_date'])
         
         event_df['event_before_date'] = event_df['event_date'].apply(lambda x: x - pd.DateOffset(days=days_before))
         event_df['event_after_date'] = event_df['event_date'].apply(lambda x: x + pd.DateOffset(days=days_after))
@@ -64,14 +63,21 @@ def run(symbol_benchmark, symbolsDate_dict):
         event_df['event_date'] = pd.to_datetime(event_df['event_date'])
         event_df['event_after_date'] = pd.to_datetime(event_df['event_after_date'])
         
-        for index, row in event_df.iterrows():
-            event_before_date = row['event_before_date']
-            event_date = row['event_date']
-            event_after_date = row['event_after_date']
+        stock_df.index = pd.to_datetime(stock_df.index)
+        
+        
+        for _, row in event_df.iterrows():
+            event_before_date = pd.to_datetime(row['event_before_date'])
+            event_date = pd.to_datetime(row['event_date'])
+            event_after_date = pd.to_datetime(row['event_after_date'])
+            stock_df.index = pd.to_datetime(stock_df.index)
+            
+            if event_before_date not in stock_df.index or event_date not in stock_df.index or event_after_date not in stock_df.index:
+                continue
             # find first index >= event_before_date
-            event_before_price = stock_df[stock_df.index >= event_before_date].iloc[0]
-            event_price = stock_df[stock_df.index >= event_date].iloc[0]
-            event_after_price = stock_df[stock_df.index >= event_after_date].iloc[0]
+            event_before_price = stock_df.loc[stock_df.index >= event_before_date].iloc[0]
+            event_price = stock_df[stock_df.index >= pd.to_datetime(event_date)].iloc[0]
+            event_after_price = stock_df[stock_df.index >= pd.to_datetime(event_after_date)].iloc[0]
             
             if pd.isna(event_before_price) or pd.isna(event_price) or pd.isna(event_after_price):
                 continue

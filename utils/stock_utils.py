@@ -2013,29 +2013,34 @@ def extract_exdividend_date(html_text):
         return None
 
 def load_stock_events_to_dataframe(data):
-    # {
-    # "data": [
-    #     {
-    #         "id": "F22012014",
-    #         "label": "F",
-    #         "date": "2014-01-22T00:00:00Z",
-    #         "title": "<div style='font-size: 14px; font-weight: bold;'>1. Công bố báo cáo tài chính quý</div><div style='font-size: 12px; margin-top: 4px; margin-bottom: 12px; font-style: italic;'>Ngày công bố: 22-01-2014</div>"
-    #     },
+    # {"data":[{"id":"F22012014","label":"F","date":"2014-01-22T00:00:00Z","listTitle":["1. Announcement of quarterly financial statements","Ngày công bố: 22-01-2014"]}    
+    # {"id":"I06112014","label":"I","date":"2014-11-06T00:00:00Z","listTitle":["1. Issue bonus shares, ratio 5.00%","Ngày GDKHQ: 06-11-2014","----------------------","2. Rights for existing shareholders with ratio 50.00%, price 10.000 VND/share","Ngày GDKHQ: 06-11-2014"]}]}
     print(f"Loading {len(data)} events")
     df = pd.DataFrame(data)
-    df['date'] = pd.to_datetime(df['date'])
     
-    df['niceTitle'] = df['title'].apply(lambda x: BeautifulSoup(x, 'html.parser').text)
+    if df.empty:
+        return df
     
-    df['cashDividend'] = df['title'].apply(extract_dividend_amount)
-    df['exDividendDate'] = df['title'].apply(extract_exdividend_date)
+    print(f"Loaded {len(df)} {df.columns}")
     
-    df['cashDividend'] = df['cashDividend'].astype(float)
+    df['date'] = pd.to_datetime(df['date']).dt.tz_localize(None)
+    
+    df['title'] = df['listTitle']
+    
+    # join listTitle to title
+    df['niceTitle'] = df['title'].apply(lambda x: ', '.join(x))
+    
+    # df['niceTitle'] = df['title'].apply(lambda x: BeautifulSoup(x, 'html.parser').text)
+    
+    # df['cashDividend'] = df['title'].apply(extract_dividend_amount)
+    # df['exDividendDate'] = df['title'].apply(extract_exdividend_date)
+    
+    # df['cashDividend'] = df['cashDividend'].astype(float)
     
     # if cashDividend < 10 => cashDividend = cashDividend * 1000
-    df['cashDividend'] = df['cashDividend'].apply(lambda x: x if x > 10.0 else x * 1000.0)
+    # df['cashDividend'] = df['cashDividend'].apply(lambda x: x if x > 10.0 else x * 1000.0)
     
-    df['exDividendDate'] = pd.to_datetime(df['exDividendDate'], format='%d-%m-%Y')
+    # df['exDividendDate'] = pd.to_datetime(df['exDividendDate'], format='%d-%m-%Y')
     
     # set index to date
     df.set_index('date', inplace=True)
@@ -2112,6 +2117,7 @@ def get_stock_vol_foreign(ticker='MWG'):
         return None 
     
 def load_stock_vol_foreign_to_dataframe(data):
+    print(f"Loading stock vol foreign data")
     #  {"listVolumeForeignInfoDto":[{"ticker":"MWG","foreignBuy":799100,"foreignSell":-1971900,"netForeignVol":-1172800,"accNetFVol":-1172800,"totalVolume":9444782,"rsRank":58.0,"dateReport":"07/03/2024"},   
     list_data = data['listVolumeForeignInfoDto']
     df = pd.DataFrame(list_data)
