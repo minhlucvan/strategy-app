@@ -20,6 +20,9 @@ class AKData(object):
             
         if symbol == 'VN30':
             symbol_df = pd.DataFrame([{'category': 'index'}])
+            
+        if symbol_df.empty:
+            symbol_df = pd.DataFrame([{'category': 'stock'}])
 
         if len(symbol_df) == 1:  # self.symbol_dict.keys():
             print(

@@ -7,6 +7,7 @@ from utils.vbt import display_pfbrief
 import pandas as pd
 from studies.magic_fomula_study import run as run_magic_fomula
 import utils.db as db
+import utils.vnstock as vn
 
 def show_stock(symbol):
     st.write("## Stocks insignt board")
@@ -63,7 +64,7 @@ def show_stock_compare(symbols):
 def show_stocks(symbolsDate_dict: dict):
     st.write("## Stocks insignt board")
 
-    df = db.load_symbols()
+    df = db.load_symbols()   
     
     exchanges = df['exchange'].unique()
     symbols = df['symbol'].unique()

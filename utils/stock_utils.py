@@ -193,6 +193,8 @@ def get_stock_bars_very_long_term_cached(
     start_date=None,
     end_date=None
 ):  
+    print(f"Fetching data for {ticker} {stock_type} {resolution}")
+    
     if resolution is None:
         resolution = 'D'
     elif resolution == '1D':

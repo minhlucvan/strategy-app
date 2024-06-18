@@ -27,6 +27,7 @@ def get_vn_stock(symbol: str, start_date: str, end_date: str, timeframe='1D') ->
     Returns:
         pd.DataFrame: _description_
     """
+    print(f"get_vn_stock: {symbol}")
     
     # 20180101 ->  '%Y-%m-%d'
     if len(start_date) == 8:
@@ -43,9 +44,9 @@ def get_vn_stock(symbol: str, start_date: str, end_date: str, timeframe='1D') ->
         start_date=start_date,
         end_date=end_date,
         refresh=True,
-        force_fetch=True
+        force_fetch=False
     )
-    
+        
     stock_df['volume'] = stock_df['volume']
     stock_df['date'] = stock_df.index
     

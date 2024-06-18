@@ -40,6 +40,7 @@ from .vn30_hedging_flow import run as run_vn30_hedging_flow
 from .vn_30_cash_flow_study import run as run_vn_30_cash_flow_study
 from .vn30_volality_study import run as run_vn30_volality_study
 from .warrants_gap_recover_study import run as run_warrants_gap_recover_study
+from .rs_momentum_study import run as run_rs_momentum_study
 
 study_list = [
     {
@@ -201,6 +202,10 @@ study_list = [
     {
         "name": "Stock Intraday",
         "module": run_stock_intraday_study  
+    },
+    {
+        "name": "RS Momentum",
+        "module": run_rs_momentum_study
     },
     {
         "name": "TCBS Agent",

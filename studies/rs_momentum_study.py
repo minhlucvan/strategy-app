@@ -1,71 +1,229 @@
 import pandas as pd
 import numpy as np
-import json
-
 import streamlit as st
+import plotly.graph_objs as go
+from plotly.subplots import make_subplots
+
+from utils.plot_utils import plot_multi_bar, plot_multi_line
+from utils.processing import get_stocks
 import vectorbt as vbt
 
-import plotly.express as px
-import plotly.graph_objs as go
-from plotly.subplots import make_subplots # creating subplots
 
 
-from utils.component import  check_password, input_dates, input_SymbolsDate
-import matplotlib.pyplot as plt
+def plot_AnimatedRSVIX(rs_df, vix_df, symbols, tail_length):
+    # Determine dynamic ranges for the axes
+    x_min = vix_df.min().min()
+    x_max = vix_df.max().max()
+    y_min = rs_df.min().min()
+    y_max = rs_df.max().max()
 
-from utils.processing import get_stocks
-from studies.rrg import get_RRGInd, plot_RRG, rs_ratio, RRG_Strategy
-from utils.vbt import init_vbtsetting, plot_CSCV, plot_pf
+    # Create the frame figure
+    fig_dict = {
+        "data": [],
+        "layout": {},
+        "frames": []
+    }
 
-def rs_momentum_Strategy(symbol_benchmark, stocks_df, RARM_obj= 'sharpe_ratio', output_bool=False):
-    stocks_df[stocks_df<0] = np.nan
-    symbols_target = []
+    # Fill in most of layout
+    fig_dict["layout"]["xaxis"] = {"range": [x_min, x_max], "title": "VIX", "showgrid": True}
+    fig_dict["layout"]["yaxis"] = {"range": [y_min, y_max], "title": "RS", "showgrid": True}
+    fig_dict["layout"]["hovermode"] = "closest"
+    fig_dict["layout"]["width"] = 1000
+    fig_dict["layout"]["height"] = 600
+    fig_dict["layout"]["updatemenus"] = [
+        {
+            "buttons": [
+                {
+                    "args": [None, {"frame": {"duration": 100, "redraw": False},
+                                    "fromcurrent": True, "transition": {"duration": 300,
+                                                                        "easing": "quadratic-in-out"}}],
+                    "label": "Play",
+                    "method": "animate"
+                },
+                {
+                    "args": [[None], {"frame": {"duration": 0, "redraw": False},
+                                    "mode": "immediate",
+                                    "transition": {"duration": 0}}],
+                    "label": "Pause",
+                    "method": "animate"
+                }
+            ],
+            "direction": "left",
+            "pad": {"r": 10, "t": 87},
+            "showactive": False,
+            "type": "buttons",
+            "x": 0.1,
+            "xanchor": "right",
+            "y": 0,
+            "yanchor": "top"
+        }
+    ]
+
+    sliders_dict = {
+        "active": 0,
+        "yanchor": "top",
+        "xanchor": "left",
+        "currentvalue": {
+            "font": {"size": 20},
+            "prefix": "Date:",
+            "visible": True,
+            "xanchor": "right"
+        },
+        "transition": {"duration": 300, "easing": "cubic-in-out"},
+        "pad": {"b": 10, "t": 50},
+        "len": 0.9,
+        "x": 0.1,
+        "y": 0,
+        "steps": []
+    }
+
+    # Make data
+    for symbol in symbols:
+        data_dict = {
+            "x": list(vix_df[symbol][-tail_length:]),
+            "y": list(rs_df[symbol][-tail_length:]),
+            "mode": "lines+markers+text",
+            "marker": {
+                'symbol': "circle-open-dot",
+                'size': 6,
+            },
+            "line": {
+                'width': 4,
+            },
+            "name": symbol,
+            "hovertemplate": '<b>%{hovertext}</b>',
+            "hovertext": [d.strftime("%Y-%m-%d") for d in rs_df.index[-tail_length:]]
+        }
+        fig_dict["data"].append(data_dict)
+        data_dict = {
+            "x": list(vix_df[symbol][-1:]),
+            "y": list(rs_df[symbol][-1:]),
+            "mode": "markers+text",
+            "marker": {
+                'symbol': "circle",
+                'size': 12,
+            },
+            "text": symbol,
+            "name": symbol,
+            "hovertemplate": '<b>%{hovertext}</b>',
+            "hovertext": [d.strftime("%Y-%m-%d") for d in rs_df.index[-1:]],
+            "showlegend": False
+        }
+        fig_dict["data"].append(data_dict)
+
+    # Make frames
+    for i in range(len(rs_df) - tail_length + 1):
+        d = rs_df.index[i].strftime("%Y-%m-%d")
+        frame = {"data": [], "name": str(d)}
+        for symbol in symbols:
+            data_dict = {
+                "x": list(vix_df[symbol][i: i + tail_length]),
+                "y": list(rs_df[symbol][i: i + tail_length]),
+                "mode": "lines+markers",
+                "marker": {
+                    'symbol': "circle-open-dot",
+                    'size': 6,
+                },
+                "line": {
+                    'width': 4,
+                },
+                "name": symbol,
+                "hovertemplate": '<b>%{hovertext}</b>',
+                "hovertext": [d.strftime("%Y-%m-%d") for d in rs_df.index[i: i + tail_length]]
+            }
+            frame["data"].append(data_dict)
+            data_dict = {
+                "x": list(vix_df[symbol][i + tail_length - 1: i + tail_length]),
+                "y": list(rs_df[symbol][i + tail_length - 1: i + tail_length]),
+                "mode": "markers+text",
+                "marker": {
+                    'symbol': "circle",
+                    'size': 12,
+                },
+                "text": symbol,
+                "name": symbol,
+                "hovertemplate": '<b>%{hovertext}</b>',
+                "hovertext": [d.strftime("%Y-%m-%d") for d in rs_df.index[i + tail_length - 1: i + tail_length]],
+                "showlegend": False
+            }
+            frame["data"].append(data_dict)
+
+        fig_dict["frames"].append(frame)
+        slider_step = {"args": [
+            [d],
+            {"frame": {"duration": 300, "redraw": False},
+             "mode": "immediate",
+             "transition": {"duration": 300}}
+        ],
+            "label": d,
+            "method": "animate"}
+        sliders_dict["steps"].append(slider_step)
+
+    fig_dict["layout"]["sliders"] = [sliders_dict]
+    fig_dict["layout"]["title"] = 'RS vs VIX Animated Scatter Plot'
+
+    fig = go.Figure(fig_dict)
+    st.plotly_chart(fig, use_container_width=True)
+
+# Example usage
+# symbols = ['stock_a', 'stock_b']
+# rs_df = pd.DataFrame(...) # RS data with columns as stock symbols
+# vix_df = pd.DataFrame(...) # VIX data with columns as stock symbols
+# plot_AnimatedRSVIX(rs_df, vix_df, symbols, tail_length=30)
+
+# Calculate 30-day variance by interpolating the two variances,
+# depending on the time to expiration of each. Take the square root to get volatility as standard deviation.
+# Multiply the volatility (standard deviation) by 100. The result is the VIX index value.
+# https://www.macroption.com/vix-calculation/#:~:text=VIX%20Calculation%20Step%20by%20Step,-Select%20the%20options&text=Calculate%2030%2Dday%20variance%20by,is%20the%20VIX%20index%20value.
+def calculate_vix_index(prices):
+    # calculate the log returns
+    log_returns = np.log(prices / prices.shift(1))
     
-    for s in stocks_df.columns:
-        if s != symbol_benchmark:
-            symbols_target.append(s)
-    sSel = symbols_target
-
+    # calculate the variance
+    variance = log_returns.rolling(window=21).std() ** 2
     
-    # Build param grid
-    windows = [60, 100, 150, 200, 225, 250, 275, 300]
-
-    param_product = vbt.utils.params.create_param_product([windows])
-    param_tuples = list(zip(*param_product))
-    param_columns = pd.MultiIndex.from_tuples(param_tuples, names=['rs_window'])
-    RRG_indicator = get_RRGInd().run(prices=stocks_df[sSel], bm_price=stocks_df[symbol_benchmark], ratio=rs_ratio_mins, momentum=rs_momentum_mins, window=windows, param_product=True)
-    sizes = RRG_indicator.size.shift(periods=1)
+    # calculate the variance of the variance
+    variance_of_variance = variance.rolling(window=2).std()
     
-    init_vbtsetting()
-    pf_kwargs = dict(fees=0.001, slippage=0.001, freq='1D')
-    pf = vbt.Portfolio.from_orders(
-                stocks_df[sSel].vbt.tile(len(param_columns), keys=param_columns), 
-                sizes, 
-                size_type='targetpercent', 
-                group_by=param_columns.names,  # group of two columns
-                cash_sharing=True,  # share capital between columns
-                **pf_kwargs,
-            )
-    if not isinstance(pf.total_return(), np.float64):
-        RARMs = eval(f"pf.{RARM_obj}()")
-        idxmax = RARMs[RARMs != np.inf].idxmax()
-        # idxmax = pf.total_return().idxmax()
-        st.write(f"The Max {RARM_obj} is {param_columns.names}:{idxmax}")
-        if output_bool:
-           plot_CSCV(pf, idxmax, RARM_obj)
+    # calculate the VIX index
+    vix_index = 100 * variance_of_variance
+    
+    return vix_index
 
-        pf = pf[idxmax]
-
-        if output_bool:
-            pass
-    return pf
-
-
+# Example usage
 def run(symbol_benchmark, symbolsDate_dict):
-    symbolsDate_dict['symbols'] =  [symbol_benchmark] + symbolsDate_dict['symbols']
-    stocks_df = get_stocks(symbolsDate_dict,'close')
-    # pf = RRG_Strategy(symbol_benchmark, stocks_df)
-    # st.write(pf.stats())
+    # Fetching stock data
+    stocks_df = get_stocks(symbolsDate_dict, 'close')
+    benchmark_df = get_stocks(symbolsDate_dict, 'close', benchmark=True)
 
-    pf = rs_momentum_Strategy(symbol_benchmark, stocks_df, output_bool=True)
-    # plot_pf(pf, name= 'RRG Strategy', bm_symbol=symbol_benchmark, bm_price=stocks_df[symbol_benchmark], select=True)
+    # Calculating RS
+    rs_df = pd.DataFrame(index=stocks_df.index)
+    for symbol in stocks_df.columns:
+        r = stocks_df[symbol] / benchmark_df[symbol_benchmark]
+        r_zscore = (r - r.mean()) / r.std()
+        rs_df[symbol] = r_zscore
+
+    # Calculating VIX
+    vix_df = calculate_vix_index(stocks_df)
+    
+    vix_df = vix_df.rolling(14).mean()
+    
+    # calculate the rsi
+    rsi_ind = vbt.RSI.run(stocks_df, window=14)
+
+    rsi_df = rsi_ind.rsi[14]
+    
+    # Plotting
+    plot_AnimatedRSVIX(rsi_df, vix_df, stocks_df.columns, tail_length=3)
+
+    # voldemom_index = rsi * vix
+    voldemom_index = rsi_df * vix_df
+    
+    # clip 0, 3
+    voldemom_index = voldemom_index.clip(0, 3)
+    
+    plot_multi_bar(voldemom_index, title='Voldemom Index', x_title='Date', y_title='Voldemom Index', legend_title='Stocks')
+    
+    plot_multi_line(stocks_df, title='Stock Prices', x_title='Date', y_title='Price', legend_title='Stocks')
+    
+    
