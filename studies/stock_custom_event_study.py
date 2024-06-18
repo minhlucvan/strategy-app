@@ -127,7 +127,7 @@ def run(symbol_benchmark, symbolsDate_dict, benchmark_df=None, stocks_df=None, e
 
 
     days_before = st.number_input('Days before event', min_value=-10, max_value=10, value=def_days_before)
-    days_after = st.number_input('Days after event', min_value=0, max_value=30, value=def_days_after)
+    days_after = st.number_input('Days after event', min_value=0, max_value=300, value=def_days_after)
 
     event_affections = {}
     for stock in stocks_df.columns:
