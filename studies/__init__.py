@@ -41,6 +41,9 @@ from .vn_30_cash_flow_study import run as run_vn_30_cash_flow_study
 from .vn30_volality_study import run as run_vn30_volality_study
 from .warrants_gap_recover_study import run as run_warrants_gap_recover_study
 from .rs_momentum_study import run as run_rs_momentum_study
+from .market_value_study import run as run_market_value_study
+from .stock_blind_order import run as run_stock_blind_order
+from .warrants_blind_order_study import run as run_warrants_blind_order_study
 
 study_list = [
     {
@@ -206,6 +209,18 @@ study_list = [
     {
         "name": "RS Momentum",
         "module": run_rs_momentum_study
+    },
+    {
+        "name": "Market Value",
+        "module": run_market_value_study
+    },
+    {
+        "name": "Stock Blind Order",
+        "module": run_stock_blind_order
+    },
+    {
+        "name": "Warrants Blind Order",
+        "module": run_warrants_blind_order_study
     },
     {
         "name": "TCBS Agent",

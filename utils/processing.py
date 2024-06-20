@@ -156,7 +156,7 @@ def get_stocks_financial(symbolsDate_dict: dict, column=None,  stack=False, stac
     return stocks_df
 
 st.cache_data
-def get_stocks_events(symbolsDate_dict: dict, column='label',  stack=False, stack_level='factor'):
+def get_stocks_events(symbolsDate_dict: dict, column='label',  stack=False, stack_level='factor', event_type=None):
     print(f"get_stocks_events: {symbolsDate_dict} {column} {stack} {stack_level}")
     datas = AKData(symbolsDate_dict['market'])
     stocks_dfs = {}
@@ -167,7 +167,11 @@ def get_stocks_events(symbolsDate_dict: dict, column='label',  stack=False, stac
                 print(
                     f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
             else:
+                if event_type is not None:
+                    stock_df = stock_df[stock_df['label'] == event_type]
+                    
                 stocks_dfs[symbol] = stock_df if stack else stock_df[column]
+                
     
     stocks_df = pd.DataFrame()
     if stack and stack_level == 'factor':

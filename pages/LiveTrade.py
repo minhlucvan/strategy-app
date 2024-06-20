@@ -94,7 +94,7 @@ def execute_trade(trader, side, symbol, price, volume, price_type="ATO"):
     price = int(price)
     volume = int(volume)
     price_type = price_type
-    trader.place_preorder(
+    trader.place_order(
         type=type,
         symbol=symbol,
         price=price,
