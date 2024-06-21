@@ -44,6 +44,8 @@ from .rs_momentum_study import run as run_rs_momentum_study
 from .market_value_study import run as run_market_value_study
 from .stock_blind_order import run as run_stock_blind_order
 from .warrants_blind_order_study import run as run_warrants_blind_order_study
+from .warrants_simmulation_study import run as run_warrants_simmulation_study
+from .warrants_simmulation_2_study import run as run_warrants_simmulation_2_study
 
 study_list = [
     {
@@ -221,6 +223,14 @@ study_list = [
     {
         "name": "Warrants Blind Order",
         "module": run_warrants_blind_order_study
+    },
+    {
+           "name": "Warrants Simmulation",
+            "module": run_warrants_simmulation_study  
+    },
+    {
+        "name": "Warrants Simmulation 2",
+        "module": run_warrants_simmulation_2_study
     },
     {
         "name": "TCBS Agent",

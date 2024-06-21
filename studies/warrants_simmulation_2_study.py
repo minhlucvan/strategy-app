@@ -12,7 +12,48 @@ import utils.stock_utils as su
 
 import plotly.graph_objects as go
 import streamlit as st
+import numpy as np
 from studies.stock_gaps_recover_study import run as stock_gaps_recover_study
+
+import numpy as np
+import pandas as pd
+
+import numpy as np
+import pandas as pd
+
+def monte_carlo_simulation(df, num_simulations, num_days, lookback_days=252):
+    # Compute daily returns for each stock
+    last_year_df = df.iloc[-lookback_days:]
+    returns = last_year_df.pct_change().dropna()
+    
+    # Compute statistics for each stock
+    returns_mean = returns.mean().values
+    returns_std = returns.std().values
+
+    # Get the last close prices for each stock
+    last_close = df.iloc[-1].values
+
+    # Initialize the simulation results array for each stock
+    simulation_results = np.zeros((num_simulations, num_days, df.shape[1]))
+
+    # Generate random returns for all simulations, days, and stocks at once
+    random_returns = np.random.normal(returns_mean, returns_std, (num_simulations, num_days, df.shape[1]))
+
+    # Calculate the simulated price paths for each stock
+    simulation_results[:, 0, :] = last_close
+    for t in range(1, num_days):
+        simulation_results[:, t, :] = simulation_results[:, t-1, :] * (1 + random_returns[:, t, :])
+        
+    # Calculate the median price path for all simulations
+    sim_median = np.median(simulation_results, axis=0)
+    
+    sim_median_df = pd.DataFrame(sim_median)
+    
+    sim_median_df.index = pd.date_range(start=last_year_df.index[-1], periods=num_days)
+    
+    sim_median_df.columns = df.columns
+    
+    return sim_median_df
 
 @st.cache_data
 def fetch_warrants_data():
@@ -93,9 +134,9 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     stocks_df = get_stocks(symbolsDate_dict_copy, 'close')
     
-    first_date = closes_df.index[0]
+    # first_date = closes_df.index[0]
     
-    stocks_df = stocks_df[stocks_df.index >= first_date]
+    # stocks_df = stocks_df[stocks_df.index >= first_date]
     
     
     stocks_mapped_df = pd.DataFrame()
@@ -111,19 +152,49 @@ def run(symbol_benchmark, symbolsDate_dict):
         
     plot_multi_line(stocks_mapped_df, title="Stocks Close Price")
     
+    # Assuming monte_carlo_simulation and plot_multi_line are defined elsewhere
+
+    historical_sim_df = pd.DataFrame()
     
-    close_change_df = closes_df.pct_change()
-    
-    stocks_mapped_change_df = stocks_mapped_df.pct_change()
-    
-    ratio_df = close_change_df.div(stocks_mapped_change_df, axis=1)
+    sim_period = st.number_input('Simulation Period', min_value=1, max_value=100, value=100, step=1)
+    sim_lookback = st.number_input('Simulation Lookback', min_value=1, max_value=100, value=100, step=1)
+
+    # Loop through the full history
+    for i in range(len(stocks_mapped_df)):
+        days_sim = len(stocks_mapped_df) - i
+        start_date = stocks_mapped_df.index[-days_sim]
+        stock_df = stocks_mapped_df[stocks_mapped_df.index <= start_date]
         
-    # remove outliers
-    ratio_df = ratio_df[ratio_df < 1000]
-    ratio_df = ratio_df[ratio_df > -1000]
+        # Perform the Monte Carlo simulation for a fixed period of 100 days
+        sim_df = monte_carlo_simulation(stock_df, 100, sim_period, sim_lookback)
+        
+        last_sim = sim_df.iloc[-1]
+        end_date = sim_df.index[-1]
+        
+        last_sim_values = pd.DataFrame(last_sim).T
+        last_sim_values.index = [end_date]
+                
+        historical_sim_df = pd.concat([historical_sim_df, last_sim_values])
+        
     
-    ratio_cumsum_df = ratio_df.cumsum()
+    # rename col to sim_
+    historical_sim_cp_df = historical_sim_df.copy()
+    historical_sim_df.columns = [f'sim_{col}' for col in historical_sim_df.columns]    
+
+    # Merge the simulated data with the actual data
+    historical_sim_df = pd.concat([stocks_mapped_df, historical_sim_df])
+
+    # Plot the historical and simulated data
+    plot_multi_line(historical_sim_df, title="Historical Simulation")
+
+
+    # calculate accuracy
+    accuracy_df = (historical_sim_cp_df - stocks_mapped_df) / stocks_mapped_df
     
-    plot_multi_line(closes_df, title="Warrants Close Price")
+    plot_multi_bar(accuracy_df, title="Accuracy")
     
-    plot_multi_line(ratio_cumsum_df, title="Cumulative Ratio")
+    mean_accuracy = accuracy_df.mean()
+    median_accuracy = accuracy_df.median()
+    
+    st.write("Mean Accuracy", mean_accuracy.values[0])
+    st.write("Median Accuracy", median_accuracy.values[0])
