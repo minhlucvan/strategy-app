@@ -306,7 +306,41 @@ def get_stocks_document(symbolsDate_dict: dict, column='title', doc_type='1', st
         stocks_df = pd.DataFrame(stocks_dfs)
                 
     return stocks_df
+
+@st.cache_data
+def get_stocks_info(symbolsDate_dict: dict, column='title', doc_type='1', stack=False, stack_level='factor'):
+    print(f"get_stocks_info: {symbolsDate_dict} {column} {stack} {stack_level}")
+    datas = AKData(symbolsDate_dict['market'])
+    stocks_dfs = {}
+    for symbol in symbolsDate_dict['symbols']:
+        if symbol != '':
+            stock_df = datas.get_stock_info(symbol)
+            if stock_df.empty:
+                print(
+                    f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
+            else:
+                stocks_dfs[symbol] = stock_df if stack else stock_df[column]
+                   
     
+    stocks_df = pd.DataFrame()
+    if stack and stack_level == 'factor':
+        # each frame represents one stock with all factors
+        # stack the dataframes is 2 levels
+        # level 0 is the factor name, level 1 is the stock symbol
+        # eg. stocks_df['pe']['AAPL'] = 12.3
+        factor_dfs = {}
+        for symbol in stocks_dfs.keys():
+            for column in stocks_dfs[symbol].columns:
+                if column not in factor_dfs:
+                    factor_dfs[column] = pd.DataFrame()
+                factor_dfs[column][symbol] = stocks_dfs[symbol][column]
+        stocks_df = pd.concat(factor_dfs, axis=1)
+    elif stack:
+        stocks_df = pd.concat(stocks_dfs, axis=1)
+    else:
+        stocks_df = pd.DataFrame(stocks_dfs)
+                
+    return stocks_df
 
 @st.cache_data
 def get_stocks_valuation(symbolsDate_dict: dict, indicator='pe'):

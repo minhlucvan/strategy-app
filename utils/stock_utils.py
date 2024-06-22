@@ -865,6 +865,7 @@ def get_warrants_data():
         return None
 
 def get_stock_info_data(tickers):
+    print(f"Fetching stock info data for {len(tickers)} tickers")
     url = 'https://iboard-query.ssi.com.vn/v2/stock/multiple'
     headers = {
         'authority': 'iboard-query.ssi.com.vn',
@@ -972,6 +973,11 @@ def load_cw_info_to_dataframe(cw_info_data):
 
     # conveer Exercise_Price to float
     cw_info_df['Exercise_Price'] = cw_info_df['Exercise_Price'].astype(float)
+    
+    # convert Matuirty_Date to datetime
+    # 20241009 -> 2024-10-09
+    cw_info_df['Maturity_Date'] = pd.to_datetime(
+        cw_info_df['Maturity_Date'], format='%Y%m%d')
 
     return cw_info_df
 

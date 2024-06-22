@@ -333,3 +333,19 @@ def get_vn_document(symbol: str, start_date: datetime.datetime = None, end_date:
     docs_df = vietstock.load_stock_documents_to_df(docs)
     
     return docs_df
+
+@lru_cache
+def get_vn_stock_info(symbol: str) -> pd.DataFrame:
+    """get vietnam stock data
+
+    Args:
+        ak_params symbol:str, start_date:str 20170301, end_date:str
+
+    Returns:
+        pd.DataFrame: _description_
+    """
+    print(f"get_vn_stock_info: {symbol}")
+    stock_info = stock_utils.get_stock_info_data(tickers=[symbol])
+    stock_info_df = stock_utils.load_cw_info_to_dataframe(stock_info)
+    
+    return stock_info_df

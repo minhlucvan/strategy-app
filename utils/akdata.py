@@ -214,3 +214,21 @@ class AKData(object):
 
         return stock_df
     
+    @vbt.cached_method
+    def get_stock_info(self, symbol: str) -> pd.DataFrame:
+        print(f"AKData-get_stock_info: {symbol}, {self.market}")
+        stock_df = pd.DataFrame()
+        symbol_df = load_symbol(symbol)
+        
+        if len(symbol_df) < 1:
+            symbol_df = pd.DataFrame([{'category': 'stock'}])
+
+        if len(symbol_df) == 1:
+            func = ('get_' + self.market + '_stock_info').lower()
+            try:
+                stock_df = eval(func)(symbol=symbol)
+            except Exception as e:
+                print("get_stock_info()---", e)
+                print(e)
+
+        return stock_df
