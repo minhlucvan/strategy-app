@@ -26,13 +26,13 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     price_df = get_stocks(symbolsDate_dict, pricing_method)
     
-    benchmark_df = get_stocks(symbolsDate_dict, 'close', benchmark=True)
+    benchmark_df = get_stocks(symbolsDate_dict, pricing_method, benchmark=True)
     
-    ma_period = st.slider('MA Period', min_value=5, max_value=200, value=5, step=1)
+    # ma_period = st.slider('MA Period', min_value=5, max_value=200, value=5, step=1)
     
-    ma_ind = vbt.MA.run(close_df, ma_period)
+    # ma_ind = vbt.MA.run(price_df, ma_period)
     
-    ma = ma_ind.ma[ma_period]
+    # ma = ma_ind.ma[ma_period]
         
     gap_df = open_df - close_df.shift(1)
     gap_pct_df = gap_df / close_df.shift(1)
@@ -43,7 +43,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     gap_pct_df = gap_pct_df[(gap_pct_df < -gap_threshold)]
     
     # keep price < ma
-    gap_pct_df = gap_pct_df[close_df < ma]
+    # gap_pct_df = gap_pct_df[close_df < ma]
     
     # event_affection_df = calculate_event_affection(close_df, gap_pct_df, 0, 3)
     
