@@ -154,6 +154,15 @@ class TCBSAgent:
         self.tcbs_id = config.get('TCBSId')
         self.custodyId = config.get('custodyId')
         self.api = TCBSAPI(self.auth_token)
+    
+    def get_pending_orders(self):
+        res = self.api.get_pending_orders(self.tcbs_id)
+        orders = res.get('orders')
+        
+        return orders
+    
+    def cancel_preorder(self, order_id):
+        return self.api.cancel_preorder(order_id)
 
     def place_order(self, side, symbol, ref_id, price, volume, order_type, pin):
         return self.api.place_order(self.sub_account_id, self.account_id, side, symbol, ref_id, price, volume, order_type, pin)

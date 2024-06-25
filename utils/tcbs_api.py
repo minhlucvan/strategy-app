@@ -34,11 +34,17 @@ class TCBSAPI:
         if method == 'POST':
             response = requests.post(
                 url, headers=headers, data=json.dumps(data))
+        elif method == 'DELETE':
+            response = requests.delete(url, headers=headers)
         else:
             response = requests.get(url, headers=headers)
 
         response.raise_for_status()
-        return response.json()
+        
+        try:
+            return response.json()
+        except:
+            return response.text
 
     def place_order(self, sub_account_id, account_id, side, symbol, ref_id, price, volume, order_type, pin):
         """Places an order on the TCBS trading platform."""
@@ -159,3 +165,14 @@ class TCBSAPI:
         return self.make_request(url)
     
     
+    def get_pending_orders(self, tcbs_id):
+        # https://apiext.tcbs.com.vn/anatta/v1/0001964802/orders?isPending=true
+        url = f'https://apiext.tcbs.com.vn/anatta/v1/{tcbs_id}/orders?isPending=true'
+        
+        return self.make_request(url)
+    
+    def cancel_preorder(self, order_id):
+        # DELETE https://apiext.tcbs.com.vn/anatta/v1/orders/preorder/1581551
+        url = f'https://apiext.tcbs.com.vn/anatta/v1/orders/preorder/{order_id}'
+        
+        return self.make_request(url, method='DELETE')

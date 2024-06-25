@@ -48,6 +48,7 @@ from .warrants_simmulation_study import run as run_warrants_simmulation_study
 from .warrants_simmulation_2_study import run as run_warrants_simmulation_2_study
 from .warrants_volatility_study import run as run_warrants_volatility_study
 from .vn30f_gaps_dips_study import run as run_vn30f_gaps_dips_study
+from .stock_cacnel_order import run as run_stock_cacnel_order
 
 study_list = [
     {
@@ -225,6 +226,10 @@ study_list = [
     {
         "name": "Stock Blind Order",
         "module": run_stock_blind_order
+    },
+    {
+        "name": "Stock Cancel Order",
+        "module": run_stock_cacnel_order
     },
     {
         "name": "Warrants Blind Order",

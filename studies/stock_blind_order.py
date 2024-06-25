@@ -65,7 +65,6 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     run_trade = st.button("Run Trade")
     
-    
     if run_trade:
         for symbol in symbols:
             

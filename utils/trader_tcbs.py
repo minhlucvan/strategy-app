@@ -31,3 +31,9 @@ class TraderTCBS(TraderBase):
     
     def get_account_list(self):
         return self.agent.get_account_list()
+    
+    def get_pending_orders(self):
+        return self.agent.get_pending_orders()
+    
+    def cancel_preorder(self, order_id):
+        return self.agent.cancel_preorder(order_id)
