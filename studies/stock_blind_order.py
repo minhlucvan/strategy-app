@@ -55,17 +55,28 @@ def run(symbol_benchmark, symbolsDate_dict):
     last_prices = get_last_trading_history(symbols, stock_type='stock')
     
     last_closes = last_prices['close'].to_dict()
+        
+    gap_pct = st.slider("Gap Percentage", 0.0, 0.15, 0.07)
+    
+    sizing = st.radio("Sizing", ["Size", "Value"], horizontal=True, index=0)
+    
+    order_value = st.number_input("Order Value", 1_000_000, 10_000_000, 5_000_000) if sizing == "Value" else None
+    order_size = st.number_input("Order Size", 100, 1000, 100) if sizing == "Size" else None
     
     run_trade = st.button("Run Trade")
+    
     
     if run_trade:
         for symbol in symbols:
             
             price = last_closes[symbol]
             
-            order_price = calculate_order_price(price, gap_pct=0.09)
-            value = 5_000_000
-            size = 100
+            order_price = calculate_order_price(price, gap_pct=gap_pct)
+            value = order_value
+            size = order_size
+            
+            if sizing == "Value":
+                size = int(value / order_price)
 
             row = {
                 "Price": order_price,

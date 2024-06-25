@@ -11,6 +11,12 @@ def load_config():
     
     return toml.load(file_path)
 
+config_dict = None
+
+def refresh_config():
+    global config_dict
+    config_dict = load_config()
+
 
 def update_config(config_dict: dict):
     secrets_dict = load_config()
@@ -20,9 +26,8 @@ def update_config(config_dict: dict):
         
     with open(file_path, 'w') as f:
         toml.dump(secrets_dict, f)
-        
 
-config_dict = load_config()
+    refresh_config()
 
 def deep_value(dictionary, key):
     keys = key.split('.')
@@ -42,3 +47,6 @@ def clear_cache():
     # remove ./cache/demo_cache.sqlite
     if os.path.exists('./cache/demo_cache.sqlite'):
         os.remove('./cache/demo_cache.sqlite')
+        
+        
+refresh_config()
