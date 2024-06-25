@@ -237,13 +237,17 @@ class Portfolio(object):
 
         return True
 
-    def check_records(self, dt: date,  last_trading_date=None, first_trade_date_of_week=None) -> pd.DataFrame:
+    def check_records(self, dt: date,  last_trading_date=None, first_trade_date_of_week=None, selected_pfs=None) -> pd.DataFrame:
         '''
         Check all the portfolios which there're transations on dt:date
         '''
         is_today = dt == date.today()
         results = []
         for i in self.df.index:
+            
+            if selected_pfs is not None and i not in selected_pfs:
+                continue
+            
             try:
                 pf = vbt.Portfolio.loads(self.df.loc[i, 'vbtpf'])
                 records_df = pf.orders.records_readable.sort_values(by=[

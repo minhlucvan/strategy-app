@@ -206,7 +206,11 @@ def run(symbol_benchmark, symbolsDate_dict):
         
         stocks_mapped_df = pd.concat([stocks_mapped_df, stock_df], axis=1)
         
-    plot_multi_line(stocks_mapped_df, title="Stocks Close Price")
+    # start date 
+    start_date = closes_df.index[0]
+    stocks_mapped_plot_df = stocks_mapped_df[stocks_mapped_df.index >= start_date]
+        
+    plot_multi_line(stocks_mapped_plot_df, title="Stocks Close Price")
 
     plot_multi_line(closes_df, title="Warrants Close Price")    
     

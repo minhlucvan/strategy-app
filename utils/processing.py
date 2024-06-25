@@ -44,6 +44,11 @@ def get_stocks(symbolsDate_dict: dict, column=None, stack=False, stack_level='fa
                     stock_df['price_change_weighted'] = stock_df['price_change'] * abs(stock_df['volume_change'])
                     
                     stock_df['value_change_weighted'] = stock_df['price_change'] * stock_df['volume_change']
+                    
+                    #  'hl2', 'hlc3', 'ohlc4'
+                    stock_df['hl2'] = (stock_df['high'] + stock_df['low']) / 2
+                    stock_df['hlc3'] = (stock_df['high'] + stock_df['low'] + stock_df['close']) / 3
+                    stock_df['ohlc4'] = (stock_df['open'] + stock_df['high'] + stock_df['low'] + stock_df['close']) / 4
 
                     stocks_dfs[symbol] = stock_df[column] if column is not None else stock_df
                     

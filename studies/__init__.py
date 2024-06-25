@@ -47,6 +47,7 @@ from .warrants_blind_order_study import run as run_warrants_blind_order_study
 from .warrants_simmulation_study import run as run_warrants_simmulation_study
 from .warrants_simmulation_2_study import run as run_warrants_simmulation_2_study
 from .warrants_volatility_study import run as run_warrants_volatility_study
+from .vn30f_gaps_dips_study import run as run_vn30f_gaps_dips_study
 
 study_list = [
     {
@@ -188,6 +189,10 @@ study_list = [
     {
         "name": "VN30F Gaps Recover",
         "module": run_vn30f_gaps_recover_study
+    },
+    {
+        "name": "VN30F Gaps Dips",
+        "module": run_vn30f_gaps_dips_study
     },
     {
         "name": "VN30F Foregin Flow",

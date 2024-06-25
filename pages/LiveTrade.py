@@ -170,13 +170,14 @@ def main():
 
     ##无选择portforlio
     for index in selected_pfs:
-        # st.write(f"updating portfolio('{portfolio.df.iloc[i]['name']}')")
+        st.write(f"updating portfolio('{portfolio.df.loc[index]['name']}')...")
         if not portfolio.update(portfolio.df.loc[index]['id']):
-            st.error(f"Fail to update portfolio('{portfolio.df.iloc[index]['name']}')")
+            st.error(f"Fail to update portfolio('{portfolio.df.loc[index]['name']}').")
 
     last_trading_date = get_last_trading_date()
     first_trade_date_of_week =  get_first_trade_date_of_week()
-    check_df = portfolio.check_records(dt=today, last_trading_date=last_trading_date, first_trade_date_of_week=first_trade_date_of_week)
+    check_df = portfolio.check_records(dt=today, last_trading_date=last_trading_date, first_trade_date_of_week=first_trade_date_of_week, selected_pfs=selected_pfs)
+    
     check_df = portfolio.ajust_positions(check_df)
     
     # send the notification to telegram users

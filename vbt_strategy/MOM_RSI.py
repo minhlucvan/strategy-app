@@ -37,6 +37,7 @@ class MOM_RSIStrategy(BaseStrategy):
     '''Mom_RSI strategy'''
     _name = "MOM_RSI"
     param_dict = {}
+    timeframe = 'W'
     param_def = [
             {
             "name": "window",

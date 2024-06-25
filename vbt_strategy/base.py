@@ -50,8 +50,13 @@ class BaseStrategy(object):
         self.symbols = symbolsDate_dict['symbols']
         self.start_date = symbolsDate_dict['start_date']
         self.end_date = symbolsDate_dict['end_date']
-        self.bm_symbol = symbolsDate_dict['benchmark'] if 'benchmark' in symbolsDate_dict else 'VN30'
-        self.timeframe = symbolsDate_dict['timeframe'] if 'timeframe' in symbolsDate_dict else 'D'
+        
+        if 'benchmark' in symbolsDate_dict:        
+            self.bm_symbol = symbolsDate_dict['benchmark']
+            
+        if 'timeframe' in symbolsDate_dict:
+            self.timeframe = symbolsDate_dict['timeframe']
+        
         self.datas = AKData(self.market)
         self.stock_dfs = []
         self.param_dict = {}

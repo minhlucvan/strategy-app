@@ -20,13 +20,14 @@ class RRGStrategy(BaseStrategy):
     stacked_bool = True
     output_bool = False
     include_bm = True
+    bm_symbol = 'VN30'
     
 
     @vbt.cached_method
     def run(self, calledby='add'):
         stocks_df = self.stocks_df
         bm_df = self.bm_price
-        
+                
         if stocks_df.empty:
             st.warning("No data available.")
             st.stop()

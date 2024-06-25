@@ -112,23 +112,8 @@ def plot_stock_summary(stocks_affection_df):
     st.write("Stocks Price Change Summary")
     fig = px.bar(stocks_affection_df, x=stocks_affection_df.index, y=stocks_affection_df.values)
     st.plotly_chart(fig)
-
-def run(symbol_benchmark, symbolsDate_dict, benchmark_df=None, stocks_df=None, events_df=None, def_days_before=6, def_days_after=0):
-    if len(symbolsDate_dict['symbols']) < 1:
-        st.info("Please select symbols.")
-        st.stop()
-
-    benchmark_dict = symbolsDate_dict.copy()
-    benchmark_dict['symbols'] = [symbol_benchmark]
-
-    benchmark_df = get_stocks(benchmark_dict, 'close') if benchmark_df is None else benchmark_df
-    stocks_df = get_stocks(symbolsDate_dict, 'close') if stocks_df is None else stocks_df
-    events_df = get_stocks_events(symbolsDate_dict, 'cashDividend') if events_df is None else events_df
-
-
-    days_before = st.number_input('Days before event', min_value=-10, max_value=10, value=def_days_before)
-    days_after = st.number_input('Days after event', min_value=0, max_value=300, value=def_days_after)
-
+    
+def calculate_event_affection(stocks_df, events_df, days_before, days_after):
     event_affections = {}
     for stock in stocks_df.columns:
         if stock not in events_df.columns:
@@ -147,14 +132,37 @@ def run(symbol_benchmark, symbolsDate_dict, benchmark_df=None, stocks_df=None, e
     
     for key in event_affections.keys():
         events_affection_df[key] = event_affections[key]
+        
+    return events_affection_df
     
+
+def run(symbol_benchmark, symbolsDate_dict, benchmark_df=None, stocks_df=None, events_df=None, def_days_before=6, def_days_after=0):
+    if len(symbolsDate_dict['symbols']) < 1:
+        st.info("Please select symbols.")
+        st.stop()
+
+    benchmark_dict = symbolsDate_dict.copy()
+    benchmark_dict['symbols'] = [symbol_benchmark]
+
+    benchmark_df = get_stocks(benchmark_dict, 'close') if benchmark_df is None else benchmark_df
+    stocks_df = get_stocks(symbolsDate_dict, 'close') if stocks_df is None else stocks_df
+    events_df = get_stocks_events(symbolsDate_dict, 'cashDividend') if events_df is None else events_df
+
+
+    days_before = st.number_input('Days before event', min_value=-10, max_value=10, value=def_days_before)
+    days_after = st.number_input('Days after event', min_value=0, max_value=300, value=def_days_after)
+
+    events_affection_df = calculate_event_affection(stocks_df, events_df, days_before, days_after)
+
     is_numeric = type(events_df.iloc[0, 0]) in [int, float]
     
     events_affection_unstack_df = plot_event_distributions(events_df, events_affection_df, is_numeric=is_numeric)
     plot_event_summary(events_affection_unstack_df, benchmark_df, symbol_benchmark)
+    
     
     # plot stock summary, plot stock that has the most event affect
     stocks_affection_df = events_affection_df.mean()
     
     plot_stock_summary(stocks_affection_df)
     
+    return events_affection_unstack_df
