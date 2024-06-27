@@ -116,7 +116,10 @@ def calculate_realtime_metrics(union_df):
         for stock in union_df.columns.get_level_values(1).unique():
             stock_df = union_df.loc[index, ('close', stock)]
             # calculate priceToEarning
-            union_df.loc[index, ('priceToEarning', stock)] = stock_df / union_df.loc[index, ('earningPerShare', stock)]
+            if ('earningPerShare', stock) in union_df.columns:
+                union_df.loc[index, ('priceToEarning', stock)] = stock_df / union_df.loc[index, ('earningPerShare', stock)]
+            else:
+                union_df.loc[index, ('priceToEarning', stock)] = np.nan
     return union_df
 
 # calculate the ratio metrics = stock / market

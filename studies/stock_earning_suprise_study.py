@@ -85,6 +85,8 @@ def run(symbol_benchmark, symbolsDate_dict):
             symbol: union_df['realPriceToEarning']
         })], axis=1)
         
+    real_pe_df = real_pe_df.clip(-100, 100)
+    
     plot_multi_line(real_pe_df, 'Real Price to Earning', 'Date', 'Real Price to Earning', 'Real Price to Earning')
     
     real_pe_df = real_pe_df[real_pe_df.index >= stocks_df.index[0]]

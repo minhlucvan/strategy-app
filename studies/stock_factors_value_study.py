@@ -56,7 +56,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     # Ensure both indices are timezone-naive
     stocks_df.index = pd.to_datetime(stocks_df.index).tz_localize(None)
     financial_df.index = pd.to_datetime(financial_df.index).tz_localize(None)
-    
+        
     # filter the stocks_df and financial_df to the same date range
     start_date = pd.to_datetime(symbolsDate_dict['start_date']).tz_localize(None)
     
@@ -69,7 +69,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     union_df = pd.concat([reindexed_stocks_df, reindexed_fundamental_df], axis=1)
     # close,priceToEarning,priceToBook,valueBeforeEbitda,dividend,roe,roa,daysReceivable,daysInventory,daysPayable,ebitOnInterest,earningPerShare,bookValuePerShare,interestMargin,nonInterestOnToi,badDebtPercentage,provisionOnBadDebt,costOfFinancing,equityOnTotalAsset,equityOnLoan,costToIncome,equityOnLiability,currentPayment,quickPayment,epsChange,ebitdaOnStock,grossProfitMargin,operatingProfitMargin,postTaxMargin,debtOnEquity,debtOnAsset,debtOnEbitda,shortOnLongDebt,assetOnEquity,capitalBalance,cashOnEquity,cashOnCapitalize,cashCirculation,revenueOnWorkCapital,capexOnFixedAsset,revenueOnAsset,postTaxOnPreTax,ebitOnRevenue,preTaxOnEbit,preProvisionOnToi,postTaxOnToi,loanOnEarnAsset,loanOnAsset,loanOnDeposit,depositOnEarnAsset,badDebtOnAsset,liquidityOnLiability,payableOnEquity,cancelDebt,ebitdaOnStockChange,bookValuePerShareChange,creditGrowth
-    
+        
     # filter date > start_date
     union_df = union_df.loc[start_date:]
     
