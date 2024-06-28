@@ -49,6 +49,7 @@ from .warrants_simmulation_2_study import run as run_warrants_simmulation_2_stud
 from .warrants_volatility_study import run as run_warrants_volatility_study
 from .vn30f_gaps_dips_study import run as run_vn30f_gaps_dips_study
 from .stock_cacnel_order import run as run_stock_cacnel_order
+from .stock_low_flow_study import run as run_stock_low_flow_study
 
 study_list = [
     {
@@ -246,6 +247,10 @@ study_list = [
     {
         "name": "Warrants Volatility",
         "module": run_warrants_volatility_study
+    },
+    {
+        "name": "Stock Low Flow",
+        "module": run_stock_low_flow_study
     },
     {
         "name": "TCBS Agent",

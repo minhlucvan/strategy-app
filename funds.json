@@ -1071,6 +1071,16 @@
         "provider": "csv",
         "path": "data/intraday_total_upcom_2.csv",
         "column": "symbol"
+      },
+      "SLOW": {
+        "provider": "csv",
+        "path": "data/intraday_slow_value.csv",
+        "column": "symbol"
+      },
+      "SSLOW": {
+        "provider": "csv",
+        "path": "data/intraday_sslow_value.csv",
+        "column": "symbol"
       }
     }
   },

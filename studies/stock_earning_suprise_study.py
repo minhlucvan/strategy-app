@@ -54,6 +54,9 @@ def run(symbol_benchmark, symbolsDate_dict):
         # filter financials_df > start_date
         financials_df = financials_df[financials_df.index >= stocks_df.index[0]]
         
+        if symbol not in stocks_df.columns:
+            continue
+        
         stock_df = stocks_df[symbol]
         
         # reindex stock_df to financials_df, fill nearest value

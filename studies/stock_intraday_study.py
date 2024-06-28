@@ -45,7 +45,10 @@ def run(symbol_benchmark, symbolsDate_dict):
 
     
     threshold = st.slider('Threshold', 0, 50_000_000_000, 1000_000_000)
+    max_threshold = st.slider('Max Threshold', 0, 50_000_000_000, 50_000_000_000)
+    
     total_value = total_value[total_value > threshold]
+    total_value = total_value[total_value < max_threshold]
     
     st.dataframe(total_value, use_container_width=True)
     

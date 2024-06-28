@@ -17,7 +17,7 @@ import pytz
 from utils.misc import retry
 
 CACHE_TTL = 60 * 60 * 24  # 1 day
-requests = requests_cache.CachedSession('cache/demo_cache', expire_after=CACHE_TTL, allowable_codes=[200])
+requests = requests_cache.CachedSession('cache/tcbs_cache', expire_after=CACHE_TTL, allowable_codes=[200])
 
 MAX_RETRIES = 5
 RETRY_WAIT_TIME = 30
