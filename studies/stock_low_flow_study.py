@@ -20,3 +20,5 @@ def run(symbol_benchmark, symbolsDate_dict):
     prices_pct_change = prices_df.pct_change().cumsum()
     
     plot_multi_line(prices_pct_change, title='Stock Prices % Change', x_title='Date', y_title='Price % Change', legend_title='Stocks')
+    
+    
