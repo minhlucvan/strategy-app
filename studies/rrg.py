@@ -354,6 +354,8 @@ windows = [60, 100, 150, 200, 225, 250, 275, 300]
     RRG_indicator = get_RRGInd().run(prices=stocks_df[sSel], bm_price=bm_price, ratio=rs_ratio_mins, momentum=rs_momentum_mins, window=windows, param_product=True)
     sizes = RRG_indicator.size.shift(periods=1)
     
+    # st.write(sizes)
+    
     init_vbtsetting()
     pf_kwargs = dict(fees=0.001, slippage=0.001, freq='1D')
     pf = vbt.Portfolio.from_orders(
@@ -365,6 +367,7 @@ windows = [60, 100, 150, 200, 225, 250, 275, 300]
                 **pf_kwargs,
             )
     param_dict = {}
+    
     if not isinstance(pf.total_return(), np.float64):
         RARMs = eval(f"pf.{RARM_obj}()")
         idxmax = RARMs[RARMs != np.inf].idxmax()
@@ -424,11 +427,11 @@ def apply_rrg_nb(prices, bm_price, ratio, momentum, window):
         mod = i % 5
         for j in range(rs_momentum.shape[1]):
             if mod == 0:
-                size[i,j] =  100 if rs_momentum[i,j]>momentum and rs_ratio[i,j]>ratio else 0
+                size[i,j] =  100 if rs_momentum[i,j] > momentum and rs_ratio[i,j] > ratio else 0
             else:
                 size[i,j] = np.nan#size[i-mod,j]
     size = np.divide(size.T, np.sum(size, axis=1)).T
-    # size[np.isnan(size)] = 0
+    size[np.isnan(size)] = 0
 
     return rs_ratio, rs_momentum, size
 

@@ -29,14 +29,32 @@ def calculate_volatility(stock_prices):
     volatility = log_returns.rolling(window=252).std() * np.sqrt(252)
     return volatility
 
+def run_option_strategu(input: dict):
+    return run_strategy(input)
+
 @st.cache_data
-def calculate_historical_pop(closes_df, stocks_mapped_df, exercise_price_df, maturity_date_df, exercise_ratios_df, selected_tickers):
+def calculate_historical_pop(closes_df, stocks_mapped_df, exercise_price_df, volatilities_df, maturity_date_df, exercise_ratios_df, selected_tickers):
     pop_df = pd.DataFrame(index=closes_df.index, columns=closes_df.columns)
+    implied_volatility_df = pd.DataFrame(index=closes_df.index, columns=closes_df.columns)
+    minimum_return_in_the_domain_df =  pd.DataFrame(index=closes_df.index, columns=closes_df.columns)
+    maximum_return_in_the_domain_df = pd.DataFrame(index=closes_df.index, columns=closes_df.columns)
     
     for selected_ticker in selected_tickers:
-        stock_mapped_df = stocks_mapped_df[selected_ticker]
-        close_df = closes_df[selected_ticker]
+        if selected_ticker not in stocks_mapped_df.columns:
+            continue
         
+        stock_mapped_df = stocks_mapped_df[selected_ticker]
+        
+        if selected_ticker not in closes_df.columns:
+            continue
+        
+        close_df = closes_df[selected_ticker]
+
+        probability_of_profit = np.nan
+        implied_volatility = np.nan
+        minimum_return_in_the_domain = np.nan
+        maximum_return_in_the_domain = np.nan
+                
         for idx in closes_df.index:
             stock_mapped_recent_df = stock_mapped_df.loc[:idx].iloc[-252:]
             
@@ -51,9 +69,10 @@ def calculate_historical_pop(closes_df, stocks_mapped_df, exercise_price_df, mat
             
             exercise_ratio = exercise_ratios_df[selected_ticker].loc[idx]
             
-            premium_price = exercise_ratio * last_close_price
+            # premium_price = exercise_ratio * last_close_price
             
-            volatilities = calculate_volatility(stock_mapped_df.loc[:idx])
+            volatilities = volatilities_df[selected_ticker]
+            
             volatility = volatilities.loc[idx]
             days_to_maturity = (maturity_date - idx).days
             
@@ -70,7 +89,7 @@ def calculate_historical_pop(closes_df, stocks_mapped_df, exercise_price_df, mat
                 "max_stock": max_stock,
                 "strategy": [
                     {
-                        "type": "call",
+                        "type":  "call",
                         "expiration": days_to_maturity,
                         "strike": exercise_price,
                         "premium": last_close_price,
@@ -81,15 +100,22 @@ def calculate_historical_pop(closes_df, stocks_mapped_df, exercise_price_df, mat
             }
             
             try:
-                out = run_strategy(inputs_data)
+                out = run_option_strategu(inputs_data)
                 probability_of_profit = out.probability_of_profit
+                implied_volatility = out.implied_volatility
+                minimum_return_in_the_domain = out.minimum_return_in_the_domain / last_close_price
+                maximum_return_in_the_domain = out.maximum_return_in_the_domain / last_close_price
                 
-                pop_df.at[idx, selected_ticker] = probability_of_profit
             except Exception as e:
+                print(inputs_data)
                 print(e)
-                pop_df.at[idx, selected_ticker] = np.nan
-    
-    return pop_df
+            finally:
+                pop_df.at[idx, selected_ticker] = probability_of_profit
+                implied_volatility_df.at[idx, selected_ticker] = implied_volatility
+                minimum_return_in_the_domain_df.at[idx, selected_ticker] = minimum_return_in_the_domain
+                maximum_return_in_the_domain_df.at[idx, selected_ticker] = maximum_return_in_the_domain
+                
+    return pop_df, implied_volatility_df, maximum_return_in_the_domain_df, minimum_return_in_the_domain_df
 
 def calculate_premium(stock_price, exercise_price, premium):
     return stock_price - exercise_price - premium
@@ -134,7 +160,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     stock_tickers = warrants_df['underlyingStock'].unique()
     
-    selected_stocks = st.multiselect('Select Stocks', stock_tickers, default=stock_tickers)
+    selected_stocks = st.multiselect('Select Stocks', stock_tickers, default=[])
     
     if len(selected_stocks) > 0:
         warrants_df = warrants_df[warrants_df['underlyingStock'].isin(selected_stocks)]
@@ -154,6 +180,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     selected_tickers = st.multiselect('Select Tickers', tickers, default=tickers if select_all else [])
     
+    # st.write(warrants_df)
         
     if len(selected_tickers) < 1:
         st.info("Please select symbols.")
@@ -193,8 +220,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     for stock in exercise_price_df.columns:
         exercise_price_df[stock] = exercise_prices[stock].values[0]
-    
-    
+        
     stocks_mapped_df = pd.DataFrame()
     
     for warrant in selected_tickers:
@@ -206,16 +232,23 @@ def run(symbol_benchmark, symbolsDate_dict):
         
         stocks_mapped_df = pd.concat([stocks_mapped_df, stock_df], axis=1)
         
+    # calculate volatilities
+    volatilities_df = calculate_volatility(stocks_mapped_df)
+        
     # start date 
     start_date = closes_df.index[0]
-    stocks_mapped_plot_df = stocks_mapped_df[stocks_mapped_df.index >= start_date]
+    stocks_plot_df = stocks_df[stocks_df.index >= start_date]
         
-    plot_multi_line(stocks_mapped_plot_df, title="Stocks Close Price")
+    plot_multi_line(stocks_plot_df, title="Stocks Close Price")
 
     plot_multi_line(closes_df, title="Warrants Close Price")    
-    
-    
+        
     # Usage example:
-    pop_df = calculate_historical_pop(closes_df, stocks_mapped_df, exercise_price_df, maturity_date_df, exercise_ratios_df, selected_tickers)
+    pop_df, imp_df, max_df, min_df = calculate_historical_pop(closes_df, stocks_mapped_df, exercise_price_df, volatilities_df, maturity_date_df, exercise_ratios_df, selected_tickers)
 
     plot_multi_line(pop_df, title="Historical Probability of Profit")
+    
+    plot_multi_line(min_df, title="Min")
+    
+    plot_multi_line(max_df, title="Max")
+    

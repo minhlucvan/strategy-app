@@ -21,6 +21,29 @@ class RRGStrategy(BaseStrategy):
     output_bool = False
     include_bm = True
     bm_symbol = 'VN30'
+    param_def = [
+            {
+            "name": "rs_ratio",
+            "type": "float",
+            "min":  98.0,
+            "max":  102.0,
+            "step": 0.5   
+            },
+            {
+                "name": "rs_momentum",
+                "type": "float",
+                "min":  98.0,
+                "max":  102.0,
+                "step": 0.5
+            },
+            {
+            "name": "rs_window",
+            "type": "int",
+            "min":  30,
+            "max":  300,
+            "step": 25   
+            }
+        ]
     
 
     @vbt.cached_method
@@ -32,9 +55,13 @@ class RRGStrategy(BaseStrategy):
             st.warning("No data available.")
             st.stop()
          
-        rs_ratio = [98, 99, 100, 101, 102]
-        rs_momentum = [98, 98.5, 99, 99.5, 100, 100.5, 101, 101.5, 102]
-        rs_window = [60, 100, 150, 200, 225, 250, 275, 300]
+        rs_ratio = self.param_dict['rs_ratio']
+        rs_momentum = self.param_dict['rs_momentum']
+        rs_window = self.param_dict['rs_window']
+        
+        # rs_ratio = [100]
+        # rs_momentum = [101]
+        # rs_window = [200]
         
         if calledby == 'update':
             rs_ratio = self.param_dict['rs_ratio']
