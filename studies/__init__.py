@@ -50,6 +50,10 @@ from .warrants_volatility_study import run as run_warrants_volatility_study
 from .vn30f_gaps_dips_study import run as run_vn30f_gaps_dips_study
 from .stock_cacnel_order import run as run_stock_cacnel_order
 from .stock_low_flow_study import run as run_stock_low_flow_study
+from .tcbs_stock_noti_study import run as run_tcbs_stock_noti_study
+from .stock_smc_study import run as run_stock_smc_study
+from .stock_123_pullback_study import run as run_stock_123_pullback_study
+from .stock_darvas_box_study import run as run_stock_darvas_box_study
 
 study_list = [
     {
@@ -253,12 +257,28 @@ study_list = [
         "module": run_stock_low_flow_study
     },
     {
+        "name": "Stock 123 Pullback",
+        "module": run_stock_123_pullback_study
+    },
+    {
+        "name": "Stock Darvas Box",
+        "module": run_stock_darvas_box_study
+    },
+    {
         "name": "TCBS Agent",
         "module": run_tcbs_agent
     },
     {
+        "name": "Stock SMC",
+        "module": run_stock_smc_study
+    },
+    {
         "name": "TCBS Market Calendar",
         "module": run_tcbs_market_calendar
+    },
+    {
+        "name": "TCBS Stock Noti",
+        "module": run_tcbs_stock_noti_study
     },
     {
         "name": "Warrants Gap Recover",

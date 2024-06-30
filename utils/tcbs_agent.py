@@ -223,3 +223,6 @@ class TCBSAgent:
         df = load_calender_data_tp_df(data)
         
         return df
+    
+    def get_stock_noti_all(self, ticker):
+        return self.api.get_stock_noti_all(self.tcbs_id, ticker)

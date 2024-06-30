@@ -176,3 +176,26 @@ class TCBSAPI:
         url = f'https://apiext.tcbs.com.vn/anatta/v1/orders/preorder/{order_id}'
         
         return self.make_request(url, method='DELETE')
+    
+    def get_stock_noti(self, tcbs_id, ticker, lastVisitedId='0', size=50):
+        print("Get stock noti: ", tcbs_id, ticker, lastVisitedId, size)
+        # https://apiextaws.tcbs.com.vn/moksha/v1/users/0001964802/notification?lastVisitedId=0&size=50&from=&to=&ticker=VND
+        url = f'https://apiextaws.tcbs.com.vn/moksha/v1/users/{tcbs_id}/notification?lastVisitedId={lastVisitedId}&size={size}&ticker={ticker}&from=&to='
+        
+        return self.make_request(url)
+    
+    def get_stock_noti_all(self, tcbs_id, ticker, lastVisitedId='0', size=50):
+        data  = []
+        
+        while True:
+            res = self.get_stock_noti(tcbs_id, ticker, lastVisitedId, size)
+            dat = res.get('notifications')
+            
+            if dat is None or len(dat) == 0:
+                break
+            
+            data += dat
+          
+            lastVisitedId = res[-1]['id']
+            
+        return data

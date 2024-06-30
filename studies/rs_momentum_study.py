@@ -4,7 +4,7 @@ import streamlit as st
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 
-from utils.plot_utils import plot_multi_bar, plot_multi_line
+from utils.plot_utils import plot_multi_bar, plot_multi_line, plot_single_bar
 from utils.processing import get_stocks
 import vectorbt as vbt
 
@@ -196,6 +196,34 @@ def calculate_vix_index(prices):
     
     return vix_index
 
+def calculate_rs(prices_df, market_df):
+    """
+    Calculate the relative strength (RS) of stocks compared to the market.
+    
+    Parameters:
+    prices_df (pd.DataFrame): DataFrame containing stock prices with dates as the index.
+    market_df (pd.DataFrame): DataFrame containing market index prices with dates as the index.
+    
+    Returns:
+    pd.DataFrame: DataFrame with the relative strength of each stock compared to the market.
+    """
+    # Calculate the daily returns for the stocks and the market
+    stock_returns = prices_df.pct_change()
+    market_returns = market_df.pct_change()
+
+    # Calculate the cumulative returns for the stocks and the market
+    cumulative_stock_returns = (1 + stock_returns).cumprod() - 1
+    cumulative_market_returns = (1 + market_returns).cumprod() - 1
+
+    # Calculate the relative strength
+    rs_df = cumulative_stock_returns.divide(cumulative_market_returns, axis=0)
+    
+    # rank the relative strength by axis=1
+    rs_df = rs_df.rank(axis=1)
+    
+    return rs_df
+
+
 # Example usage
 def run(symbol_benchmark, symbolsDate_dict):
     
@@ -226,19 +254,14 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     hv_df = calculate_hist_volatility(stocks_df)
     
-    # Plotting
-    plot_AnimatedRSVIX(rsi_df, hv_df, stocks_df.columns, tail_length=3)
+    market_df = benchmark_df[symbol_benchmark]
+    
+    rs_df = calculate_rs(stocks_df, market_df)
+        
+    # Plotting 
+    plot_AnimatedRSVIX(rsi_df, vix_df, stocks_df.columns, tail_length=3)
 
-    # voldemom_index = rsi * vix
-    voldemom_index = rsi_df * hv_df
+    plot_multi_line(rsi_df, title='Relative Strength')
     
-    voldemom_index = voldemom_index.rolling(21).mean()
-    
-    plot_multi_bar(voldemom_index, title='Voldemom Index', x_title='Date', y_title='Voldemom Index', legend_title='Stocks')
-    
-    
-    voldemom_index_price_weighted = voldemom_index * stocks_df.pct_change()
-    
-    plot_multi_bar(voldemom_index_price_weighted, title='Voldemom Index Price Weighted', x_title='Date', y_title='Price', legend_title='Stocks')
-
-    plot_multi_line(stocks_df, title='Stock Prices', x_title='Date', y_title='Price', legend_title='Stocks')
+    plot_multi_line(benchmark_df, title='Benchmark Prices')
+   
