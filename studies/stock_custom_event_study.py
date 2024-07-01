@@ -11,6 +11,11 @@ from utils.vbt import plot_pf
 from vbt_strategy.MOM_D import get_MomDInd
 from studies.market_wide import MarketWide_Strategy
 
+import pandas as pd
+import numpy as np
+
+import pandas as pd
+import numpy as np
 
 def get_event_affection(stock_df, event_df, days_before, days_after):
     event_affection_df = pd.DataFrame(index=stock_df.index, columns=['event_price_change'])
@@ -18,23 +23,34 @@ def get_event_affection(stock_df, event_df, days_before, days_after):
         return event_affection_df
 
     event_df['event_date'] = pd.to_datetime(event_df.index)
-    event_df['event_before_date'] = event_df['event_date'] - pd.DateOffset(days=days_before)
-    event_df['event_after_date'] = event_df['event_date'] + pd.DateOffset(days=days_after)
     
     for index, row in event_df.iterrows():
-        event_before_price = stock_df[stock_df.index >= row['event_before_date']].iloc[0]
-        event_price = stock_df[stock_df.index >= row['event_date']].iloc[0]
+        event_date = row['event_date']
         
-        event_after_price_df = stock_df[stock_df.index >= row['event_after_date']]
-        event_after_price = event_after_price_df.iloc[0] if not event_after_price_df.empty else np.nan
+        try:
+            event_index = stock_df.index.get_loc(event_date)
+        except KeyError:
+            # Skip if event_date is not in stock_df
+            continue
+        
+        event_before_index = event_index - days_before
+        event_after_index = event_index + days_after
+        
+        if event_before_index < 0 or event_after_index >= len(stock_df):
+            continue
+        
+        event_before_price = stock_df.iloc[event_before_index]
+        event_after_price = stock_df.iloc[event_after_index]
 
-        if pd.isna(event_before_price) or pd.isna(event_price) or pd.isna(event_after_price):
+        if pd.isna(event_before_price) or pd.isna(event_after_price):
             continue
 
         event_price_change = (event_after_price - event_before_price) / event_before_price
-        event_affection_df.loc[row['event_date'], 'event_price_change'] = event_price_change
+        event_affection_df.loc[event_date, 'event_price_change'] = event_price_change
 
     return event_affection_df['event_price_change']
+
+
 
 def plot_event_distributions(events_df, events_affection_df, is_numeric=True):
     event_unstack_df = events_df.unstack().reset_index()

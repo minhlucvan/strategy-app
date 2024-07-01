@@ -1993,7 +1993,7 @@ def get_stock_events(ticker='VND', from_date=None, to_date=None, resolution='D')
     import re
 
 def extract_dividend_amount(html_text):
-    # <div style='font-size: 14px; font-weight: bold;'>1. Cổ tức Cả năm/2013 bằng tiền, 4.000 đ/CP</div><div style='font-size: 12px; margin-top: 4px; margin-bottom: 12px; font-style: italic;'>Ngày GDKHQ: 18-06-2014</div>
+    # 1. Cổ tức Cả năm/2022 bằng tiền, 500 đ/CP
     # Regular expression to extract the dividend amount bằng tiền, {anything} đ/CP => anything
     # bằng tiền, 500 đ/CP => 500
     # bằng tiền, 1.2 đ/CP => 1.2
@@ -2035,16 +2035,14 @@ def load_stock_events_to_dataframe(data):
     
     # join listTitle to title
     df['niceTitle'] = df['title'].apply(lambda x: ', '.join(x))
-    
-    # df['niceTitle'] = df['title'].apply(lambda x: BeautifulSoup(x, 'html.parser').text)
-    
-    # df['cashDividend'] = df['title'].apply(extract_dividend_amount)
+        
+    df['cashDividend'] = df['niceTitle'].apply(extract_dividend_amount)
     # df['exDividendDate'] = df['title'].apply(extract_exdividend_date)
     
-    # df['cashDividend'] = df['cashDividend'].astype(float)
+    df['cashDividend'] = df['cashDividend'].astype(float)
     
     # if cashDividend < 10 => cashDividend = cashDividend * 1000
-    # df['cashDividend'] = df['cashDividend'].apply(lambda x: x if x > 10.0 else x * 1000.0)
+    df['cashDividend'] = df['cashDividend'].apply(lambda x: x if x > 10.0 else x * 1000.0)
     
     # df['exDividendDate'] = pd.to_datetime(df['exDividendDate'], format='%d-%m-%Y')
     
