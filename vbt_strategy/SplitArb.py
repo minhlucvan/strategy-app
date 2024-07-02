@@ -79,29 +79,35 @@ class SplitArbStrategy(BaseStrategy):
             new_events = tcbs_api.get_market_calendar(tcbs_id=tcbs_id, from_date=from_date, to_date=to_date)
             
             new_events_df = load_calender_data_tp_df(new_events)
-            
-            # filter defType = 'stock.div010'
+                        
+            # filter defType = 'stock.div010' 
             new_events_df = new_events_df[new_events_df['defType'] == 'stock.div011']
             
             # filter the events that are not in the symbols
             new_events_df = new_events_df[new_events_df['mkCode'].isin(symbols)]
             
+            if not new_events_df.empty:
+                st.write('New events found')
+                st.write(new_events_df)
+                        
             for i, row in new_events_df.iterrows():
                 date = row['date']
                 date = datetime.datetime.strptime(date, '%Y-%m-%d')
-                index_value = pd.Timestamp(date).tz_localize('UTC')
+                index_value = pd.Timestamp(date).tz_localize(None)   
                 
                 if row['mkCode'] in events_df.columns:
-                    events_df = pd.concat([events_df, pd.DataFrame(index=[index_value], columns=events_df.columns)], axis=0) 
-                    events_df[row['mkCode']][index_value] = row['ratio'] * 10_000
+                    events_df = pd.concat([events_df, pd.DataFrame(index=[index_value], columns=events_df.columns)], axis=0)
+                    events_df[row['mkCode']][index_value] = row['ratio'] * 100
                             
         
         # if the dividend is less than the threshold, set it to nan
         for stock in events_df.columns:
             for i in range(len(events_df)):
-                if events_df[stock][i] < dividend_threshold:
+                if events_df[stock][i] > dividend_threshold:
+                    events_df[stock][i] = events_df[stock][i]
+                else:
                     events_df[stock][i] = np.nan
-        
+                
         days_to_event = generate_arbitrage_signal(stocks_df, events_df)
                 
         # 2. calculate the indicators
