@@ -34,17 +34,18 @@ def run(symbol_benchmark, symbolsDate_dict):
     stocks_df = get_stocks(symbolsDate_dict,'close')
    
     events_df = get_stocks_events(symbolsDate_dict, 'cashDividend')
-    
+    st.write(events_df)
 
     dividend_threshold = st.number_input('Dividend Threshold', min_value=0, max_value=6000, value=1000)
     
     events_df = events_df[events_df > dividend_threshold]
     
     run_custom_event_study(symbol_benchmark,
-    symbolsDate_dict,
-    benchmark_df=benchmark_df,
-    stocks_df=stocks_df,
-    events_df=events_df,
-    def_days_before=6,
-    def_days_after=0)
-   
+        symbolsDate_dict,
+        benchmark_df=benchmark_df,
+        stocks_df=stocks_df,
+        events_df=events_df,
+        def_days_before=6,
+        def_days_after=0
+    )
+    

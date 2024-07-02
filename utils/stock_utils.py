@@ -2006,6 +2006,18 @@ def extract_dividend_amount(html_text):
         return dividend_amount_match.group(1)
     else:
         return None
+    
+def extract_stock_dividend_ratio(html_text):
+    # 2. Cổ tức Bằng cổ phiếu, tỷ lệ 5.00%
+    # Regular expression to extract the stock dividend ratio
+    stock_dividend_ratio_pattern = re.compile(r"bằng cổ phiếu, tỷ lệ ([^%]+)%")
+
+    # Find the stock dividend ratio
+    stock_dividend_ratio_match = stock_dividend_ratio_pattern.search(html_text)
+    if stock_dividend_ratio_match:
+        return stock_dividend_ratio_match.group(1)
+    else:
+        return None
 
 def extract_exdividend_date(html_text):
     # Regular expression to extract the ex-dividend date
@@ -2045,6 +2057,13 @@ def load_stock_events_to_dataframe(data):
     df['cashDividend'] = df['cashDividend'].apply(lambda x: x if x > 10.0 else x * 1000.0)
     
     # df['exDividendDate'] = pd.to_datetime(df['exDividendDate'], format='%d-%m-%Y')
+    
+    # stock dividend
+    # bằng cổ phiếu, tỷ lệ 5.00%
+    df['stockDividend'] = df['niceTitle'].apply(extract_stock_dividend_ratio)
+
+    df['stockDividend'] = df['stockDividend'].astype(float)
+
     
     # set index to date
     df.set_index('date', inplace=True)

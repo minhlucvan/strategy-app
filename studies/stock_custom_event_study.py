@@ -166,11 +166,11 @@ def run(symbol_benchmark, symbolsDate_dict, benchmark_df=None, stocks_df=None, e
 
 
     days_before = st.number_input('Days before event', min_value=-10, max_value=10, value=def_days_before)
-    days_after = st.number_input('Days after event', min_value=0, max_value=300, value=def_days_after)
+    days_after = st.number_input('Days after event', min_value=-10, max_value=300, value=def_days_after)
 
     events_affection_df = calculate_event_affection(stocks_df, events_df, days_before, days_after)
 
-    is_numeric = type(events_df.iloc[0, 0]) in [int, float]
+    is_numeric = not pd.isna(events_df.iloc[0, 0])
     
     events_affection_unstack_df = plot_event_distributions(events_df, events_affection_df, is_numeric=is_numeric)
     plot_event_summary(events_affection_unstack_df, benchmark_df, symbol_benchmark)

@@ -23,6 +23,8 @@ from .MOMTOP import MOMTOPStrategy
 from .LiqFlow import LiqFlowStrategy
 from .FinReportArb import FinReportArbStrategy
 from .GapsRecover import GapsRecoverStrategy
+from .SplitArb import SplitArbStrategy
+from .EventArb import EventArbStrategy
 
 __all__ = [
     "MOMStrategy",
@@ -49,7 +51,9 @@ __all__ = [
     "MOMTOPStrategy",
     "LiqFlowStrategy",
     "FinReportArbStrategy",
-    "GapsRecoverStrategy"
+    "GapsRecoverStrategy",
+    "SplitArbStrategy",
+    "EventArbStrategy"
 ]
 
 strategy_list = [
@@ -77,5 +81,7 @@ strategy_list = [
     "MOMTOP",
     "LiqFlow",
     "FinReportArb",
-    "GapsRecover"
+    "GapsRecover",
+    "SplitArb",
+    "EventArb"
 ]

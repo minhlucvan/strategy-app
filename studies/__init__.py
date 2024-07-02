@@ -9,6 +9,7 @@ from .etf_structure_study import run as run_etf_structure
 from .magic_fomula_study import run as run_magic_fomula
 from .stock_events_study import run as run_stock_events
 from .stock_dividend_study import run as run_stock_dividend
+from .stock_split_study import run as run_stock_split
 from .bank_pricing_study import run as run_bank_pricing
 from .steven_fomula_study import run as run_steven_fomula
 from .relative_comparsion_study import run as run_relative_comparsion
@@ -103,6 +104,10 @@ study_list = [
     {
         "name": "Stock Dividend",
         "module": run_stock_dividend
+    },
+    {
+        "name": "Stock Split",
+        "module": run_stock_split
     },
     {
         "name": "Stock Issue",

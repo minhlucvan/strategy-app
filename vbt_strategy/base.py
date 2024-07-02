@@ -41,6 +41,7 @@ class BaseStrategy(object):
     is_live = False
     timeframe = '1D'
     value_filter = False
+    column = 'close'
     value_threshold = 500_000_000
     
     
@@ -87,7 +88,7 @@ class BaseStrategy(object):
                 symbolsDate_dict_cp['symbols'].append(self.bm_symbol)
             
         self.stocks_df = get_stocks(symbolsDate_dict_cp,
-            column='close',
+            column=self.column,
             timeframe=self.timeframe,
             value_filter=self.value_filter)
         
@@ -111,7 +112,7 @@ class BaseStrategy(object):
             else:
                 # align the benchmark price with the stock price
                 bm_df = bm_df.reindex(self.stock_dfs[0][1].index)
-                self.bm_price = bm_df['close']
+                self.bm_price = bm_df[self.column]
 
     def init_rsc(self):
         if self.bm_price is None:
@@ -123,7 +124,7 @@ class BaseStrategy(object):
             self.rs_dfs = []
             for i in range(len(self.stock_dfs)):
                 # calculate the relative strength
-                rs = self.stock_dfs[i][1]['close'] / self.bm_price
+                rs = self.stock_dfs[i][1][self.column] / self.bm_price
                 self.rs_dfs.append((self.stock_dfs[i][0], rs))
 
     def enable_live(self):
