@@ -55,6 +55,7 @@ from .tcbs_stock_noti_study import run as run_tcbs_stock_noti_study
 from .stock_smc_study import run as run_stock_smc_study
 from .stock_123_pullback_study import run as run_stock_123_pullback_study
 from .stock_darvas_box_study import run as run_stock_darvas_box_study
+from .stock_tet_study import run as run_stock_tet_study
 
 study_list = [
     {
@@ -268,6 +269,10 @@ study_list = [
     {
         "name": "Stock Darvas Box",
         "module": run_stock_darvas_box_study
+    },
+    {
+        "name": "Stock TET",
+        "module": run_stock_tet_study
     },
     {
         "name": "TCBS Agent",
