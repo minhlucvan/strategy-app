@@ -4,9 +4,14 @@ from datetime import timezone
 
 import streamlit as st
 import vectorbt as vbt
+import utils.config as cfg
+import datetime
+from utils.tcbs_api import TCBSAPI
+
 
 from indicators.EventArb import generate_arbitrage_signal, get_EventArbInd
 from utils.processing import get_stocks_events
+from utils.tcbs_agent import load_calender_data_tp_df
 
 from .base import BaseStrategy
 from utils.vbt import plot_CSCV
@@ -19,15 +24,15 @@ class IssArbStrategy(BaseStrategy):
         {
             "name": 'days_before',
             "type": "int",
-            "min":  3,
-            "max":  10,
+            "min":  1,
+            "max":  9,
             "step": 1
         }, {
             "name": 'days_after',
             "type": "int",
-            "min":  90,
-            "max":  1,
-            "step": 0
+            "min":  -3,
+            "max":  9,
+            "step": 1
         }
     ]
     stacked_bool = True
@@ -47,13 +52,52 @@ class IssArbStrategy(BaseStrategy):
 
         close_price = stocks_df
         
-        events_df = get_stocks_events(self.symbolsDate_dict, 'label')
+        events_df = get_stocks_events(self.symbolsDate_dict, 'stockIssuePrice')
+        
+        symbols = self.symbolsDate_dict['symbols']
+        
+        
+        if self.is_live:
+            tcbs_id = cfg.get_config('tcbs.info.TCBSId')
+            auth_token = cfg.get_config('tcbs.info.authToken')
+                        
+            tcbs_api = TCBSAPI(auth_token=auth_token)
+            
+            from_date = datetime.datetime.now().strftime('%Y-%m-%d')
+            to_date = (datetime.datetime.now() + datetime.timedelta(days=30)).strftime('%Y-%m-%d')
+        
+            new_events = tcbs_api.get_market_calendar(tcbs_id=tcbs_id, from_date=from_date, to_date=to_date)
+            
+            new_events_df = load_calender_data_tp_df(new_events)
+                        
+            # filter defType = 'stock.div010' 
+            new_events_df = new_events_df[new_events_df['defType'] == 'stock.rights']
+            
+            
+            # filter the events that are not in the symbols
+            new_events_df = new_events_df[new_events_df['mkCode'].isin(symbols)]
+            
+            if not new_events_df.empty:
+                st.write('New events found')
+                st.write(new_events_df)
+                        
+            for i, row in new_events_df.iterrows():
+                date = row['date']
+                date = datetime.datetime.strptime(date, '%Y-%m-%d')
+                index_value = pd.Timestamp(date).tz_localize(None)   
+                
+                if row['mkCode'] in events_df.columns:
+                    events_df = pd.concat([events_df, pd.DataFrame(index=[index_value], columns=events_df.columns)], axis=0)
+                    events_df[row['mkCode']][index_value] = row['ratio'] * 100
+                            
         
                 
         # if the label is not I, A, then set it to nan
         for stock in events_df.columns:
             for i in range(len(events_df)):
-                if events_df[stock][i] not in ['I', 'A']:
+                if events_df[stock][i] > 0:
+                    events_df[stock][i] = events_df[stock][i]
+                else:
                     events_df[stock][i] = np.nan
         
         days_to_event = generate_arbitrage_signal(stocks_df, events_df)
@@ -86,7 +130,7 @@ class IssArbStrategy(BaseStrategy):
         group_by = pd.Index(group_list, name='group')
 
         # 5. Build portfolios
-        if self.param_dict['WFO'] != 'None':
+        if 'WFO' in self.param_dict and self.param_dict['WFO'] != 'None':
             entries, exits = self.maxRARM_WFO(
                 close_price, entries, exits, calledby)
             pf = vbt.Portfolio.from_signals(

@@ -23,16 +23,12 @@ def run(symbol_benchmark, symbolsDate_dict):
     benchmark_df = get_stocks(benchmark_dict,'close')
     stocks_df = get_stocks(symbolsDate_dict,'close')
    
-    events_df = get_stocks_events(symbolsDate_dict, 'label')
+    events_df = get_stocks_events(symbolsDate_dict, 'stockIssuePrice')
     
+
     # title_df = get_stocks_events(symbolsDate_dict, 'title', event_type='I')
-    
-    # get all value unique
-    values = pd.DataFrame(events_df.values.flatten()).dropna()[0].unique()
-    
-    selectedLabel = st.selectbox('Select Label', values)
-    
-    events_df = events_df[events_df == selectedLabel]
+            
+    events_df = events_df[events_df > 0]
     
     run_custom_event_study(symbol_benchmark, symbolsDate_dict, benchmark_df, stocks_df, events_df, 10, 90)
     

@@ -2018,6 +2018,20 @@ def extract_stock_dividend_ratio(html_text):
         return stock_dividend_ratio_match.group(1)
     else:
         return None
+    
+def extract_stock_issue_price(html_text):
+    # 2. Quyền mua cổ phiếu ... giá 10.000 đ/CP ...
+    if "Quyền mua" in html_text:
+        # Regular expression to extract the stock issue ratio
+        stock_issue_price_pattern = re.compile(r"giá ([^ ]+) đ/CP")
+        stock_issue_price_match = stock_issue_price_pattern.search(html_text)
+        if stock_issue_price_match:
+            return stock_issue_price_match.group(1)
+        else:
+            return None        
+    else:
+        return None
+        
 
 def extract_exdividend_date(html_text):
     # Regular expression to extract the ex-dividend date
@@ -2061,6 +2075,11 @@ def load_stock_events_to_dataframe(data):
     # stock dividend
     # bằng cổ phiếu, tỷ lệ 5.00%
     df['stockDividend'] = df['niceTitle'].apply(extract_stock_dividend_ratio)
+    
+    # stock issue ratio
+    df['stockIssuePrice'] = df['niceTitle'].apply(extract_stock_issue_price)
+    
+    df['stockIssuePrice'] = df['stockIssuePrice'].astype(float)
 
     df['stockDividend'] = df['stockDividend'].astype(float)
 
