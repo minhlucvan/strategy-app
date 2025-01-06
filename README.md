@@ -1,47 +1,44 @@
 # BeQuant Trading Platform 🐝"
 
-> Finding an edge in a developing market like the VNIndex (Vietnam's stock market index) involves identifying inefficiencies and opportunities that may not be as prevalent in more developed markets. Here are several steps and factors to consider:
+BeQuant is a platform that allows you to create, backtest, and deploy trading strategies. It provides a simple and intuitive interface to create strategies, backtest them, and deploy them to the market.
 
-### 1. **Market Structure Analysis**
-   - **Liquidity and Volatility**: Developing markets often exhibit lower liquidity and higher volatility. This can create opportunities for traders who can manage the risks associated with these factors.
-   - **Information Asymmetry**: Information may not be as widely disseminated or as quickly absorbed by the market. Traders who have better access to information or who can process it more efficiently can find an edge.
+### Workflow
+**1. Find an idea:** Find an idea for a trading strategy. This could be a simple moving average crossover strategy, a mean reversion strategy, or a momentum strategy.
 
-### 2. **Fundamental Factors**
-   - **Earnings Surprises**: Companies in developing markets might have less analyst coverage, leading to more significant price movements following earnings announcements. Identifying companies likely to outperform earnings expectations can provide an edge.
-   - **Macroeconomic Indicators**: Economic indicators such as GDP growth, inflation rates, and government policies can have a more pronounced effect on stock prices. Monitoring these indicators closely can offer trading opportunities.
+**2. Fetch data:** Fetch historical data for the assets you want to trade. BeQuant provides a data fetcher that allows you to fetch data from various sources.
 
-### 3. **Behavioral Factors**
-   - **Investor Sentiment**: Retail investors often dominate developing markets, and their behavior can be more sentiment-driven. Contrarian strategies that exploit overreactions to news and events can be effective.
-   - **Herding Behavior**: Investors in developing markets may exhibit herding behavior, where they follow the actions of others. Recognizing and capitalizing on these trends can provide a trading edge.
+**2. Study the data:** Study the data to understand the behavior of the assets you want to trade. This will help you to create a strategy that is profitable.
 
-### 4. **Technical Factors**
-   - **Price Momentum**: Momentum strategies, which involve buying securities that have performed well in the past and selling those that have performed poorly, can be particularly effective in less efficient markets.
-   - **Mean Reversion**: In a volatile market, mean reversion strategies, which assume that prices will revert to their historical averages, can also be profitable.
+**3. Create a strategy:** Create a trading strategy using the strategy editor. The strategy editor allows you to create a strategy using a simple and intuitive interface.
 
-### 5. **Regulatory Environment**
-   - **Regulatory Changes**: Developing markets may undergo frequent regulatory changes. Staying ahead of these changes and understanding their implications can provide an advantage.
-   - **Corporate Governance**: Differences in corporate governance standards can affect company performance. Identifying firms with strong governance practices can lead to better investment outcomes.
+**4. Analyze the strategy:** Analyze the strategy to see how it performs on historical data. This will help you to understand the performance of the strategy and make any necessary adjustments.
 
-### 6. **Quantitative Strategies**
-   - **Factor Models**: Develop multi-factor models tailored to the specific characteristics of the VNIndex. Factors might include value, size, momentum, quality, and volatility. Backtest these models to identify which factors are most predictive of future returns.
-   - **Machine Learning**: Use machine learning techniques to analyze large datasets and identify complex patterns and relationships that might not be apparent through traditional analysis.
+**5. Deploy the strategy:** Deploy the strategy to the market. BeQuant provides a deployment tool that allows you to deploy the strategy to the market with a single click.
 
-### 7. **Event-Driven Strategies**
-   - **Mergers and Acquisitions**: Track potential M&A activity, which can create significant price movements. Arbitrage opportunities might arise from announced deals.
-   - **Earnings Announcements**: Develop algorithms to trade around earnings announcements, taking advantage of the increased volatility and potential mispricing.
+**6. Allocate the portfolio:** Allocate the portfolio to the strategy. BeQuant provides a portfolio allocation tool that allows you to allocate the portfolio to the strategy with a single click.
 
-### Practical Steps:
-1. **Data Collection and Analysis**: Gather comprehensive data on the VNIndex, including historical prices, trading volumes, earnings reports, macroeconomic indicators, and news.
-2. **Backtesting**: Rigorously backtest your strategies on historical data to evaluate their performance and refine your models.
-3. **Risk Management**: Develop robust risk management frameworks to manage the higher volatility and potential liquidity issues in a developing market.
-4. **Continuous Monitoring**: Continuously monitor market conditions, as developing markets can change rapidly. Adjust strategies accordingly to maintain an edge.
+**7. Live trading:** Monitor the performance of the strategy in real-time. BeQuant provides a dashboard that allows you to monitor the performance of the strategy in real-time.
 
-## Installation
-```shell
-pip install -r requirements.txt
-```
+# Dasboard
 
-## Usage
-```shell
-streamlit run main.py
-```
+The dashboard is the first page you see when you log in to BeQuant. It provides a quick overview of the deployed strategies.
+
+![Dashboard](./docs/images/dashboard.png)
+
+# Strategy
+
+The strategy page provides a detailed view of the strategy. It shows the strategy's performance, the trades it has made, and the current positions.
+
+![Strategy](./docs/images/strategy.png)
+
+# Portfolio
+
+The portfolio page provides a detailed view of the portfolio. It shows the optimal portfolio allocation, the current portfolio allocation, and the current allocation of the assets in the portfolio.
+
+![Portfolio](./docs/images/portfolio.png)
+
+# Studies
+
+The studies page provides a detailed view of the studies. It shows the performance of the studies, the trades they have made, and the current positions.
+
+![Studies](./docs/images/study.png)

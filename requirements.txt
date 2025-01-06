@@ -15,10 +15,15 @@ EMD-signal
 vmdPY
 pyemd
 tftb
+vectorbt
+akshare
+seaborn
 Riskfolio-Lib
 seaborn
+statsmodels
 akshare
 TA-Lib
+st-pages
 streamlit-quill
 git+https://github.com/minhlucvan/vnquant.git
 empyrial
