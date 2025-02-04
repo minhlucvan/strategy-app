@@ -21,7 +21,17 @@ seaborn
 Riskfolio-Lib
 seaborn
 statsmodels
+requests-cache
+holidays
+python-binance
+python-dotenv
+playwright
+python-googlesearch
+smartmoneyconcepts
+optionlab
+lunardate
 akshare
+vnstock
 TA-Lib
 st-pages
 streamlit-quill

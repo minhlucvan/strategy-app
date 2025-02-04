@@ -1,5 +1,6 @@
 import streamlit as st
-from st_pages import get_nav_from_toml
+from st_pages import Page, add_page_title, get_nav_from_toml
+
 
 # Import the page configuration
 nav = get_nav_from_toml("pages_config.toml")
@@ -45,5 +46,7 @@ Finding an edge in a developing market like the VNIndex (Vietnam's stock market 
 3. **Risk Management**: Develop robust risk management frameworks to manage the higher volatility and potential liquidity issues in a developing market.
 4. **Continuous Monitoring**: Continuously monitor market conditions, as developing markets can change rapidly. Adjust strategies accordingly to maintain an edge.
 """)
+
+add_page_title(pg)
 
 pg.run()

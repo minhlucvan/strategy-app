@@ -3,7 +3,7 @@ import pandas as pd
 import requests
 import xml.etree.ElementTree as ET 
 from bs4 import BeautifulSoup
-from vnstock3 import Vnstock
+from vnstock import Vnstock
 
 
 
