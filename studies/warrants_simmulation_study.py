@@ -57,7 +57,7 @@ def fetch_warrants_data():
     return data_df
 
 @st.cache_data
-def simulate_warrants_data(tickers, data_df, stock_df, num_simulations=1000):
+def simulate_warrants_data(tickers, data_df, stock_df, df, num_simulations=1000):
     sims_results  = pd.DataFrame()
     
     for ticker in tickers:
@@ -87,6 +87,8 @@ def simulate_warrants_data(tickers, data_df, stock_df, num_simulations=1000):
                 conversion_ratio=cw_conversion_ratio,
                 execution_price=cw_exercise_price,
             )
+            
+            end_date = stock_df['date'].iloc[-1]
 
             cw_days_to_expiry = (cw_expiry_date - end_date).days
 
@@ -217,7 +219,7 @@ def run(symbol_benchmark, symbolsDate_dict):
 
     cw_tickers_results = cw_tickers
     if enable_test:
-        results = simulate_warrants_data(test_tickers, cw_df, test_df, num_simulations=test_simulations)
+        results = simulate_warrants_data(test_tickers, cw_df, test_df, df, num_simulations=test_simulations)
         # sort by win_probs
         results = results.sort_values(by=['expected_value_daily'], ascending=False)
         result_display_df = results[['cw_ticker', 'cw_days_to_expiry', 'win_probs', 'expected_roi', 'expected_value', 'expected_value_daily']]
@@ -268,15 +270,11 @@ def run(symbol_benchmark, symbolsDate_dict):
     mac_lower = mc_mean - mc_std
 
     # days to expiry
-    st.write("##### Days to expiry {}".format(cw_days_to_expiry))
-
     # caculate price gap
     price_gap = mc_mean - cw_break_even_price
     price_gap_pct = price_gap / cw_break_even_price * 100
     stock_price_gap = mc_mean - stock_price
     stock_price_gap_pct = stock_price_gap / stock_price * 100
-
-    st.write("##### Price gap", "{:.2f}%".format(price_gap_pct))
 
     # calculate lower band possibility
     lower_band = (mc_last_results <= mac_lower).sum()
@@ -285,8 +283,6 @@ def run(symbol_benchmark, symbolsDate_dict):
     # calculate free risk gap = break even price - lower band
     free_risk_gap = mac_lower - cw_break_even_price
     free_risk_gap_pct = free_risk_gap / cw_break_even_price * 100
-
-    st.write("##### Risk free ratio", "{:.2f}%".format(free_risk_gap_pct))
 
     # caculate possibility of price above stock price
     above_stock_price = (mc_last_results >= stock_price).sum()
@@ -300,49 +296,31 @@ def run(symbol_benchmark, symbolsDate_dict):
     above_mc_mean = (mc_last_results >= mc_mean).sum()
     above_mc_mean_pct = above_mc_mean / num_simulations * 100
 
-    st.write("##### Win probs", "{:.2f}%".format(above_break_even_price_pct))
-
     # caculate stock expected roi
     stock_expected_roi = stock_price_gap_pct / 100
-
-    st.write("##### Stock expected ROI", "{:.2f}%".format(stock_expected_roi))
 
     # caculate stock expected annual roi
     stock_expected_annual_roi = stock_expected_roi / cw_days_to_expiry * 365
 
-    st.write("##### Stock expected annual ROI", "{:.2f}%".format(stock_expected_annual_roi))
-
     # caculate expected roi
     expected_roi = price_gap_pct * cw_conversion_ratio / 100
-
-    st.write("##### Expected ROI", "{:.2f}%".format(expected_roi))
 
     # calculate expected value
     expected_value = (above_break_even_price_pct + 1) * expected_roi - 1
 
-    st.write("##### Expected value", "{:.2f}%".format(expected_value))
-
     # calculate expected value daily
     expected_value_daily = expected_value / cw_days_to_expiry
-
-    st.write("##### Expected value daily", "{:.2f}%".format(expected_value_daily))
 
     # caculate expected annual roi
     expected_annual_roi = expected_roi / cw_days_to_expiry * 365
 
-    st.write("##### Expected annual ROI", "{:.2f}%".format(expected_annual_roi))
-
     # caculate annual roi ratio
     annual_roi_ratio = expected_annual_roi / stock_expected_annual_roi
-
-    st.write("##### Annual ROI ratio", "{:.2f}".format(annual_roi_ratio))
 
     cw_price_df = fetch_data(ticker=cw_ticker, stock_type='coveredWarr', timeframe='D', count_back=2929)
     cw_price_df['cw'] = cw_price_df['Ticker']
 
     # convert to date
-    cw_price_df['date'] = pd.to_datetime(cw_price_df['Datetime'])
-
     df['date'] = pd.to_datetime(df['Datetime'])
 
     # merge cw_price_df and cw_data_df on Date
@@ -355,23 +333,32 @@ def run(symbol_benchmark, symbolsDate_dict):
 
     # # convert listedDate to date
     cw_ticker_data_df['listedDate'] = pd.to_datetime(cw_ticker_data_df['listedDate'])
-
     # # calculate days to listedDate = Date - listedDate
     cw_ticker_data_df['days_to_listed'] = (cw_ticker_data_df['date'].dt.date - cw_ticker_data_df['listedDate'].dt.date)
-
     cw_ticker_data_df['days_to_listed'] = cw_ticker_data_df['days_to_listed'].apply(lambda x: x.days)
-
     # # keep only rows with days_to_listed >= 0
     cw_ticker_data_df = cw_ticker_data_df[cw_ticker_data_df['days_to_listed'] >= 0]
-
     # calculate days to expiredDate = expiredDate - Date
     cw_ticker_data_df['days_to_expired'] = (cw_ticker_data_df['expiredDate'].dt.date - cw_ticker_data_df['date'].dt.date)
-
     cw_ticker_data_df['days_to_expired'] = cw_ticker_data_df['days_to_expired'].apply(lambda x: x.days)
 
     # process warrants data
     cw_ticker_data_df = process_warrants_data(cw_ticker_data_df, risk_free_rate=0.07)
     # plot simulation results
+    
+    st.write("##### Days to expiry {}".format(cw_days_to_expiry))
+    st.write("##### Price gap", "{:.2f}%".format(price_gap_pct))
+    st.write("##### Risk free ratio", "{:.2f}%".format(free_risk_gap_pct))
+    st.write("##### Win probs", "{:.2f}%".format(above_break_even_price_pct))
+    st.write("##### Stock expected ROI", "{:.2f}%".format(stock_expected_roi))
+    st.write("##### Stock expected annual ROI", "{:.2f}%".format(stock_expected_annual_roi))
+    st.write("##### Expected ROI", "{:.2f}%".format(expected_roi))
+    st.write("##### Expected value", "{:.2f}%".format(expected_value))
+    st.write("##### Expected value daily", "{:.2f}%".format(expected_value_daily))
+    st.write("##### Expected annual ROI", "{:.2f}%".format(expected_annual_roi))
+    st.write("##### Annual ROI ratio", "{:.2f}".format(annual_roi_ratio))
+    cw_price_df['date'] = pd.to_datetime(cw_price_df['Datetime'])
+
 
     show_chart = st.checkbox("Show chart", value=False)
     if show_chart:
@@ -495,7 +482,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     )
     # fake trace for legend
     fig.add_trace(go.Scatter(x=[None], y=[None], name='break_even_price', line=dict(color='red')))
-    fig.add_trace(go.Scatter(x=[None], y=[None], name='mean', line=dict(color='green')))
+    fig.add_trace(go.Scatter(x=[None], y=[None], name='expected_price', line=dict(color='green')))
     fig.add_trace(go.Scatter(x=[None], y=[None], name='stock_price', line=dict(color='blue')))
     # show legend
     fig.update_layout(
