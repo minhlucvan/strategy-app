@@ -248,7 +248,7 @@ def run(symbol_benchmark, symbolsDate_dict):
         
         days_to_expired = df['days_to_expired'][i]
         # Perform the Monte Carlo simulation for a fixed period of 100 days
-        sim_df = monte_carlo_simulation(stock_df_copy, 10000, days_to_expired, lookback_days=252, exercise_price=df['Exercise_Price'][i])
+        sim_df = monte_carlo_simulation(stock_df_copy,30000, days_to_expired, lookback_days=252, exercise_price=df['Exercise_Price'][i])
         
         last_sim = sim_df.iloc[-1]
             
