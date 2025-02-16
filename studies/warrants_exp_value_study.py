@@ -61,11 +61,13 @@ def monte_carlo_simulation(df, num_simulations, num_days, lookback_days=252, exe
     sim_std_low = sim_mean - sim_std
     total_sims = num_simulations * df.shape[1]
     win_rate = np.sum(simulation_results_last_first_stock > exercise_price) / total_sims
+    loss_mean = np.mean(simulation_results_last_first_stock[simulation_results_last_first_stock < exercise_price])
 
     result_df = pd.DataFrame({
         'min': sim_min.flatten(),
         'max': sim_max.flatten(),
         'mean': sim_mean.flatten(),
+        'loss_mean': loss_mean,
         'median': sim_median.flatten(),
         'std_high': sim_std_high.flatten(),
         'std_low': sim_std_low.flatten(),
@@ -121,6 +123,45 @@ def fetch_stock_data(ticker='ACB', stock_type='stock', timeframe='D', count_back
     data_df = data_df[['close']]
 
     return data_df
+
+def process_simulations_results(df, all_simulations_df):
+    # merge sim_df with df
+    result_df = pd.merge(df, all_simulations_df, left_index=True, right_index=True, suffixes=["", "_sim"])
+    
+    # expected price = mean
+    result_df['expected_price'] = result_df['mean']
+    
+    # expected_profit = expected_price - exercise_price
+    result_df['expected_profit'] = result_df['expected_price'] - result_df['Exercise_Price']
+    
+    # expect_warrant_profit = expected_profit / Exercise_Ratio
+    result_df['expect_warrant_profit'] = result_df['expected_profit'] / result_df['Exercise_Ratio']
+    
+    # cw_expected_return
+    result_df['cw_expected_return'] = result_df['expect_warrant_profit'] / result_df['close_cw']
+    
+    # cw_expected_return_daily
+    result_df['cw_expected_return_daily'] = result_df['cw_expected_return'] / result_df['days_to_expired']
+    
+    # expected_loss =  exercise_price - loss_mean
+    result_df['expected_loss'] = result_df['Exercise_Price'] - result_df['loss_mean']
+    
+    # cw_expected_loss = expected_loss / Exercise_Ratio
+    result_df['cw_expected_loss'] = result_df['expected_loss'] / result_df['Exercise_Ratio']
+    
+    # cw_expected_loss_return = cw_expected_loss / close_cw
+    result_df['cw_expected_loss_return'] = result_df['cw_expected_loss'] / result_df['close_cw']
+    
+    # cw_expected_loss_return_daily
+    result_df['cw_expected_loss_return_daily'] = result_df['cw_expected_loss_return'] / result_df['days_to_expired']
+    
+    # expect_value = cw_expected_return * win_rate + cw_expected_loss_return * (1 - win_rate)
+    result_df['expect_value'] = result_df['cw_expected_return'] * result_df['win_rate'] - result_df['cw_expected_loss_return'] * (1 - result_df['win_rate'])
+    
+    # expect_value_daily
+    result_df['expect_value_daily'] = result_df['expect_value'] / result_df['days_to_expired'] * 100
+                                                                 
+    return result_df
 
 def run(symbol_benchmark, symbolsDate_dict):
     
@@ -210,61 +251,114 @@ def run(symbol_benchmark, symbolsDate_dict):
         sim_df = monte_carlo_simulation(stock_df_copy, 10000, days_to_expired, lookback_days=252, exercise_price=df['Exercise_Price'][i])
         
         last_sim = sim_df.iloc[-1]
-        
+            
         last_sim_values = pd.DataFrame(last_sim).T
         last_sim_values.index = [sim_date]    
+          
         
         # st.write(last_sim_values)
                 
         all_simulations_df = pd.concat([all_simulations_df, last_sim_values])
     
-    # Loop through index of df calculate the warrant price by black scholes
-    
-    # plot distribution of the last day
-    st.write("Distribution of the last day")
-    # histogram
-    fig = px.histogram(sim_df, x='mean', title='Distribution of the last day')
-    st.plotly_chart(fig)
+    result_df = process_simulations_results(df, all_simulations_df)
 
-    # merge sim_df with df
-    result_df = pd.merge(df, all_simulations_df, left_index=True, right_index=True, suffixes=["", "_sim"])
-    
-    # expected price = mean
-    result_df['expected_price'] = result_df['mean']
-    
-    # expected_profit = expected_price - exercise_price
-    result_df['expected_profit'] = result_df['expected_price'] - result_df['Exercise_Price']
-    
-    # expect_warrant_profit = expected_profit / Exercise_Ratio
-    result_df['expect_warrant_profit'] = result_df['expected_profit'] / result_df['Exercise_Ratio']
-    
-    # expected_warrant_return
-    result_df['expected_warrant_return'] = result_df['expect_warrant_profit'] / result_df['close_cw']
-    
-    # expected_warrant_return_daily
-    result_df['expected_warrant_return_daily'] = result_df['expected_warrant_return'] / result_df['days_to_expired'] * 100
-    
-    # expected_loss = min - exercise_price
-    result_df['expected_loss'] = result_df['std_high'] - result_df['Exercise_Price']
-    
-    # expect_warrant_loss = expected_loss / Exercise_Ratio
-    result_df['expect_warrant_loss'] = result_df['expected_loss'] / result_df['Exercise_Ratio']
-    
-    # expected_warrant_loss_return = expect_warrant_loss / close_cw
-    result_df['expected_warrant_loss_return'] = result_df['expect_warrant_loss'] / result_df['close_cw']
-    
-    # expected_warrant_loss_return_daily
-    result_df['expected_warrant_loss_return_daily'] = result_df['expected_warrant_loss_return'] / result_df['days_to_expired'] * 100
-    
-    # expect_value = expected_warrant_return * win_rate + expected_warrant_loss_return * (1 - win_rate)
-    result_df['expect_value'] = result_df['expected_warrant_return'] * result_df['win_rate'] - result_df['expected_warrant_loss_return'] * (1 - result_df['win_rate'])
     
     plot_single_line(result_df['close'], title="Stocks Close Price")
-    plot_single_line(result_df['expected_price'], title="Warant Expected Price")
+    # plot_single_line(result_df['expected_price'], title="Warant Expected Price")
     plot_single_line(result_df['close_cw'], title="Warrant Close Price")
     
-    
+    st.write("Days to Expire: ", result_df['days_to_expired'].iloc[-1])
+    st.write("Expected profit: ", result_df['cw_expected_return'].iloc[-1])
+    st.write("Profit probability: ", result_df['win_rate'].iloc[-1])
+    st.write("Expected loss: ", result_df['cw_expected_loss_return'].iloc[-1])
     st.write("Expected value: ", result_df['expect_value'].iloc[-1])
     plot_single_bar(result_df['expect_value'], title="Expected Value")
     
     
+    st.write("Expected profit daily: ", result_df['cw_expected_return_daily'].iloc[-1])
+    st.write("Expected loss daily: ", result_df['cw_expected_loss_return_daily'].iloc[-1])
+    st.write("Expected value daily: ", result_df['expect_value_daily'].iloc[-1])
+    plot_single_bar(result_df['expect_value_daily'], title="Expected Value Daily")
+    
+   # ============ Backtesting ============
+   
+    def dynamic_position_sizing(portfolio_value, win_prob, expected_profit, expected_loss, unrealized_pnl, max_risk=0, fractional_kelly=0.5):
+        
+        expected_value = win_prob * expected_profit - (1 - win_prob) * expected_loss
+        
+        if expected_value < 2:
+            # exit if expected value is less than 2
+            return 0
+        
+        # Compute Kelly Fraction
+        kelly_fraction = (win_prob * expected_profit - (1 - win_prob) * expected_loss) / (expected_profit * expected_loss)
+        # Apply fractional Kelly to reduce risk
+        kelly_fraction = max(0, min(fractional_kelly * kelly_fraction, 1))  # Keep it between 0-1
+        
+        pnl_adjustment_factor = 1
+        if unrealized_pnl != 0:     
+            # Position Size Adjustment (aware of expected vs unrealized P&L)
+            pnl_adjustment_factor = (expected_profit - abs(unrealized_pnl)) / (expected_loss + abs(unrealized_pnl))
+            pnl_adjustment_factor = max(0.5, min(pnl_adjustment_factor, 1.5))  # Keep adjustments reasonable
+                    
+        drawdown_factor = 1  # Default to no drawdown factor
+        if max_risk > 0:
+            # Adjust Position Size based on Max Risk and unrealized P&L
+            drawdown_factor = max(0, 1 - unrealized_pnl / max_risk)  # Drawdown Factor
+            drawdown_factor = max(0.5, min(drawdown_factor, 1.5))
+        
+        # Compute New Position Size
+        new_position = portfolio_value * kelly_fraction * pnl_adjustment_factor * drawdown_factor
+        return new_position
+
+    # Example Usage
+    portfolio_value = 1
+    current_value = 0
+    current_position = 0
+    current_pnl = 0
+    current_return = 1
+    max_risk = 0
+
+    trade_df = pd.DataFrame()
+    
+    for i in range(len(result_df)):
+        date = result_df.index[i]
+        win_prob = result_df['win_rate'][i]
+        expected_profit = result_df['cw_expected_return'][i]
+        expected_loss = result_df['cw_expected_loss_return'][i]
+        cw_price = result_df['close_cw'][i]
+        new_pnl = 0
+        new_return = 0
+        
+        if i > 0:
+            last_cw_price = result_df['close_cw'][i - 1]
+            new_value = current_position * cw_price
+            new_pnl = round(new_value - current_value)
+            current_pnl += new_pnl
+            new_return = new_pnl / current_value if current_value > 0 else 0
+            current_return += new_return
+        
+        current_position = dynamic_position_sizing(portfolio_value, win_prob, expected_profit, expected_loss, current_return, max_risk)
+        current_value = current_position * cw_price
+        
+        new_trade = pd.DataFrame({
+            'Date': [date],
+            'Position': [current_position],
+            'Close': [cw_price],
+            'DailyPnL': [new_pnl],
+            'PnL': [current_pnl],
+            'DailyReturn': [new_return],
+            'Return': [current_return]
+        })
+        
+        trade_df = pd.concat([trade_df, new_trade])
+        
+    
+    
+    # set index to tradingDate
+    trade_df.set_index('Date', inplace=True)
+        
+    st.dataframe(trade_df, use_container_width=True)
+    
+    # plot return
+    plot_single_line(trade_df['Return'], title="Return")
