@@ -982,14 +982,14 @@ def load_cw_info_to_dataframe(cw_info_data):
     return cw_info_df
 
 
-def warrant_break_even_point(current_warrant_price, conversion_ratio, execution_price):
+def warrant_break_even_point(current_warrant_price, execution_price, conversion_ratio):
     """
     Calculate the break-even point for a warrant.
 
     Parameters:
     - current_warrant_price (float): Current price of the warrant.
-    - conversion_ratio (float): Conversion ratio of the warrant.
     - execution_price (float): Execution price of the warrant.
+    - conversion_ratio (float): Conversion ratio of the warrant.
 
     Returns:
     - float: Break-even point of the warrant.
@@ -1017,8 +1017,8 @@ def process_warrants_data(cw_data_merged_df, risk_free_rate=0.05):
     cw_data_merged_df['break_even_price'] = cw_data_merged_df.apply(
         lambda x: warrant_break_even_point(
             current_warrant_price=x['close_cw'],
+            execution_price=x['Exercise_Price'],
             conversion_ratio=x['Exercise_Ratio'],
-            execution_price=x['Exercise_Price']
         ),
         axis=1
     )

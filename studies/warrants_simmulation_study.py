@@ -84,8 +84,8 @@ def simulate_warrants_data(tickers, data_df, stock_df, df, num_simulations=1000)
 
             cw_break_even_price = warrant_break_even_point(
                 current_warrant_price=cw_last_price,
-                conversion_ratio=cw_conversion_ratio,
                 execution_price=cw_exercise_price,
+                conversion_ratio=cw_conversion_ratio,
             )
             
             end_date = stock_df['date'].iloc[-1]
@@ -255,8 +255,8 @@ def run(symbol_benchmark, symbolsDate_dict):
 
     cw_break_even_price = warrant_break_even_point(
         current_warrant_price=cw_last_price,
-        conversion_ratio=cw_conversion_ratio,
         execution_price=cw_exercise_price,
+        conversion_ratio=cw_conversion_ratio,
     )
 
     cw_days_to_expiry = (cw_expiry_date - end_date).days

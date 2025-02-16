@@ -21,7 +21,7 @@ import pandas as pd
 import numpy as np
 import pandas as pd
 
-def monte_carlo_simulation(df, num_simulations, num_days, lookback_days=252, exercise_price=0):
+def monte_carlo_simulation(df, num_simulations, num_days, lookback_days=252, break_event_price=0):
     # Compute daily returns for each stock
     last_year_df = df.iloc[-lookback_days:]
     returns = last_year_df.pct_change().dropna()
@@ -60,8 +60,8 @@ def monte_carlo_simulation(df, num_simulations, num_days, lookback_days=252, exe
     sim_std_high = sim_mean + sim_std
     sim_std_low = sim_mean - sim_std
     total_sims = num_simulations * df.shape[1]
-    win_rate = np.sum(simulation_results_last_first_stock > exercise_price) / total_sims
-    loss_mean = np.mean(simulation_results_last_first_stock[simulation_results_last_first_stock < exercise_price])
+    win_rate = np.sum(simulation_results_last_first_stock > break_event_price) / total_sims
+    loss_mean = np.mean(simulation_results_last_first_stock[simulation_results_last_first_stock < break_event_price])
 
     result_df = pd.DataFrame({
         'min': sim_min.flatten(),
@@ -143,8 +143,8 @@ def process_simulations_results(df, all_simulations_df):
     # cw_expected_return_daily
     result_df['cw_expected_return_daily'] = result_df['cw_expected_return'] / result_df['days_to_expired']
     
-    # expected_loss =  exercise_price - loss_mean
-    result_df['expected_loss'] = result_df['Exercise_Price'] - result_df['loss_mean']
+    # expected_loss =  exercise_price - min
+    result_df['expected_loss'] = result_df['break_event_price'] - result_df['min']
     
     # cw_expected_loss = expected_loss / Exercise_Ratio
     result_df['cw_expected_loss'] = result_df['expected_loss'] / result_df['Exercise_Ratio']
@@ -162,6 +162,72 @@ def process_simulations_results(df, all_simulations_df):
     result_df['expect_value_daily'] = result_df['expect_value'] / result_df['days_to_expired'] * 100
                                                                  
     return result_df
+
+
+import numpy as np
+import numpy as np
+
+def dynamic_position_sizing(
+    portfolio_ratio, win_prob, expected_profit, expected_loss, unrealized_pnl=1,
+    portfolio_drawdown=0, max_risk=1.0, fractional_kelly=0.6, momentum_factor=0.7, ev_threshold=2.0
+):
+    """
+    Adjusts position size dynamically based on PnL trends, risk control, and Kelly criterion.
+
+    Parameters:
+        portfolio_ratio (float): Max percentage of portfolio allocated to trade.
+        win_prob (float): Probability of winning the trade.
+        expected_profit (float): Expected profit per trade.
+        expected_loss (float): Expected loss per trade.
+        unrealized_pnl (float): Normalized PnL (0 = full loss, 1 = breakeven, 2 = double gain).
+        portfolio_drawdown (float): Normalized portfolio drawdown (0 = no loss, 1 = full loss).
+        max_risk (float): Maximum risk threshold (normalized).
+        fractional_kelly (float): Fraction of Kelly Criterion to apply.
+        momentum_factor (float): Strength of PnL-based position adjustment (0-1).
+
+    Returns:
+        float: Adjusted position size as a fraction of portfolio.
+    """
+    # Compute Expected Value
+    expected_value = win_prob * expected_profit - (1 - win_prob) * expected_loss
+    if expected_value <= ev_threshold:
+        return 0  # Avoid low expectancy trades
+
+    # Compute Reward-to-Risk Ratio
+    b = expected_profit / expected_loss
+    p = win_prob
+    q = 1 - p
+
+    # Compute Base Kelly Fraction
+    base_kelly = (p * b - q) / b
+
+    # Dynamic EV Scaling: Increase Kelly Aggressiveness for High EV
+    ev_scaling_factor = np.log(expected_value) / np.log(ev_threshold)
+    kelly_fraction = fractional_kelly * base_kelly * ev_scaling_factor
+
+    # Adjust Cap Based on EV (Scales up to 0.75 if EV is very high)
+    kelly_cap = 0.5 + 0.25 * (np.log(expected_value) / np.log(10))
+    kelly_fraction = max(0, min(kelly_fraction, kelly_cap))
+
+    # Adjust PnL Scaling Factor (Momentum-Based Position Adjustment)
+    pnl_adjustment_factor = 1
+    if unrealized_pnl != 1:
+        pnl_adjustment_factor = np.exp(momentum_factor * (unrealized_pnl - 1))
+        pnl_adjustment_factor = max(0.5, min(pnl_adjustment_factor, 1.5))
+
+    # Adjust for Drawdown (Risk Reduction)
+    drawdown_factor = 1
+    if portfolio_drawdown > 0 and max_risk > 0:
+        drawdown_factor = np.exp(-portfolio_drawdown * max_risk)
+        drawdown_factor = max(0.5, min(drawdown_factor, 1.0))
+
+    # Compute Final Position Size
+    new_position = portfolio_ratio * kelly_fraction * pnl_adjustment_factor * drawdown_factor
+
+    # Ensure Position Size is within Safe Limits
+    return max(0, min(new_position, portfolio_ratio))
+
+
 
 def run(symbol_benchmark, symbolsDate_dict):
     
@@ -231,6 +297,9 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     # merge with df with cw_df
     df = pd.merge(df, cw_df, on='Datetime')
+    
+    # break_event_price = su.warrant_break_even_point(cw_price, df['Exercise_Price'][i], df['Exercise_Ratio'][i])
+    df['break_event_price'] = su.warrant_break_even_point(df['close_cw'], df['Exercise_Price'], df['Exercise_Ratio'])
         
     # ============ Plotting ============
     
@@ -239,7 +308,6 @@ def run(symbol_benchmark, symbolsDate_dict):
     # stocks_df = stocks_df[stocks_df.index >= first_date]
         
     all_simulations_df = pd.DataFrame()
-    
 
     # Loop through index of df
     for i in range(len(df)):
@@ -247,8 +315,10 @@ def run(symbol_benchmark, symbolsDate_dict):
         stock_df_copy = stock_df[stock_df.index <= sim_date].copy()
         
         days_to_expired = df['days_to_expired'][i]
+        break_event_price = df['break_event_price'][i]
+        
         # Perform the Monte Carlo simulation for a fixed period of 100 days
-        sim_df = monte_carlo_simulation(stock_df_copy,30000, days_to_expired, lookback_days=252, exercise_price=df['Exercise_Price'][i])
+        sim_df = monte_carlo_simulation(stock_df_copy,30000, days_to_expired, lookback_days=252, break_event_price=break_event_price)
         
         last_sim = sim_df.iloc[-1]
             
@@ -261,13 +331,13 @@ def run(symbol_benchmark, symbolsDate_dict):
         all_simulations_df = pd.concat([all_simulations_df, last_sim_values])
     
     result_df = process_simulations_results(df, all_simulations_df)
-
-    
+        
     plot_single_line(result_df['close'], title="Stocks Close Price")
     # plot_single_line(result_df['expected_price'], title="Warant Expected Price")
     plot_single_line(result_df['close_cw'], title="Warrant Close Price")
     
     st.write("Days to Expire: ", result_df['days_to_expired'].iloc[-1])
+    # st write("Break Event Price: ", result_df['break_event_price'].iloc[-1])
     st.write("Expected profit: ", result_df['cw_expected_return'].iloc[-1])
     st.write("Profit probability: ", result_df['win_rate'].iloc[-1])
     st.write("Expected loss: ", result_df['cw_expected_loss_return'].iloc[-1])
@@ -279,43 +349,8 @@ def run(symbol_benchmark, symbolsDate_dict):
     # st.write("Expected loss daily: ", result_df['cw_expected_loss_return_daily'].iloc[-1])
     # st.write("Expected value daily: ", result_df['expect_value_daily'].iloc[-1])
     # plot_single_bar(result_df['expect_value_daily'], title="Expected Value Daily")
-    
-   # ============ Backtesting ============
-   
-    def dynamic_position_sizing(portfolio_ratio, win_prob, expected_profit, expected_loss, unrealized_pnl, max_risk=0, fractional_kelly=0.5):
-        
-        expected_value = win_prob * expected_profit - (1 - win_prob) * expected_loss
-        
-        if expected_value < 2:
-            # exit if expected value is less than 2
-            return 0
-        
-        # Compute Kelly Fraction
-        kelly_fraction = (win_prob * expected_profit - (1 - win_prob) * expected_loss) / (expected_profit * expected_loss)
-        # Apply fractional Kelly to reduce risk
-        kelly_fraction = max(0, min(fractional_kelly * kelly_fraction, 1))  # Keep it between 0-1
-        
-        pnl_adjustment_factor = 1
-        if unrealized_pnl != 0:     
-            # Position Size Adjustment (aware of expected vs unrealized P&L)
-            pnl_adjustment_factor = (expected_profit - abs(unrealized_pnl)) / (expected_loss + abs(unrealized_pnl))
-            pnl_adjustment_factor = max(0.5, min(pnl_adjustment_factor, 1.5))  # Keep adjustments reasonable
-                    
-        drawdown_factor = 1  # Default to no drawdown factor
-        if max_risk > 0:
-            # Adjust Position Size based on Max Risk and unrealized P&L
-            drawdown_factor = max(0, 1 - unrealized_pnl / max_risk)  # Drawdown Factor
-            drawdown_factor = max(0.5, min(drawdown_factor, 1.5))
-        
-        # Compute New Position Size
-        new_position =  portfolio_ratio * kelly_fraction * pnl_adjustment_factor * drawdown_factor
-        
-        # Ensure Position Size is within 0-100% of Portfolio
-        new_position = max(0, min(new_position, portfolio_ratio))
-        
-        
-        return new_position
 
+   # ============ Backtesting ============
     # Example Usage
     current_cash = 10_000_000
     portfolio_value = current_cash
@@ -326,7 +361,6 @@ def run(symbol_benchmark, symbolsDate_dict):
     current_pnl = 0
     current_return = 1
     min_order_size = 100
-    max_risk = 0
 
     trade_df = pd.DataFrame()
     
@@ -346,7 +380,7 @@ def run(symbol_benchmark, symbolsDate_dict):
             new_return = new_pnl / current_value if current_value > 0 else 0
             current_return += new_return
         
-        new_position = dynamic_position_sizing(1, win_prob, expected_profit, expected_loss, current_return, max_risk)       
+        new_position = dynamic_position_sizing(1, win_prob, expected_profit, expected_loss, 1)       
         new_volume = new_position * portfolio_value / cw_price 
         # round to the nearest 100
         new_volume = round(new_volume / min_order_size) * min_order_size
