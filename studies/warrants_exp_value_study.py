@@ -317,7 +317,7 @@ def run(symbol_benchmark, symbolsDate_dict):
         return new_position
 
     # Example Usage
-    portfolio_value = 10_000_000 
+    portfolio_value = 20_000_000 
     current_value = 0
     current_position = 0
     current_asset = 0
