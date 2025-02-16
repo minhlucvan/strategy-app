@@ -6,7 +6,7 @@ import utils.algotrade as at
 
 from studies.stock_news_momentum_study import calculate_price_changes
 from studies.stock_overnight_study import plot_scatter_2_sources
-from utils.plot_utils import plot_double_side_bars, plot_multi_bar, plot_multi_line, plot_single_bar, plot_single_line, plot_multi_scatter, plot_events
+from utils.plot_utils import plot_cash_and_assets, plot_multi_bar, plot_multi_line, plot_single_bar, plot_single_line, plot_multi_scatter, plot_events
 from utils.processing import get_stocks, get_stocks_foregin_flow
 import utils.stock_utils as su
 
@@ -275,14 +275,14 @@ def run(symbol_benchmark, symbolsDate_dict):
     plot_single_bar(result_df['expect_value'], title="Expected Value")
     
     
-    st.write("Expected profit daily: ", result_df['cw_expected_return_daily'].iloc[-1])
-    st.write("Expected loss daily: ", result_df['cw_expected_loss_return_daily'].iloc[-1])
-    st.write("Expected value daily: ", result_df['expect_value_daily'].iloc[-1])
-    plot_single_bar(result_df['expect_value_daily'], title="Expected Value Daily")
+    # st.write("Expected profit daily: ", result_df['cw_expected_return_daily'].iloc[-1])
+    # st.write("Expected loss daily: ", result_df['cw_expected_loss_return_daily'].iloc[-1])
+    # st.write("Expected value daily: ", result_df['expect_value_daily'].iloc[-1])
+    # plot_single_bar(result_df['expect_value_daily'], title="Expected Value Daily")
     
    # ============ Backtesting ============
    
-    def dynamic_position_sizing(portfolio_value, win_prob, expected_profit, expected_loss, unrealized_pnl, max_risk=0, fractional_kelly=0.5):
+    def dynamic_position_sizing(portfolio_ratio, win_prob, expected_profit, expected_loss, unrealized_pnl, max_risk=0, fractional_kelly=0.5):
         
         expected_value = win_prob * expected_profit - (1 - win_prob) * expected_loss
         
@@ -308,15 +308,24 @@ def run(symbol_benchmark, symbolsDate_dict):
             drawdown_factor = max(0.5, min(drawdown_factor, 1.5))
         
         # Compute New Position Size
-        new_position = portfolio_value * kelly_fraction * pnl_adjustment_factor * drawdown_factor
+        new_position =  portfolio_ratio * kelly_fraction * pnl_adjustment_factor * drawdown_factor
+        
+        # Ensure Position Size is within 0-100% of Portfolio
+        new_position = max(0, min(new_position, portfolio_ratio))
+        
+        
         return new_position
 
     # Example Usage
-    portfolio_value = 1
+    portfolio_value = 10_000_000 
     current_value = 0
     current_position = 0
+    current_asset = 0
+    volume = 0
     current_pnl = 0
+    current_cash = portfolio_value
     current_return = 1
+    min_order_size = 100
     max_risk = 0
 
     trade_df = pd.DataFrame()
@@ -331,15 +340,29 @@ def run(symbol_benchmark, symbolsDate_dict):
         new_return = 0
         
         if i > 0:
-            last_cw_price = result_df['close_cw'][i - 1]
-            new_value = current_position * cw_price
+            new_value = volume * cw_price
             new_pnl = round(new_value - current_value)
             current_pnl += new_pnl
             new_return = new_pnl / current_value if current_value > 0 else 0
             current_return += new_return
         
-        current_position = dynamic_position_sizing(portfolio_value, win_prob, expected_profit, expected_loss, current_return, max_risk)
-        current_value = current_position * cw_price
+        new_position = dynamic_position_sizing(1, win_prob, expected_profit, expected_loss, current_return, max_risk)       
+        new_volume = new_position * portfolio_value / cw_price 
+        # round to the nearest 100
+        new_volume = round(new_volume / min_order_size) * min_order_size
+        
+        # update cash
+        if new_volume > volume:
+            # buy
+            current_cash -= (new_volume - volume) * cw_price
+        elif new_volume < volume:
+            # sell
+            current_cash += (volume - new_volume) * cw_price
+        
+        volume = new_volume
+        current_value = volume * cw_price
+        current_position = new_position
+        current_asset = volume * cw_price
         
         new_trade = pd.DataFrame({
             'Date': [date],
@@ -348,17 +371,28 @@ def run(symbol_benchmark, symbolsDate_dict):
             'DailyPnL': [new_pnl],
             'PnL': [current_pnl],
             'DailyReturn': [new_return],
-            'Return': [current_return]
+            'Return': [current_return],
+            'Cash': [current_cash],
+            'Asset': [current_asset],
+            'Volume': [volume]
         })
         
         trade_df = pd.concat([trade_df, new_trade])
         
-    
-    
     # set index to tradingDate
     trade_df.set_index('Date', inplace=True)
         
-    st.dataframe(trade_df, use_container_width=True)
-    
     # plot return
     plot_single_line(trade_df['Return'], title="Return")
+
+    # plot volume
+    plot_single_line(trade_df['Volume'], title="Volume")
+
+    # plot cash & asset
+    plot_cash_and_assets(trade_df, 'Cash', 'Asset')
+    
+    show_data = st.checkbox('Show Data', value=False)
+    
+    if show_data:
+        st.dataframe(trade_df, use_container_width=True)
+    

@@ -197,3 +197,38 @@ def plot_double_side_bars(dataframe, top_bar_col, bottom_bar_col, line_col, top_
     )
     
     st.plotly_chart(fig, use_container_width=True)
+    
+def plot_cash_and_assets(df, cash_col, assets_col):
+    cash_df = df[[cash_col]]
+    assets_df = df[[assets_col]]
+    
+    # Plot stacked bar chart for cash and assets values
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=df.index, y=df[cash_col], name='Cash', marker_color='blue'))
+    fig.add_trace(go.Bar(x=df.index, y=df[assets_col], name='Assets', marker_color='green'))
+    
+    # Update layout for better visualization
+    fig.update_layout(
+        barmode='stack',
+        title='Cash and Assets Values',
+        xaxis_title='Date',
+        yaxis_title='Value',
+        yaxis=dict(
+            title='Value',
+            titlefont_size=16,
+            tickfont_size=14,
+        ),
+        xaxis=dict(
+            title='Date',
+            titlefont_size=16,
+            tickfont_size=14,
+        ),
+        legend=dict(
+            x=0,
+            y=1.0,
+            bgcolor='rgba(255, 255, 255, 0)',
+            bordercolor='rgba(255, 255, 255, 0)'
+        )
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
