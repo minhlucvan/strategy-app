@@ -317,13 +317,13 @@ def run(symbol_benchmark, symbolsDate_dict):
         return new_position
 
     # Example Usage
-    portfolio_value = 20_000_000 
+    current_cash = 10_000_000
+    portfolio_value = current_cash
     current_value = 0
     current_position = 0
     current_asset = 0
     volume = 0
     current_pnl = 0
-    current_cash = portfolio_value
     current_return = 1
     min_order_size = 100
     max_risk = 0
@@ -363,6 +363,7 @@ def run(symbol_benchmark, symbolsDate_dict):
         current_value = volume * cw_price
         current_position = new_position
         current_asset = volume * cw_price
+        portfolio_value = current_cash + current_asset
         
         new_trade = pd.DataFrame({
             'Date': [date],
