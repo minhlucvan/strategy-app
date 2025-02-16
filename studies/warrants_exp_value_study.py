@@ -386,7 +386,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     plot_single_line(trade_df['Return'], title="Return")
 
     # plot volume
-    plot_single_line(trade_df['Volume'], title="Volume")
+    plot_single_bar(trade_df['Volume'], title="Volume")
 
     # plot cash & asset
     plot_cash_and_assets(trade_df, 'Cash', 'Asset')
