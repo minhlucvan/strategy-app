@@ -21,7 +21,7 @@ import pandas as pd
 import numpy as np
 import pandas as pd
 
-def monte_carlo_simulation(df, num_simulations, num_days, lookback_days=252):
+def monte_carlo_simulation(df, num_simulations, num_days, lookback_days=252, exercise_price=0):
     # Compute daily returns for each stock
     last_year_df = df.iloc[-lookback_days:]
     returns = last_year_df.pct_change().dropna()
@@ -46,17 +46,21 @@ def monte_carlo_simulation(df, num_simulations, num_days, lookback_days=252):
     simulation_results[:, 0, :] = last_close
     for t in range(1, num_days):
         simulation_results[:, t, :] = simulation_results[:, t-1, :] * (1 + random_returns[:, t, :])
-        
-    # Calculate the median price path for all simulations
-    sim_median = np.median(simulation_results, axis=0)
     
-    sim_min = np.min(simulation_results, axis=0)
-    sim_max = np.max(simulation_results, axis=0)
-    sim_mean = np.mean(simulation_results, axis=0)
-    sim_median = np.median(simulation_results, axis=0)
-    sim_std = np.std(simulation_results, axis=0)
+    simulation_results_last = simulation_results[:, -1, :]
+    
+    simulation_results_last_first_stock = simulation_results_last[:, 0]
+            
+    
+    sim_min = np.min(simulation_results_last_first_stock)
+    sim_max = np.max(simulation_results_last_first_stock)
+    sim_mean = np.mean(simulation_results_last_first_stock)
+    sim_median = np.median(simulation_results_last_first_stock)
+    sim_std = np.std(simulation_results_last_first_stock)
     sim_std_high = sim_mean + sim_std
     sim_std_low = sim_mean - sim_std
+    total_sims = num_simulations * df.shape[1]
+    win_rate = np.sum(simulation_results_last_first_stock > exercise_price) / total_sims
 
     result_df = pd.DataFrame({
         'min': sim_min.flatten(),
@@ -64,10 +68,9 @@ def monte_carlo_simulation(df, num_simulations, num_days, lookback_days=252):
         'mean': sim_mean.flatten(),
         'median': sim_median.flatten(),
         'std_high': sim_std_high.flatten(),
-        'std_low': sim_std_low.flatten()
+        'std_low': sim_std_low.flatten(),
+        'win_rate': win_rate
     })
-
-    result_df.index = pd.date_range(start=last_year_df.index[-1], periods=num_days)
 
     return result_df
 
@@ -204,17 +207,18 @@ def run(symbol_benchmark, symbolsDate_dict):
         
         days_to_expired = df['days_to_expired'][i]
         # Perform the Monte Carlo simulation for a fixed period of 100 days
-        sim_df = monte_carlo_simulation(stock_df_copy, 10000, days_to_expired, lookback_days=252)
+        sim_df = monte_carlo_simulation(stock_df_copy, 10000, days_to_expired, lookback_days=252, exercise_price=df['Exercise_Price'][i])
         
         last_sim = sim_df.iloc[-1]
         
         last_sim_values = pd.DataFrame(last_sim).T
-        last_sim_values.index = [sim_date]
+        last_sim_values.index = [sim_date]    
         
         # st.write(last_sim_values)
                 
         all_simulations_df = pd.concat([all_simulations_df, last_sim_values])
-        
+    
+    # Loop through index of df calculate the warrant price by black scholes
     
     # plot distribution of the last day
     st.write("Distribution of the last day")
@@ -225,11 +229,8 @@ def run(symbol_benchmark, symbolsDate_dict):
     # merge sim_df with df
     result_df = pd.merge(df, all_simulations_df, left_index=True, right_index=True, suffixes=["", "_sim"])
     
-    # caculate cw_value = cw_close * cw_Exercise_Ratio
-    result_df['cw_value'] = result_df['close_cw'] * result_df['Exercise_Ratio']
-    
     # expected price = mean
-    result_df['expected_price'] = result_df['std_low']
+    result_df['expected_price'] = result_df['mean']
     
     # expected_profit = expected_price - exercise_price
     result_df['expected_profit'] = result_df['expected_price'] - result_df['Exercise_Price']
@@ -243,15 +244,27 @@ def run(symbol_benchmark, symbolsDate_dict):
     # expected_warrant_return_daily
     result_df['expected_warrant_return_daily'] = result_df['expected_warrant_return'] / result_df['days_to_expired'] * 100
     
+    # expected_loss = min - exercise_price
+    result_df['expected_loss'] = result_df['std_high'] - result_df['Exercise_Price']
+    
+    # expect_warrant_loss = expected_loss / Exercise_Ratio
+    result_df['expect_warrant_loss'] = result_df['expected_loss'] / result_df['Exercise_Ratio']
+    
+    # expected_warrant_loss_return = expect_warrant_loss / close_cw
+    result_df['expected_warrant_loss_return'] = result_df['expect_warrant_loss'] / result_df['close_cw']
+    
+    # expected_warrant_loss_return_daily
+    result_df['expected_warrant_loss_return_daily'] = result_df['expected_warrant_loss_return'] / result_df['days_to_expired'] * 100
+    
+    # expect_value = expected_warrant_return * win_rate + expected_warrant_loss_return * (1 - win_rate)
+    result_df['expect_value'] = result_df['expected_warrant_return'] * result_df['win_rate'] - result_df['expected_warrant_loss_return'] * (1 - result_df['win_rate'])
     
     plot_single_line(result_df['close'], title="Stocks Close Price")
     plot_single_line(result_df['expected_price'], title="Warant Expected Price")
     plot_single_line(result_df['close_cw'], title="Warrant Close Price")
     
-
-    st.write("Warrants Expected Value Study")
-    st.write("Days to Expire: ", result_df['days_to_expired'].iloc[-1])
-    st.write("Expected Warrant Return: ", result_df['expected_warrant_return'].iloc[-1])
-    plot_single_bar(result_df['expected_warrant_return_daily'], title="Expected Daily Return(%)")
+    
+    st.write("Expected value: ", result_df['expect_value'].iloc[-1])
+    plot_single_bar(result_df['expect_value'], title="Expected Value")
     
     
