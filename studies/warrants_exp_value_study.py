@@ -143,11 +143,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     st.write(f"Number of Warrants: {len(tickers)}")
         
     cw_ticker = st.selectbox('Select Tickers', tickers, index=0, format_func=lambda x: x)
-        
-    symbolsDate_dict['symbols'] = [cw_ticker]
-    
-    closes_df = get_stocks(symbolsDate_dict, 'close', stock_type='warrant')
-    
+                
     warrants_selected_df = warrants_df[warrants_df['cw'] == cw_ticker]
     
     stock_df = fetch_stock_data(ticker=selected_stock, stock_type='stock', timeframe='D', count_back=2929)
@@ -208,7 +204,7 @@ def run(symbol_benchmark, symbolsDate_dict):
         
         days_to_expired = df['days_to_expired'][i]
         # Perform the Monte Carlo simulation for a fixed period of 100 days
-        sim_df = monte_carlo_simulation(stock_df_copy, 500, days_to_expired, lookback_days=252)
+        sim_df = monte_carlo_simulation(stock_df_copy, 10000, days_to_expired, lookback_days=252)
         
         last_sim = sim_df.iloc[-1]
         
@@ -219,6 +215,12 @@ def run(symbol_benchmark, symbolsDate_dict):
                 
         all_simulations_df = pd.concat([all_simulations_df, last_sim_values])
         
+    
+    # plot distribution of the last day
+    st.write("Distribution of the last day")
+    # histogram
+    fig = px.histogram(sim_df, x='mean', title='Distribution of the last day')
+    st.plotly_chart(fig)
 
     # merge sim_df with df
     result_df = pd.merge(df, all_simulations_df, left_index=True, right_index=True, suffixes=["", "_sim"])
@@ -227,22 +229,29 @@ def run(symbol_benchmark, symbolsDate_dict):
     result_df['cw_value'] = result_df['close_cw'] * result_df['Exercise_Ratio']
     
     # expected price = mean
-    result_df['expected_price'] = result_df['mean']
+    result_df['expected_price'] = result_df['std_low']
     
     # expected_profit = expected_price - exercise_price
     result_df['expected_profit'] = result_df['expected_price'] - result_df['Exercise_Price']
     
     # expect_warrant_profit = expected_profit / Exercise_Ratio
-    result_df['expect_warrant_profit'] = result_df['expected_profit']
+    result_df['expect_warrant_profit'] = result_df['expected_profit'] / result_df['Exercise_Ratio']
     
-    # expected_warrant_return = expect_warrant_profit / cw_value
-    result_df['expected_warrant_return'] = result_df['expect_warrant_profit'] / result_df['cw_value']
+    # expected_warrant_return
+    result_df['expected_warrant_return'] = result_df['expect_warrant_profit'] / result_df['close_cw']
     
+    # expected_warrant_return_daily
+    result_df['expected_warrant_return_daily'] = result_df['expected_warrant_return'] / result_df['days_to_expired'] * 100
     
     
     plot_single_line(result_df['close'], title="Stocks Close Price")
-
+    plot_single_line(result_df['expected_price'], title="Warant Expected Price")
+    plot_single_line(result_df['close_cw'], title="Warrant Close Price")
     
-    plot_single_line(result_df['expected_warrant_return'], title="Expected Warrant Return")
+
+    st.write("Warrants Expected Value Study")
+    st.write("Days to Expire: ", result_df['days_to_expired'].iloc[-1])
+    st.write("Expected Warrant Return: ", result_df['expected_warrant_return'].iloc[-1])
+    plot_single_bar(result_df['expected_warrant_return_daily'], title="Expected Daily Return(%)")
     
     
