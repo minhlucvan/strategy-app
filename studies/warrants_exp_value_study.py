@@ -241,7 +241,7 @@ def fetch_cw_data_with_price(cw_ticker, warrants_df, stock_df):
     # keep only the columns we need Closing_Price, Exercise_Price, Exercise_Ratio, expiredDate, issuedDate
     cw_df = cw_df[['cw', 'Exercise_Price', 'Exercise_Ratio', 'expiredDate', 'issuedDate', 'listedDate']]
         
-    cw_price_df = fetch_stock_data(ticker=cw_ticker, stock_type='coveredWarr', timeframe='5', count_back=2929)
+    cw_price_df = fetch_stock_data(ticker=cw_ticker, stock_type='coveredWarr', timeframe='D', count_back=2929)
     
     # fake the first row of cw_df index to be the same as cw_price_df 0
     cw_df['Datetime'] = cw_price_df.index[0]
@@ -336,6 +336,7 @@ def backtest_trade_cw_simulation(
         # round to the nearest 100
         new_volume = round(new_volume / min_order_size) * min_order_size
         action = 'Hold'
+        action_volume = 0
         
         # update cash
         if new_volume > volume:
@@ -403,10 +404,10 @@ def run(symbol_benchmark, symbolsDate_dict):
         
     cw_ticker = st.selectbox('Select Tickers', tickers, index=0, format_func=lambda x: x)
                     
-    stock_df = fetch_stock_data(ticker=selected_stock, stock_type='stock', timeframe='5', count_back=2929)
+    stock_df = fetch_stock_data(ticker=selected_stock, stock_type='stock', timeframe='D', count_back=2929)
     
     df = fetch_cw_data_with_price(cw_ticker, warrants_df, stock_df)
-    
+        
     result_df = simulate_warrant(stock_df, df)
     
     # ============ Plotting ============
