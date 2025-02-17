@@ -27,7 +27,6 @@ python-binance
 python-dotenv
 playwright
 python-googlesearch
-smartmoneyconcepts
 optionlab
 lunardate
 akshare
@@ -37,4 +36,4 @@ st-pages
 streamlit-quill
 git+https://github.com/minhlucvan/vnquant.git
 empyrial
-
+statsmodels

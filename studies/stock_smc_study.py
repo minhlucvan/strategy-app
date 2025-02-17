@@ -35,8 +35,6 @@ import imageio
 from io import BytesIO
 from PIL import Image
 
-from smartmoneyconcepts.smc import smc
-
 def add_FVG(fig, df, fvg_data):
     for i in range(len(fvg_data["FVG"])):
         if not np.isnan(fvg_data["FVG"][i]):
