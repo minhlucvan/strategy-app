@@ -150,7 +150,9 @@ def process_simulations_results(df, all_simulations_df):
     result_df['cw_expected_loss'] = result_df['expected_loss'] / result_df['Exercise_Ratio']
     
     # cw_expected_loss_return = cw_expected_loss / close_cw
-    result_df['cw_expected_loss_return'] = result_df['cw_expected_loss'] / result_df['close_cw']
+    # result_df['cw_expected_loss_return'] = result_df['cw_expected_loss'] / result_df['close_cw']
+    result_df['cw_expected_loss_return'] = 1 # fix the loss return to 1
+    
     
     # cw_expected_loss_return_daily
     result_df['cw_expected_loss_return_daily'] = result_df['cw_expected_loss_return'] / result_df['days_to_expired']
@@ -164,7 +166,6 @@ def process_simulations_results(df, all_simulations_df):
     return result_df
 
 
-import numpy as np
 import numpy as np
 
 def dynamic_position_sizing(
@@ -227,37 +228,7 @@ def dynamic_position_sizing(
     # Ensure Position Size is within Safe Limits
     return max(0, min(new_position, portfolio_ratio))
 
-
-
-def run(symbol_benchmark, symbolsDate_dict):
-    
-    # copy the symbolsDate_dict
-    # benchmark_dict = symbolsDate_dict.copy()
-    warrants_df, warrants_intraday_df = fetch_data()
-    
-    stock_tickers = warrants_df['underlyingStock'].unique()
-    fpt_index = stock_tickers.tolist().index('FPT')
-    selected_stock = st.selectbox('Select Stocks', stock_tickers, index=fpt_index)
-    
-    warrants_df = warrants_df[warrants_df['underlyingStock'] == selected_stock]
-    warrants_intraday_df = warrants_intraday_df[warrants_intraday_df.index.get_level_values(0).isin(warrants_df['cw'])]
-
-    warrants_intraday_df['value'] = warrants_intraday_df['volume'] * warrants_intraday_df['close']
-    
-    # value_filter = st.slider('Value Filter', min_value=0, max_value=1_000_000_000, value=100_000_000, step=1_000, format="%d")
-    
-    # warrants_intraday_value_df = warrants_intraday_df[warrants_intraday_df['value'] > value_filter]
-    
-    tickers = warrants_intraday_df.index.get_level_values(0).unique().values.tolist()
-            
-    st.write(f"Number of Warrants: {len(tickers)}")
-        
-    cw_ticker = st.selectbox('Select Tickers', tickers, index=0, format_func=lambda x: x)
-                
-    warrants_selected_df = warrants_df[warrants_df['cw'] == cw_ticker]
-    
-    stock_df = fetch_stock_data(ticker=selected_stock, stock_type='stock', timeframe='D', count_back=2929)
-    
+def fetch_cw_data_with_price(cw_ticker, warrants_df, stock_df):
     # get the stock info
     cw_info_data = su.get_stock_info_data(tickers=[cw_ticker])
 
@@ -270,7 +241,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     # keep only the columns we need Closing_Price, Exercise_Price, Exercise_Ratio, expiredDate, issuedDate
     cw_df = cw_df[['cw', 'Exercise_Price', 'Exercise_Ratio', 'expiredDate', 'issuedDate', 'listedDate']]
         
-    cw_price_df = fetch_stock_data(ticker=cw_ticker, stock_type='coveredWarr', timeframe='D', count_back=2929)
+    cw_price_df = fetch_stock_data(ticker=cw_ticker, stock_type='coveredWarr', timeframe='5', count_back=2929)
     
     # fake the first row of cw_df index to be the same as cw_price_df 0
     cw_df['Datetime'] = cw_price_df.index[0]
@@ -300,13 +271,10 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     # break_event_price = su.warrant_break_even_point(cw_price, df['Exercise_Price'][i], df['Exercise_Ratio'][i])
     df['break_event_price'] = su.warrant_break_even_point(df['close_cw'], df['Exercise_Price'], df['Exercise_Ratio'])
-        
-    # ============ Plotting ============
     
-    # first_date = closes_df.index[0]
-    
-    # stocks_df = stocks_df[stocks_df.index >= first_date]
-        
+    return df
+
+def simulate_warrant(stock_df, df):
     all_simulations_df = pd.DataFrame()
 
     # Loop through index of df
@@ -324,14 +292,130 @@ def run(symbol_benchmark, symbolsDate_dict):
             
         last_sim_values = pd.DataFrame(last_sim).T
         last_sim_values.index = [sim_date]    
-          
-        
+             
         # st.write(last_sim_values)
                 
         all_simulations_df = pd.concat([all_simulations_df, last_sim_values])
     
     result_df = process_simulations_results(df, all_simulations_df)
+    
+    return result_df
+
+def backtest_trade_cw_simulation(
+    result_df,
+    current_cash,
+    portfolio_value,
+    current_value,
+    current_position,
+    current_asset,
+    volume,
+    current_pnl,
+    current_return,
+    min_order_size
+):
+    trade_df = pd.DataFrame()
+    
+    for i in range(len(result_df)):
+        date = result_df.index[i]
+        win_prob = result_df['win_rate'][i]
+        expected_profit = result_df['cw_expected_return'][i]
+        expected_loss = result_df['cw_expected_loss_return'][i]
+        cw_price = result_df['close_cw'][i]
+        new_pnl = 0
+        new_return = 0
         
+        if i > 0:
+            new_value = volume * cw_price
+            new_pnl = round(new_value - current_value)
+            current_pnl += new_pnl
+            new_return = new_pnl / current_value if current_value > 0 else 0
+            current_return += new_return
+        
+        new_position = dynamic_position_sizing(1, win_prob, expected_profit, expected_loss, 1)       
+        new_volume = new_position * portfolio_value / cw_price 
+        # round to the nearest 100
+        new_volume = round(new_volume / min_order_size) * min_order_size
+        action = 'Hold'
+        
+        # update cash
+        if new_volume > volume:
+            # buy
+            current_cash -= (new_volume - volume) * cw_price
+            action = 'Buy'
+            action_volume = new_volume - volume
+        elif new_volume < volume:
+            # sell
+            current_cash += (volume - new_volume) * cw_price
+            action = 'Sell'
+            action_volume = volume - new_volume
+        
+        volume = new_volume
+        current_value = volume * cw_price
+        current_position = new_position
+        current_asset = volume * cw_price
+        portfolio_value = current_cash + current_asset
+        
+        new_trade = pd.DataFrame({
+            'Date': [date],
+            'Position': [current_position],
+            'Close': [cw_price],
+            'DailyPnL': [new_pnl],
+            'PnL': [current_pnl],
+            'DailyReturn': [new_return],
+            'Return': [current_return],
+            'Cash': [current_cash],
+            'Asset': [current_asset],
+            'Volume': [volume],
+            'Action': [action],
+            'ActionVolume': [action_volume]
+        })
+        
+        trade_df = pd.concat([trade_df, new_trade])
+        
+    # set index to tradingDate
+    trade_df.set_index('Date', inplace=True)
+    
+    return trade_df
+                
+
+def run(symbol_benchmark, symbolsDate_dict):
+    
+    # copy the symbolsDate_dict
+    # benchmark_dict = symbolsDate_dict.copy()
+    warrants_df, warrants_intraday_df = fetch_data()
+    
+    stock_tickers = warrants_df['underlyingStock'].unique()
+    fpt_index = stock_tickers.tolist().index('FPT')
+    selected_stock = st.selectbox('Select Stocks', stock_tickers, index=fpt_index)
+    
+    warrants_df = warrants_df[warrants_df['underlyingStock'] == selected_stock]
+    warrants_intraday_df = warrants_intraday_df[warrants_intraday_df.index.get_level_values(0).isin(warrants_df['cw'])]
+
+    warrants_intraday_df['value'] = warrants_intraday_df['volume'] * warrants_intraday_df['close']
+    
+    # value_filter = st.slider('Value Filter', min_value=0, max_value=1_000_000_000, value=100_000_000, step=1_000, format="%d")
+    
+    # warrants_intraday_value_df = warrants_intraday_df[warrants_intraday_df['value'] > value_filter]
+    
+    tickers = warrants_intraday_df.index.get_level_values(0).unique().values.tolist()
+            
+    st.write(f"Number of Warrants: {len(tickers)}")
+        
+    cw_ticker = st.selectbox('Select Tickers', tickers, index=0, format_func=lambda x: x)
+                    
+    stock_df = fetch_stock_data(ticker=selected_stock, stock_type='stock', timeframe='5', count_back=2929)
+    
+    df = fetch_cw_data_with_price(cw_ticker, warrants_df, stock_df)
+    
+    result_df = simulate_warrant(stock_df, df)
+    
+    # ============ Plotting ============
+    
+    # first_date = closes_df.index[0]
+    
+    # stocks_df = stocks_df[stocks_df.index >= first_date]
+        
+    
     plot_single_line(result_df['close'], title="Stocks Close Price")
     # plot_single_line(result_df['expected_price'], title="Warant Expected Price")
     plot_single_line(result_df['close_cw'], title="Warrant Close Price")
@@ -361,62 +445,20 @@ def run(symbol_benchmark, symbolsDate_dict):
     current_pnl = 0
     current_return = 1
     min_order_size = 100
-
-    trade_df = pd.DataFrame()
     
-    for i in range(len(result_df)):
-        date = result_df.index[i]
-        win_prob = result_df['win_rate'][i]
-        expected_profit = result_df['cw_expected_return'][i]
-        expected_loss = result_df['cw_expected_loss_return'][i]
-        cw_price = result_df['close_cw'][i]
-        new_pnl = 0
-        new_return = 0
-        
-        if i > 0:
-            new_value = volume * cw_price
-            new_pnl = round(new_value - current_value)
-            current_pnl += new_pnl
-            new_return = new_pnl / current_value if current_value > 0 else 0
-            current_return += new_return
-        
-        new_position = dynamic_position_sizing(1, win_prob, expected_profit, expected_loss, 1)       
-        new_volume = new_position * portfolio_value / cw_price 
-        # round to the nearest 100
-        new_volume = round(new_volume / min_order_size) * min_order_size
-        
-        # update cash
-        if new_volume > volume:
-            # buy
-            current_cash -= (new_volume - volume) * cw_price
-        elif new_volume < volume:
-            # sell
-            current_cash += (volume - new_volume) * cw_price
-        
-        volume = new_volume
-        current_value = volume * cw_price
-        current_position = new_position
-        current_asset = volume * cw_price
-        portfolio_value = current_cash + current_asset
-        
-        new_trade = pd.DataFrame({
-            'Date': [date],
-            'Position': [current_position],
-            'Close': [cw_price],
-            'DailyPnL': [new_pnl],
-            'PnL': [current_pnl],
-            'DailyReturn': [new_return],
-            'Return': [current_return],
-            'Cash': [current_cash],
-            'Asset': [current_asset],
-            'Volume': [volume]
-        })
-        
-        trade_df = pd.concat([trade_df, new_trade])
-        
-    # set index to tradingDate
-    trade_df.set_index('Date', inplace=True)
-        
+    trade_df = backtest_trade_cw_simulation(
+        result_df,
+        current_cash,
+        portfolio_value,
+        current_value,
+        current_position,
+        current_asset,
+        volume,
+        current_pnl,
+        current_return,
+        min_order_size
+    )
+    
     # plot return
     plot_single_line(trade_df['Return'], title="Return")
 
