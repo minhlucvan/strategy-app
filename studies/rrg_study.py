@@ -26,8 +26,12 @@ def run(symbol_benchmark, symbolsDate_dict):
 
     
     stocks_df = get_stocks(symbolsDate_dict,'close')
-    # pf = RRG_Strategy(symbol_benchmark, stocks_df)
-    # st.write(pf.stats())
+    
+    # drop na
+    stocks_df = stocks_df.dropna(axis=1, how='any')
+    
+    
+    st.write(stocks_df)
 
     pf = RRG_Strategy(symbol_benchmark, stocks_df, output_bool=True)
     plot_pf(pf, name= 'RRG Strategy', bm_symbol=symbol_benchmark, bm_price=stocks_df[symbol_benchmark], select=True)

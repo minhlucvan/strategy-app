@@ -143,8 +143,8 @@ def process_simulations_results(df, all_simulations_df):
     # cw_expected_return_daily
     result_df['cw_expected_return_daily'] = result_df['cw_expected_return'] / result_df['days_to_expired']
     
-    # expected_loss =  exercise_price - min
-    result_df['expected_loss'] = result_df['break_event_price'] - result_df['min']
+    # expected_loss =  exercise_price - loss_mean
+    result_df['expected_loss'] = result_df['break_event_price'] - result_df['loss_mean']
     
     # cw_expected_loss = expected_loss / Exercise_Ratio
     result_df['cw_expected_loss'] = result_df['expected_loss'] / result_df['Exercise_Ratio']
@@ -153,7 +153,6 @@ def process_simulations_results(df, all_simulations_df):
     # result_df['cw_expected_loss_return'] = result_df['cw_expected_loss'] / result_df['close_cw']
     result_df['cw_expected_loss_return'] = 1 # fix the loss return to 1
     
-    
     # cw_expected_loss_return_daily
     result_df['cw_expected_loss_return_daily'] = result_df['cw_expected_loss_return'] / result_df['days_to_expired']
     
@@ -161,7 +160,10 @@ def process_simulations_results(df, all_simulations_df):
     result_df['expect_value'] = result_df['cw_expected_return'] * result_df['win_rate'] - result_df['cw_expected_loss_return'] * (1 - result_df['win_rate'])
     
     # expect_value_daily
-    result_df['expect_value_daily'] = result_df['expect_value'] / result_df['days_to_expired'] * 100
+    result_df['expect_value_daily'] = result_df['expect_value'] / result_df['days_to_expired']
+    
+    # expect_value_annualized 
+    result_df['expect_value_annual'] = result_df['expect_value_daily'] * 365
                                                                  
     return result_df
 
@@ -286,7 +288,7 @@ def simulate_warrant(stock_df, df):
         break_event_price = df['break_event_price'][i]
         
         # Perform the Monte Carlo simulation for a fixed period of 100 days
-        sim_df = monte_carlo_simulation(stock_df_copy,30000, days_to_expired, lookback_days=252, break_event_price=break_event_price)
+        sim_df = monte_carlo_simulation(stock_df_copy, 1000, days_to_expired, lookback_days=252, break_event_price=break_event_price)
         
         last_sim = sim_df.iloc[-1]
             
@@ -420,14 +422,17 @@ def run(symbol_benchmark, symbolsDate_dict):
     plot_single_line(result_df['close'], title="Stocks Close Price")
     # plot_single_line(result_df['expected_price'], title="Warant Expected Price")
     plot_single_line(result_df['close_cw'], title="Warrant Close Price")
-    
+
     st.write("Days to Expire: ", result_df['days_to_expired'].iloc[-1])
-    # st write("Break Event Price: ", result_df['break_event_price'].iloc[-1])
+    st.write("Break Event Price: ", result_df['break_event_price'].iloc[-1])
     st.write("Expected profit: ", result_df['cw_expected_return'].iloc[-1])
     st.write("Profit probability: ", result_df['win_rate'].iloc[-1])
     st.write("Expected loss: ", result_df['cw_expected_loss_return'].iloc[-1])
     st.write("Expected value: ", result_df['expect_value'].iloc[-1])
     plot_single_bar(result_df['expect_value'], title="Expected Value")
+    
+    st.write("Expected value annualized: ", result_df['expect_value_annual'].iloc[-1])
+    plot_single_bar(result_df['expect_value_annual'], title="Expected Value Annualized")
     
     
     # st.write("Expected profit daily: ", result_df['cw_expected_return_daily'].iloc[-1])

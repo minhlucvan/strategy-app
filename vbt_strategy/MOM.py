@@ -10,7 +10,7 @@ from utils.vbt import plot_CSCV
 
 @njit
 def apply_mom_nb(price, window, lower, upper):
-    mom_pct = np.full(price.shape, np.nan, dtype=np.float_)
+    mom_pct = np.full(price.shape, np.nan, dtype=np.float64)
     entry_signal = np.full(price.shape, np.nan, dtype=np.bool_)
     exit_signal = np.full(price.shape, np.nan, dtype=np.bool_)
     for col in range(price.shape[1]):

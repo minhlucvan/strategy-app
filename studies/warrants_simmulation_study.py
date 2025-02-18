@@ -420,6 +420,8 @@ def run(symbol_benchmark, symbolsDate_dict):
     fig.add_trace(go.Scatter(x=visualize_df.index, y=visualize_df['std_down'], mode='lines', name='std', line=dict(color='black', dash='dash'), fill='tonexty', fillcolor='rgba(0,100,80,0.2)'))
     # trace for close price, color black
     fig.add_trace(go.Scatter(x=visualize_df.index, y=visualize_df['close'], mode='lines', name='close', line=dict(color='black')))
+    # trace for median, color black
+    # fig.add_trace(go.Scatter(x=visualize_df.index, y=visualize_df['median'], mode='lines', name='median', line=dict(color='black', dash='dashdot')))
     # add vertical line x = cw_issue_date, y = stock_price
     fig.add_shape(
         type="line",

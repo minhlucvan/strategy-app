@@ -13,9 +13,9 @@ from utils.vbt import plot_CSCV
 @njit
 def rolling_logret_zscore_nb(a, b, window):
     """Calculate the log return spread."""
-    spread = np.full_like(a, np.nan, dtype=np.float_)
+    spread = np.full_like(a, np.nan, dtype=np.float64)
     spread[1:] = np.log(a[1:] / a[:-1]) - np.log(b[1:] / b[:-1])
-    zscore = np.full_like(a, np.nan, dtype=np.float_)
+    zscore = np.full_like(a, np.nan, dtype=np.float64)
     for i in range(a.shape[0]):
         from_i = max(0, i + 1 - window)
         to_i = i + 1
@@ -39,8 +39,8 @@ def ols_spread_nb(a, b):
 @njit
 def rolling_ols_zscore_nb(a, b, window):
     """Calculate the z-score of the rolling OLS spread."""
-    spread = np.full_like(a, np.nan, dtype=np.float_)
-    zscore = np.full_like(a, np.nan, dtype=np.float_)
+    spread = np.full_like(a, np.nan, dtype=np.float64)
+    zscore = np.full_like(a, np.nan, dtype=np.float64)
     for i in range(a.shape[0]):
         from_i = max(0, i + 1 - window)
         to_i = i + 1
@@ -68,8 +68,8 @@ def pre_group_func_nb(c, _window, _upper, _lower, _order_pct1, _order_pct2):
     # In contrast to bt, we don't have a class instance that we could use to store arrays,
     # so let's create a namedtuple acting as a container for our arrays
     # ( you could also pass each array as a standalone object, but a single object is more convenient)
-    spread = np.full(c.target_shape[0], np.nan, dtype=np.float_)
-    zscore = np.full(c.target_shape[0], np.nan, dtype=np.float_)
+    spread = np.full(c.target_shape[0], np.nan, dtype=np.float64)
+    zscore = np.full(c.target_shape[0], np.nan, dtype=np.float64)
     
     # Note that namedtuples aren't mutable, you can't simply assign a value,
     # thus make status variable an array of one element for an easy assignment
@@ -88,7 +88,7 @@ def pre_group_func_nb(c, _window, _upper, _lower, _order_pct1, _order_pct2):
     
     # Create an array that will store our two target percentages used by order_func_nb
     # we do it here instead of in pre_segment_func_nb to initialize the array once, instead of in each row
-    size = np.empty(c.group_len, dtype=np.float_)
+    size = np.empty(c.group_len, dtype=np.float64)
     
     # The returned tuple is passed as arguments to the function below
     return (memory, params, size)

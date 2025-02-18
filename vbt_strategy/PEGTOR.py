@@ -10,7 +10,7 @@ from .base import BaseStrategy
 from utils.vbt import plot_CSCV
 
 def ecdf_nb(arr):
-    result_arr = np.full_like(arr, np.nan, dtype=np.float_)
+    result_arr = np.full_like(arr, np.nan, dtype=np.float64)
     result_arr = arr.copy()
     for i in range(arr.shape[0]):
         result_arr[i] = ((arr <= arr[i]).mean())

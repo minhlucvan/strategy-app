@@ -406,9 +406,9 @@ def ratio_filter(x, s):
 @njit
 def rolling_logret_zscore_nb(a, b, window):
     """Calculate the log return spread."""
-    spread = np.full_like(a, np.nan, dtype=np.float_)
+    spread = np.full_like(a, np.nan, dtype=np.float64)
     spread[1:] = np.log(a[1:] / a[:-1]) - np.log(b[1:] / b[:-1])
-    zscore = np.full_like(a, np.nan, dtype=np.float_)
+    zscore = np.full_like(a, np.nan, dtype=np.float64)
     for i in range(a.shape[0]):
         from_i = max(0, i + 1 - window)
         to_i = i + 1
@@ -422,7 +422,7 @@ def rolling_logret_zscore_nb(a, b, window):
 def apply_rrg_nb(prices, bm_price, ratio, momentum, window):
     rs_ratio, rs_momentum = cal_RRG(prices, bm_price, window)
 
-    size = np.zeros(prices.shape, dtype=np.float_)
+    size = np.zeros(prices.shape, dtype=np.float64)
     for i in range(rs_momentum.shape[0]):
         mod = i % 5
         for j in range(rs_momentum.shape[1]):
@@ -448,7 +448,7 @@ def get_RRGInd():
 @njit
 def np_RollingMean(series, window_size=10):
     # Initialize an empty list to store moving averages
-    moving_averages = np.full(series.shape, np.nan, dtype=np.float_)
+    moving_averages = np.full(series.shape, np.nan, dtype=np.float64)
 
     for i  in range(series.shape[0] - window_size + 1):
     
@@ -474,7 +474,7 @@ def np_RollingZscore(series, window_size=10):
     """
     
     # Calculate the rolling z-score using the mean and standard deviation
-    rolling_zscore = np.full(series.shape, np.nan, dtype=np.float_)
+    rolling_zscore = np.full(series.shape, np.nan, dtype=np.float64)
     for i in range(window_size-1, series.shape[0]):
         window = series[i-window_size+1:i+1, :]
         window_mean = np.mean(window, axis=0, keepdims=True)
@@ -490,7 +490,7 @@ def cal_RRG(prices, bm_price, window=100):
     Resample = 20
     # rs = np_RollingMean(rs, Resample)
     rs_ratio = np_RollingZscore(np_RollingMean(rs, Resample), window) + 100
-    rs_diff = np.full(prices.shape, np.nan, dtype=np.float_)
+    rs_diff = np.full(prices.shape, np.nan, dtype=np.float64)
     # rs_diff[1:,] = np.diff(rs_ratio, axis=0)/rs_ratio[:-1,]*100
     # rs_diff = rs_diff.rolling(window).mean()    # 顺滑
     rs_diff[1:,] = np.diff(rs, axis=0)/rs[:-1,]*100
@@ -515,7 +515,7 @@ def calculate_momentum(prices, benchmark_price, window):
     returns = np.log(prices[1:]) - np.log(prices[:-1])
     benchmark_returns = np.log(benchmark_price[1:]) - np.log(benchmark_price[:-1])
     # calculate momentum for each ticker
-    momentum = np.full_like(prices, np.nan, dtype=np.float_)
+    momentum = np.full_like(prices, np.nan, dtype=np.float64)
     for i in range(window-1, prices.shape[0]-1):
         momentum[i] = np.mean(returns[i-window:i], axis=0) - np.mean(benchmark_returns[i-window:i], axis=0)
     # Normalized the results

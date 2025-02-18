@@ -7,7 +7,7 @@ import streamlit as st
 
 @njit
 def apply_SEventArb_nb(close, days_to_event, signals_strength, days_before_threshold, days_after_threshold, signal_threshold):
-    sizes = np.full_like(close, 0.0, dtype=np.float_)
+    sizes = np.full_like(close, 0.0, dtype=np.float64)
 
     for i in range(close.shape[0]):
         total_pos = 0.0

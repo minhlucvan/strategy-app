@@ -23,7 +23,7 @@ class MOMTOPStrategy(BaseStrategy):
 
     @vbt.cached_method
     def run(self, calledby='add'):
-        stocks_df = self.stocks_df
+        stocks_df = self.stocks_df.dropna(axis=1, how='any')
         
         filters = [
             [50, 32],

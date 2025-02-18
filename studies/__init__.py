@@ -48,6 +48,7 @@ from .warrants_blind_order_study import run as run_warrants_blind_order_study
 from .warrants_simmulation_study import run as run_warrants_simmulation_study
 from .warrants_exp_value_study import run as run_warrants_exp_value_study
 from .warrants_volatility_study import run as run_warrants_volatility_study
+from .warrants_history_study import run as run_warrants_history_study
 from .vn30f_gaps_dips_study import run as run_vn30f_gaps_dips_study
 from .stock_cacnel_order import run as run_stock_cacnel_order
 from .stock_low_flow_study import run as run_stock_low_flow_study
@@ -255,6 +256,14 @@ study_list = [
         "module": run_warrants_exp_value_study
     },
     {
+        "name": "Warrants History",
+        "module": run_warrants_history_study
+    },
+    {
+        "name": "Warrants Gap Recover",
+        "module": run_warrants_gap_recover_study
+    },
+    {
         "name": "Warrants Volatility",
         "module": run_warrants_volatility_study
     },
@@ -290,8 +299,4 @@ study_list = [
         "name": "TCBS Stock Noti",
         "module": run_tcbs_stock_noti_study
     },
-    {
-        "name": "Warrants Gap Recover",
-        "module": run_warrants_gap_recover_study  
-    }
 ]

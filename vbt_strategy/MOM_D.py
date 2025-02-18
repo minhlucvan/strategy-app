@@ -28,7 +28,7 @@ def plot_momd(close_prices, mom_indicator, idxmax, RARM):
 
 @njit
 def apply_mom_nb(price, window, smooth_period, entry_threshold, exit_threshold):
-    mom_pct = np.full(price.shape, np.nan, dtype=np.float_)
+    mom_pct = np.full(price.shape, np.nan, dtype=np.float64)
     entry_signal = np.full(price.shape, np.nan, dtype=np.bool_)
     exit_signal = np.full(price.shape, np.nan, dtype=np.bool_)
 
@@ -40,7 +40,7 @@ def apply_mom_nb(price, window, smooth_period, entry_threshold, exit_threshold):
     # if the price is less than 0, then exit_signal is True
     for col in range(price.shape[1]):
         for i in range(window, price.shape[0]):
-            price_changes = np.full(window, np.nan, dtype=np.float_)
+            price_changes = np.full(window, np.nan, dtype=np.float64)
             for level in range(1, window+1):
                 price_change = (price[i, col] - price[i-level, col])
                 price_changes[level-1] = price_change
@@ -51,7 +51,7 @@ def apply_mom_nb(price, window, smooth_period, entry_threshold, exit_threshold):
             mom_pct[i, col] = price_change_pct_mean
 
     # smooth the signal by using the rolling mean 5 (numba)
-    mom_pct_sum = np.full(price.shape, np.nan, dtype=np.float_)
+    mom_pct_sum = np.full(price.shape, np.nan, dtype=np.float64)
     for col in range(price.shape[1]):
         for i in range(window, price.shape[0]):
             mom_pct_sum[i, col] = np.sum(mom_pct[i-smooth_period+1:i+1, col])
