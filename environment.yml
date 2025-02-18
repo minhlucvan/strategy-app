@@ -1,67 +1,51 @@
-name: quant
 channels:
-  - anaconda
   - conda-forge
   - defaults
+  - https://repo.anaconda.com/pkgs/main
+  - https://repo.anaconda.com/pkgs/r
 dependencies:
-  - _libgcc_mutex=0.1=conda_forge
-  - _openmp_mutex=4.5=2_kmp_llvm
-  - bzip2=1.0.8=h5eee18b_6
-  - ca-certificates=2025.1.31=hbcca054_0
-  - cython=3.0.11=py310h5eee18b_1
-  - ld_impl_linux-64=2.40=h12ee557_0
-  - libblas=3.9.0=29_h59b9bed_openblas
-  - libcblas=3.9.0=29_he106b2a_openblas
-  - libffi=3.4.4=h6a678d5_1
-  - libgcc=14.2.0=h77fa898_1
-  - libgcc-ng=14.2.0=h69a702a_1
-  - libgfortran=14.2.0=h69a702a_1
-  - libgfortran5=14.2.0=hd5240d6_1
-  - liblapack=3.9.0=29_h7ac8fdf_openblas
-  - libopenblas=0.3.28=pthreads_h94d23a6_1
-  - libstdcxx=14.2.0=hc0a3c3a_1
-  - libstdcxx-ng=11.2.0=h1234567_1
-  - libta-lib=0.4.0=hd590300_2
-  - libuuid=1.41.5=h5eee18b_0
-  - llvm-openmp=19.1.7=h024ca30_0
-  - mkl=2024.2.2=ha957f24_16
-  - ncurses=6.4=h6a678d5_0
-  - openssl=3.4.1=h7b32b05_0
-  - packaging=24.2=pyhd8ed1ab_2
-  - pandas=2.2.3=py310h5eaa309_1
-  - patsy=1.0.1=pyhd8ed1ab_1
-  - pip=25.0=py310h06a4308_0
-  - python=3.10.16=he870216_1
-  - python-dateutil=2.9.0.post0=pyhff2d567_1
-  - python-tzdata=2025.1=pyhd8ed1ab_0
-  - python_abi=3.10=2_cp310
-  - readline=8.2=h5eee18b_0
-  - setuptools=75.8.0=py310h06a4308_0
-  - six=1.17.0=pyhd8ed1ab_0
-  - sqlite=3.45.3=h5eee18b_0
-  - statsmodels=0.14.4=py310hf462985_0
-  - ta-lib=0.5.1=py310ha75aee5_0
-  - tbb=2021.8.0=hdb19cb5_0
-  - tk=8.6.14=h39e8969_0
-  - tzdata=2025a=h04d1e81_0
-  - wheel=0.45.1=py310h06a4308_0
-  - xz=5.6.4=h5eee18b_1
-  - zlib=1.2.13=h5eee18b_1
+  - blas=1.0
+  - bzip2=1.0.8
+  - ca-certificates=2025.1.31
+  - libcxx=14.0.6
+  - libffi=3.4.4
+  - libgfortran=5.0.0
+  - libgfortran5=11.3.0
+  - libopenblas=0.3.21
+  - libsqlite=3.46.0
+  - libta-lib=0.4.0
+  - libzlib=1.2.13
+  - llvm-openmp=14.0.6
+  - ncurses=6.4
+  - numpy-base=2.2.2
+  - openssl=3.4.1
+  - patsy=1.0.1
+  - python=3.10.13
+  - python_abi=3.10
+  - readline=8.2
+  - setuptools=72.1.0
+  - sqlite=3.45.3
+  - statsmodels=0.14.4
+  - ta-lib=0.5.1
+  - tk=8.6.14
+  - wheel=0.45.1
+  - xz=5.6.4
+  - zlib=1.2.13
   - pip:
       - aiohappyeyeballs==2.4.6
       - aiohttp==3.11.12
       - aiosignal==1.3.2
-      - akracer==0.0.13
-      - akshare==1.15.97
+      - akshare==1.15.87
       - altair==5.5.0
       - annotated-types==0.7.0
       - anyio==4.8.0
+      - appnope==0.1.4
       - arch==7.2.0
       - argon2-cffi==23.1.0
       - argon2-cffi-bindings==21.2.0
       - arrow==1.3.0
       - astropy==6.1.7
-      - astropy-iers-data==0.2025.2.17.0.34.13
+      - astropy-iers-data==0.2025.2.10.0.33.26
       - asttokens==3.0.0
       - async-lru==2.0.4
       - async-timeout==5.0.1
@@ -69,7 +53,6 @@ dependencies:
       - babel==2.17.0
       - beautifulsoup4==4.13.3
       - bleach==6.2.0
-      - blessed==1.20.0
       - blinker==1.9.0
       - cachetools==5.5.1
       - cattrs==24.1.2
@@ -83,23 +66,18 @@ dependencies:
       - cryptography==44.0.1
       - cvxpy==1.6.0
       - cycler==0.12.1
+      - cython==0.29.36
       - dateparser==1.2.1
-      - datetime==5.5
       - debugpy==1.8.12
       - decorator==5.1.1
       - defusedxml==0.7.1
       - dill==0.3.9
-      - ecos==2.0.14
-      - editor==1.6.6
-      - empyrial==2.1.4
-      - empyrical==0.5.5
       - et-xmlfile==2.0.0
       - exceptiongroup==1.2.2
       - executing==2.2.0
       - fake-useragent==2.0.3
       - fastjsonschema==2.21.1
       - fonttools==4.56.0
-      - fpdf==1.7.2
       - fqdn==1.5.1
       - frozendict==2.4.6
       - frozenlist==1.5.0
@@ -113,7 +91,7 @@ dependencies:
       - httpx==0.28.1
       - idna==3.10
       - imageio==2.37.0
-      - inquirer==3.4.0
+      - iniconfig==2.0.0
       - ipykernel==6.29.5
       - ipython==8.32.0
       - ipywidgets==8.1.5
@@ -139,7 +117,7 @@ dependencies:
       - jupyterlab-server==2.27.3
       - jupyterlab-widgets==3.0.13
       - kiwisolver==1.4.8
-      - llvmlite==0.39.1
+      - llvmlite==0.44.0
       - lunardate==0.2.2
       - lxml==5.3.1
       - markdown-it-py==3.0.0
@@ -147,7 +125,9 @@ dependencies:
       - matplotlib==3.10.0
       - matplotlib-inline==0.1.7
       - mdurl==0.1.2
+      - mini-racer==0.12.4
       - mistune==3.1.1
+      - mosek==11.0.8
       - multidict==6.1.0
       - multitasking==0.0.11
       - mypy-extensions==1.0.0
@@ -159,21 +139,24 @@ dependencies:
       - networkx==3.4.2
       - notebook==7.3.2
       - notebook-shim==0.2.4
-      - numba==0.56.4
-      - numpy==1.23.5
+      - numba==0.61.0
+      - numpy==2.1.3
       - openpyxl==3.1.5
       - optionlab==1.4.2
       - osqp==0.6.7.post3
       - overrides==7.7.0
-      - pandas-datareader==0.10.0
+      - packaging==24.2
+      - pandas==2.2.3
       - pandocfilters==1.5.1
       - parso==0.8.4
       - peewee==3.17.9
       - pexpect==4.9.0
       - pillow==11.1.0
+      - pip==25.0.1
       - platformdirs==4.3.6
       - playwright==1.50.0
       - plotly==5.24.1
+      - pluggy==1.5.0
       - prometheus-client==0.21.1
       - prompt-toolkit==3.0.50
       - propcache==0.2.1
@@ -181,7 +164,6 @@ dependencies:
       - psutil==7.0.0
       - ptyprocess==0.7.0
       - pure-eval==0.2.3
-      - py-mini-racer==0.6.0
       - pyarrow==19.0.0
       - pybind11==2.13.6
       - pycparser==2.22
@@ -193,18 +175,18 @@ dependencies:
       - pyerfa==2.0.1.5
       - pygments==2.19.1
       - pyparsing==3.2.1
-      - pyportfolioopt==1.5.6
+      - pytest==8.3.4
+      - pytest-base-url==2.1.0
+      - pytest-playwright==0.7.0
       - python-binance==1.0.27
+      - python-dateutil==2.9.0.post0
       - python-dotenv==1.0.1
-      - python-googlesearch==1.1.1
       - python-json-logger==3.2.1
+      - python-slugify==8.0.4
       - pytz==2025.1
-      - pyuseragents==1.0.5
       - pyyaml==6.0.2
       - pyzmq==26.2.1
       - qdldl==0.1.7.post5
-      - quantstats==0.0.64
-      - readchar==4.2.1
       - referencing==0.36.2
       - regex==2024.11.6
       - requests==2.32.3
@@ -214,24 +196,25 @@ dependencies:
       - rich==13.9.4
       - riskfolio-lib==7.0.0
       - rpds-py==0.22.3
-      - runs==1.2.2
       - schedule==1.2.2
       - scikit-learn==1.6.1
-      - scipy==1.15.2
+      - scipy==1.15.1
       - scs==3.2.7.post2
       - seaborn==0.13.2
       - send2trash==1.8.3
+      - six==1.17.0
+      - smartmoneyconcepts==0.0.24
       - smmap==5.0.2
       - sniffio==1.3.1
       - soupsieve==2.6
       - squarify==0.4.4
-      - st-pages==1.0.1
       - stack-data==0.6.3
       - streamlit==1.42.0
       - streamlit-quill==0.0.3
       - tabulate==0.9.0
       - tenacity==9.0.0
       - terminado==0.18.1
+      - text-unidecode==1.3
       - threadpoolctl==3.5.0
       - tinycss2==1.4.0
       - toml==0.10.2
@@ -241,6 +224,7 @@ dependencies:
       - traitlets==5.14.3
       - types-python-dateutil==2.9.0.20241206
       - typing-extensions==4.12.2
+      - tzdata==2025.1
       - tzlocal==5.3
       - uri-template==1.3.0
       - url-normalize==1.4.3
@@ -249,18 +233,14 @@ dependencies:
       - vnai==0.1.4
       - vnstock==3.1.0.2
       - vnstock-ezchart==0.0.2
-      - watchdog==6.0.0
       - wcwidth==0.2.13
       - webcolors==24.11.1
       - webencodings==0.5.1
       - websocket-client==1.8.0
-      - websockets==15.0
+      - websockets==14.2
       - widgetsnbextension==4.0.13
       - wordcloud==1.9.4
       - xlrd==2.0.1
       - xlsxwriter==3.2.2
-      - xmod==1.8.1
       - yarl==1.18.3
-      - yfinance==0.2.53
-      - zope-interface==7.2
-prefix: /home/minh/miniconda3/envs/quant
+      - yfinance==0.2.52
