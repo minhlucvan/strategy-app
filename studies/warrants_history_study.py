@@ -13,7 +13,7 @@ import utils.stock_utils as su
 import plotly.graph_objects as go
 import streamlit as st
 import requests
-import pandas as pd
+import re
 from bs4 import BeautifulSoup
 import numpy as np
 from studies.stock_gaps_recover_study import run as stock_gaps_recover_study
@@ -136,11 +136,11 @@ def dict_to_form_data(data):
         
     return form_data[:-1]
 
-def get_vietstock_token(ticker='ACB'):
-    # https://finance.vietstock.vn/chung-khoan-phai-sinh/CFPT2001/cw-thong-ke-giao-dich.htm
+def get_vietstock_preface(ticker='ACB'):
+    # https://finance.vietstock.vn/chung-khoan-phai-sinh/CFPT2001/cw-blackschole.htm
     
     # fetch the data
-    url = f'https://finance.vietstock.vn/chung-khoan-phai-sinh/{ticker}/cw-thong-ke-giao-dich.htm'
+    url = f'https://finance.vietstock.vn/chung-khoan-phai-sinh/{ticker}/cw-blackschole.htm'
     
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
@@ -154,34 +154,83 @@ def get_vietstock_token(ticker='ACB'):
     soup = BeautifulSoup(res.text, 'html.parser')
     
     token = soup.find('input', {'name': '__RequestVerificationToken'})['value']
+        
+    # script contain "function callPrice() { ... }"
+    form_script = soup.find('script', text=lambda x: x and 'function callPrice()' in x)
     
-    return token
+    if form_script is None:
+        return None
+    
+    # use regex to extract infmation
+    
+    # extract the irate
+    # if (irate == '' || irate == '0') irate = 5.5; => 5.5
+    irate = re.search(r"if \(irate == '' \|\| irate == '0'\) irate = (\d+\.\d+);", form_script.text)
+    irate = irate.group(1) if irate is not None else 4.5
+    
+    # extract the irate
+    # if (price == '' || price == '0') price = 135000; => 135000
+    
+    # extract the exprice
+    # if (exprice == '' || exprice == '0') exprice = 56000; => 56000
+    exprice = re.search(r"if \(exprice == '' \|\| exprice == '0'\) exprice = (\d+);", form_script.text)
+    exprice = exprice.group(1) if exprice is not None else 56000
+    
+    # extract the crate
+    # if (crate == '' || crate == '0') crate = 5, 000; => 5
+    crate = re.search(r"if \(crate == '' \|\| crate == '0'\) crate = (\d+),", form_script.text)
+    crate = crate.group(1) if crate is not None else 5
+    
+    #  extract the tradedate
+    # _tradedate='2020-06-18'; => 2020-06-18
+    tradedate = re.search(r"_tradedate='(\d+-\d+-\d+)';", form_script.text)
+    tradedate = tradedate.group(1) if tradedate is not None else '2020-06-18'
+    
+    # cookie
+    cookie = res.headers['Set-Cookie']
+    
+    preface = {
+        '__RequestVerificationToken': 'CTWbT4LpOnRJnHcSP3UojC9TKCTkOhEZp82XvTs07BGtLsVkVmqfTYFJ66bRFLEqDDUwk3z0UHjpcmffjRxMbLVu3Tt3eAEMZ-dO-vqNoDw1',
+        'interestRate': irate,
+        'tradeDate': tradedate,
+        'price': exprice,
+        'conversionRate': crate,
+        'code': ticker,
+        'cookie': '__gads=ID=423cc3950e82f39a:T=1726806150:RT=1726806150:S=ALNI_MbUOkE1uK9lBAAwopMVo-n-c24MIw; __gpi=UID=00000ef5802bdff8:T=1726806150:RT=1726806150:S=ALNI_MbbTkFr6YSzw6knlR2o8r1h4YqR5Q; __eoi=ID=ac4cf7895cd620ab:T=1726806150:RT=1726806150:S=AA-AfjYzuzpVkiByT_gFJk9wpfiF; language=vi-VN; Theme=Light; AnonymousNotification=; ASP.NET_SessionId=uifnmb2w2siidkionk3qe3zh; finance_viewedstock=CFPT2403,; __RequestVerificationToken=dqR2XrTNMaMG7ExBHlcQ8mjO19q0lLqmEiaFekMJKodMjMVolNYHh93yYHdz6b7bcCvlJtflD9xAZm2be4xjKHWthz8OcelQSgNQrsLfu1I1'
+    }
+    
+    return preface
 
 def fetch_warrant_price_history(ticker='ACB'):
     # https://finance.vietstock.vn/data/CallCWBlackSchole
     
-    token = get_vietstock_token(ticker)
+    preface = get_vietstock_preface(ticker)
+    
+    if preface is None:
+        return None
     
     url = "https://finance.vietstock.vn/data/CallCWBlackSchole"
     
     data = {
         'code': ticker,
-        'interestRate': 4.5,
-        'tradeDate': '2025-02-18',
-        'price': 135000,
-        'conversionRate': 4,
-        '__RequestVerificationToken': token
+        'interestRate': preface['interestRate'],
+        'tradeDate': preface['tradeDate'],
+        'price': preface['price'],
+        'conversionRate': preface['conversionRate'],
+        '__RequestVerificationToken': preface['__RequestVerificationToken']
     }
+    
 
     # payload = "code=CFPT2403&interestRate=4.5&tradeDate=2025-02-18&price=135000&conversionRate=4&__RequestVerificationToken=CTWbT4LpOnRJnHcSP3UojC9TKCTkOhEZp82XvTs07BGtLsVkVmqfTYFJ66bRFLEqDDUwk3z0UHjpcmffjRxMbLVu3Tt3eAEMZ-dO-vqNoDw1"
     payload = dict_to_form_data(data)
+
     headers = {
         'Accept': '*/*',
         'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8,vi-VN;q=0.7,fr-FR;q=0.6,fr;q=0.5,de;q=0.4',
         'Cache-Control': 'no-cache',
         'Connection': 'keep-alive',
         'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
-        'Cookie': f'__gads=ID=423cc3950e82f39a:T=1726806150:RT=1726806150:S=ALNI_MbUOkE1uK9lBAAwopMVo-n-c24MIw; __gpi=UID=00000ef5802bdff8:T=1726806150:RT=1726806150:S=ALNI_MbbTkFr6YSzw6knlR2o8r1h4YqR5Q; __eoi=ID=ac4cf7895cd620ab:T=1726806150:RT=1726806150:S=AA-AfjYzuzpVkiByT_gFJk9wpfiF; language=vi-VN; Theme=Light; AnonymousNotification=; ASP.NET_SessionId=uifnmb2w2siidkionk3qe3zh; finance_viewedstock=CFPT2403,; __RequestVerificationToken=${token}',
+        'Cookie': preface['cookie'],
         'DNT': '1',
         'Origin': 'https://finance.vietstock.vn',
         'Pragma': 'no-cache',
@@ -197,11 +246,17 @@ def fetch_warrant_price_history(ticker='ACB'):
     }
 
     response = requests.request("POST", url, headers=headers, data=payload)
-    
-    st.write(response.text)
-
-    
+        
     df = pd.read_json(response.text)
+    
+    if df.empty:
+        return None
+    
+    df['TradingDate'] = df['TradingDate'].apply(lambda x: pd.to_datetime(int(re.search(r'/Date\((\d+)\)/', x).group(1)), unit='ms'))
+    df['FirstTradingDate'] = df['FirstTradingDate'].apply(lambda x: pd.to_datetime(int(re.search(r'/Date\((\d+)\)/', x).group(1)), unit='ms'))
+    df['DueDate'] = df['DueDate'].apply(lambda x: pd.to_datetime(int(re.search(r'/Date\((\d+)\)/', x).group(1)), unit='ms'))
+    
+    df['ticker'] = ticker
     
     return df
 
@@ -262,6 +317,30 @@ def reload_warrant_news(ticker='ACB'):
     infos.to_csv(f'data/warrant_news_{ticker}.csv')
     
     st.write('Done')
+
+@st.cache_data
+def reload_warrant_price_history(ticker='ACB'):
+    # first we contruct a posible list of tickers
+    # C + ticker + YY + MM
+    tickers = []
+    start_year = 20
+    end_year = 25
+    for y in range(start_year, end_year):
+        for m in range(1, 13):
+            tickers.append(f'C{ticker}{y}{m:02d}')
+            
+    # trying to fetch
+    infos = pd.DataFrame()
+    
+    for t in tickers:
+        price = fetch_warrant_price_history(t)
+        if price is not None:
+            infos = pd.concat([infos, price], axis=0)
+        
+    # save to csv
+    infos.to_csv(f'data/warrant_price_{ticker}.csv')
+    
+    st.write('Done')
     
 def run(symbol_benchmark, symbolsDate_dict):
     if len(symbolsDate_dict['symbols']) < 1:
@@ -269,18 +348,15 @@ def run(symbol_benchmark, symbolsDate_dict):
         st.stop()
     
     ticker = symbolsDate_dict['symbols'][0]
-
     
     # button to reload
     if st.button('Reload'):
         reload_warrant_news(ticker)
         
+    if st.button('Reload price'):
+        reload_warrant_price_history(ticker)
+        
     use_cache = st.checkbox('Use cache', value=True)
-    
-    t = fetch_warrant_price_history('CFPT2001')
-    st.write(t)
-    st.stop()
-
     
     df = None
     if use_cache:

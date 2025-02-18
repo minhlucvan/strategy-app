@@ -7,7 +7,7 @@ file_path = '.streamlit/secrets.toml'
 # ensure the file exists
 if not os.path.exists(file_path):
     with open(file_path, 'w') as f:
-        f.write('')
+        f.write('password = "1"')
 
 def load_config():
     if not os.path.exists(file_path):
