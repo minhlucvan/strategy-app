@@ -129,11 +129,18 @@ def fetch_warrant_exta_info(ticker='ACB'):
     
     return info            
 
-def fetch_warrant_price_history(ticker='ACB'):
-    # https://finance.vietstock.vn/chung-khoan-phai-sinh/CFPT2403/cw-blackschole.htm
+def dict_to_form_data(data):
+    form_data = ''
+    for key, value in data.items():
+        form_data += f'{key}={value}&'
+        
+    return form_data[:-1]
+
+def get_vietstock_token(ticker='ACB'):
+    # https://finance.vietstock.vn/chung-khoan-phai-sinh/CFPT2001/cw-thong-ke-giao-dich.htm
     
     # fetch the data
-    url = f'https://finance.vietstock.vn/chung-khoan-phai-sinh/{ticker}/cw-blackschole.htm'
+    url = f'https://finance.vietstock.vn/chung-khoan-phai-sinh/{ticker}/cw-thong-ke-giao-dich.htm'
     
     headers = {
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/58.0.3029.110 Safari/537.3'
@@ -144,18 +151,57 @@ def fetch_warrant_price_history(ticker='ACB'):
     if res.status_code != 200:
         return None
     
-    # pandas read_html
-    dfs = pd.read_html(res.text)
+    soup = BeautifulSoup(res.text, 'html.parser')
     
-    st.write(dfs)
+    token = soup.find('input', {'name': '__RequestVerificationToken'})['value']
     
-    if len(dfs) < 4:
-        return None
+    return token
+
+def fetch_warrant_price_history(ticker='ACB'):
+    # https://finance.vietstock.vn/data/CallCWBlackSchole
     
-    df = dfs[3]
+    token = get_vietstock_token(ticker)
     
-    # trim all columns
-    df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
+    url = "https://finance.vietstock.vn/data/CallCWBlackSchole"
+    
+    data = {
+        'code': ticker,
+        'interestRate': 4.5,
+        'tradeDate': '2025-02-18',
+        'price': 135000,
+        'conversionRate': 4,
+        '__RequestVerificationToken': token
+    }
+
+    # payload = "code=CFPT2403&interestRate=4.5&tradeDate=2025-02-18&price=135000&conversionRate=4&__RequestVerificationToken=CTWbT4LpOnRJnHcSP3UojC9TKCTkOhEZp82XvTs07BGtLsVkVmqfTYFJ66bRFLEqDDUwk3z0UHjpcmffjRxMbLVu3Tt3eAEMZ-dO-vqNoDw1"
+    payload = dict_to_form_data(data)
+    headers = {
+        'Accept': '*/*',
+        'Accept-Language': 'en-US,en;q=0.9,vi;q=0.8,vi-VN;q=0.7,fr-FR;q=0.6,fr;q=0.5,de;q=0.4',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Content-Type': 'application/x-www-form-urlencoded; charset=UTF-8',
+        'Cookie': f'__gads=ID=423cc3950e82f39a:T=1726806150:RT=1726806150:S=ALNI_MbUOkE1uK9lBAAwopMVo-n-c24MIw; __gpi=UID=00000ef5802bdff8:T=1726806150:RT=1726806150:S=ALNI_MbbTkFr6YSzw6knlR2o8r1h4YqR5Q; __eoi=ID=ac4cf7895cd620ab:T=1726806150:RT=1726806150:S=AA-AfjYzuzpVkiByT_gFJk9wpfiF; language=vi-VN; Theme=Light; AnonymousNotification=; ASP.NET_SessionId=uifnmb2w2siidkionk3qe3zh; finance_viewedstock=CFPT2403,; __RequestVerificationToken=${token}',
+        'DNT': '1',
+        'Origin': 'https://finance.vietstock.vn',
+        'Pragma': 'no-cache',
+        'Referer': 'https://finance.vietstock.vn/chung-khoan-phai-sinh/CFPT2403/cw-blackschole.htm',
+        'Sec-Fetch-Dest': 'empty',
+        'Sec-Fetch-Mode': 'cors',
+        'Sec-Fetch-Site': 'same-origin',
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/132.0.0.0 Safari/537.36',
+        'X-Requested-With': 'XMLHttpRequest',
+        'sec-ch-ua': '"Not A(Brand";v="8", "Chromium";v="132", "Google Chrome";v="132"',
+        'sec-ch-ua-mobile': '?0',
+        'sec-ch-ua-platform': '"Windows"'
+    }
+
+    response = requests.request("POST", url, headers=headers, data=payload)
+    
+    st.write(response.text)
+
+    
+    df = pd.read_json(response.text)
     
     return df
 
