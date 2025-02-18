@@ -359,17 +359,27 @@ def run(symbol_benchmark, symbolsDate_dict):
     use_cache = st.checkbox('Use cache', value=True)
     
     df = None
-    if use_cache:
-        try:
-            df = pd.read_csv(f'data/warrant_news_{ticker}.csv')
-            df.set_index('ticker', inplace=True)
-        except:
-            st.write('Cache not found')
-            st.stop()
+
+    try:
+        df = pd.read_csv(f'data/warrant_news_{ticker}.csv')
+        df.set_index('ticker', inplace=True)
+    except:
+        st.write('Cache not found')
+        st.stop()
             
     if df is None:
         st.write('Cache not found')
         st.stop()
+        
+    price_df = None
+    
+    try:
+        price_df = pd.read_csv(f'data/warrant_price_{ticker}.csv')
+    except:
+        st.write('Cache not found')
+        st.stop()
+        
+    st.write(price_df)
                 
     stocks_df = get_stocks(symbolsDate_dict, 'close')
     
