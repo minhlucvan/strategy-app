@@ -22,6 +22,16 @@ import numpy as np
 import pandas as pd
 
 def monte_carlo_simulation(df, num_simulations, num_days, lookback_days=252, break_event_price=0):
+    # dynamic lookback_days based on num_days
+    # with assumption that future is similar to the past
+    if lookback_days == 0:
+        lookback_days = num_days
+        
+    # lookback_days = abs(lookback_days) * num_days
+    # look into the past n times of num_days
+    if lookback_days < 0:
+        lookback_days = abs(lookback_days) * num_days
+        
     # Compute daily returns for each stock
     last_year_df = df.iloc[-lookback_days:]
     returns = last_year_df.pct_change().dropna()
@@ -150,8 +160,9 @@ def process_simulations_results(df, all_simulations_df):
     result_df['cw_expected_loss'] = result_df['expected_loss'] / result_df['Exercise_Ratio']
     
     # cw_expected_loss_return = cw_expected_loss / close_cw
-    # result_df['cw_expected_loss_return'] = result_df['cw_expected_loss'] / result_df['close_cw']
-    result_df['cw_expected_loss_return'] = 1 # fix the loss return to 1
+    # real loss return, good for caculate out of money loss
+    result_df['cw_expected_loss_return'] = result_df['cw_expected_loss'] / result_df['close_cw']
+    # result_df['cw_expected_loss_return'] = 1 # fix the loss return to 1
     
     # cw_expected_loss_return_daily
     result_df['cw_expected_loss_return_daily'] = result_df['cw_expected_loss_return'] / result_df['days_to_expired']
@@ -163,7 +174,7 @@ def process_simulations_results(df, all_simulations_df):
     result_df['expect_value_daily'] = result_df['expect_value'] / result_df['days_to_expired']
     
     # expect_value_annualized 
-    result_df['expect_value_annual'] = result_df['expect_value_daily'] * 365
+    result_df['expect_value_annual'] = result_df['expect_value_daily'] * 252
                                                                  
     return result_df
 
@@ -276,7 +287,7 @@ def fetch_cw_data_with_price(cw_ticker, warrants_df, stock_df):
     
     return df
 
-def simulate_warrant(stock_df, df):
+def simulate_warrant(stock_df, df, lookback_days=252):
     all_simulations_df = pd.DataFrame()
 
     # Loop through index of df
@@ -288,7 +299,7 @@ def simulate_warrant(stock_df, df):
         break_event_price = df['break_event_price'][i]
         
         # Perform the Monte Carlo simulation for a fixed period of 100 days
-        sim_df = monte_carlo_simulation(stock_df_copy, 1000, days_to_expired, lookback_days=252, break_event_price=break_event_price)
+        sim_df = monte_carlo_simulation(stock_df_copy, 1000, days_to_expired, lookback_days=lookback_days, break_event_price=break_event_price)
         
         last_sim = sim_df.iloc[-1]
             
@@ -313,9 +324,11 @@ def backtest_trade_cw_simulation(
     volume,
     current_pnl,
     current_return,
-    min_order_size
+    min_order_size,
+    ev_threshold=2.0
 ):
     trade_df = pd.DataFrame()
+    total_trades = 0
     
     for i in range(len(result_df)):
         date = result_df.index[i]
@@ -323,6 +336,7 @@ def backtest_trade_cw_simulation(
         expected_profit = result_df['cw_expected_return'][i]
         expected_loss = result_df['cw_expected_loss_return'][i]
         cw_price = result_df['close_cw'][i]
+        days_to_expired = result_df['days_to_expired'][i]
         new_pnl = 0
         new_return = 0
         
@@ -333,7 +347,7 @@ def backtest_trade_cw_simulation(
             new_return = new_pnl / current_value if current_value > 0 else 0
             current_return += new_return
         
-        new_position = dynamic_position_sizing(1, win_prob, expected_profit, expected_loss, 1)       
+        new_position = dynamic_position_sizing(1, win_prob, expected_profit, expected_loss, 1, ev_threshold=ev_threshold)    
         new_volume = new_position * portfolio_value / cw_price 
         # round to the nearest 100
         new_volume = round(new_volume / min_order_size) * min_order_size
@@ -341,17 +355,25 @@ def backtest_trade_cw_simulation(
         action_volume = 0
         
         # update cash
-        if new_volume > volume:
+        if days_to_expired < 30 and volume > 0:
+            # sell all
+            current_cash += volume * cw_price
+            action = 'Sell'
+            action_volume = volume
+            volume = 0
+        elif new_volume > volume and days_to_expired > 30:
             # buy
             current_cash -= (new_volume - volume) * cw_price
             action = 'Buy'
             action_volume = new_volume - volume
-        elif new_volume < volume:
+        elif new_volume < volume and days_to_expired > 30:
             # sell
             current_cash += (volume - new_volume) * cw_price
             action = 'Sell'
             action_volume = volume - new_volume
-        
+            
+        add_trade = 1 if action != 'Hold' else 0
+        total_trades += add_trade
         volume = new_volume
         current_value = volume * cw_price
         current_position = new_position
@@ -370,6 +392,7 @@ def backtest_trade_cw_simulation(
             'Asset': [current_asset],
             'Volume': [volume],
             'Action': [action],
+            'TotalTrades': [total_trades],
             'ActionVolume': [action_volume]
         })
         

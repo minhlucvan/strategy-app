@@ -24,6 +24,8 @@ import pandas as pd
 import numpy as np
 import pandas as pd
 
+from .warrants_exp_value_study import backtest_trade_cw_simulation, simulate_warrant
+
 def parse_warrant_news(text):
     try:
         dfs = pd.read_html(text, header=0)
@@ -31,7 +33,13 @@ def parse_warrant_news(text):
         if len(dfs) < 5:
             return None
         
-        df = dfs[4]
+        df = None
+        
+        # find one that contains "CK cơ sở" in the first column
+        for d in dfs:
+            if any('CK cơ sở:' in col for col in d.columns):
+                df = d
+                break
         
         # trim all columns
         df = df.applymap(lambda x: x.strip() if isinstance(x, str) else x)
@@ -350,14 +358,14 @@ def run(symbol_benchmark, symbolsDate_dict):
     ticker = symbolsDate_dict['symbols'][0]
     
     # button to reload
-    if st.button('Reload'):
+    if st.button('Reload Info'):
         reload_warrant_news(ticker)
         
     if st.button('Reload price'):
         reload_warrant_price_history(ticker)
         
     use_cache = st.checkbox('Use cache', value=True)
-    
+
     df = None
 
     try:
@@ -379,61 +387,126 @@ def run(symbol_benchmark, symbolsDate_dict):
         st.write('Cache not found')
         st.stop()
         
-    st.write(price_df)
                 
     stocks_df = get_stocks(symbolsDate_dict, 'close')
     
-    stock_df = stocks_df[ticker]
+    stock_df = stocks_df[[ticker]]
+    stock_df.columns = ['close']
+    
+    # index to datetime
+    stock_df.index = pd.to_datetime(stock_df.index)
+    # col ticker to close
+    stock_df.columns = ['close']
     
     # plot stock
-    pu.plot_single_line(stock_df, title=f'{ticker} price')
+    pu.plot_single_line(stock_df['close'], title=f'{ticker} price')
     
-
-    for row in df.iterrows():        
-        if row[1]['issue_date'] is not pd.NaT:
-            issue_stock_price = stock_df.loc[:row[1]['issue_date']].ffill().iloc[-1]
-            df.loc[row[0], 'issue_stock_price'] = issue_stock_price
-        
-        if row[1]['maturity_date'] is not pd.NaT:
-            exercise_stock_price = stock_df.loc[:row[1]['maturity_date']].ffill().iloc[-1]
-            df.loc[row[0], 'exercise_stock_price'] = exercise_stock_price
-        
-        if row[1]['last_trade_date'] is not pd.NaT:
-            last_stock_price = stock_df.loc[:row[1]['last_trade_date']].ffill().iloc[-1]
-            df.loc[row[0], 'last_stock_price'] = last_stock_price
-        
-        if row[1]['first_trade_date'] is not pd.NaT:
-            first_stock_price = stock_df.loc[:row[1]['first_trade_date']].ffill().iloc[-1]
-            df.loc[row[0], 'first_stock_price'] = first_stock_price
-    # caculate break even price
-    df['out_of_money'] = df['exercise_stock_price'] - df['exercise_price']
+    # st.write(df)
     
-    st.write(df)
-    
-    pu.plot_single_bar(df['out_of_money'], title='Out of money', x_title='Warrant', y_title='Out of money', legend_title='Out of money')
+    # pu.plot_single_bar(df['out_of_money'], title='Out of money', x_title='Warrant', y_title='Out of money', legend_title='Out of money')
     
     pu.plot_single_bar(df['listing_change'], title='Listing change', x_title='Warrant', y_title='Listing change', legend_title='Listing change')
     
+    # remove the first column unnamed 0
+    price_df = price_df.loc[:, ~price_df.columns.str.contains('^Unnamed')]
     
-    listing_change_by_maturity = df.groupby('maturity_date')['listing_change'].mean()
-     
-  
-    pu.plot_single_bar(listing_change_by_maturity, title='Listing change by maturity', x_title='Maturity date', y_title='Listing change', legend_title='Listing change')
+   # merge the price_df with df on ticker
+
+    full_df = pd.merge(df, price_df, left_index=True, right_on='ticker', how='left')
     
-    # price in range of listing change
-    price_df = stock_df.loc[df['listing_date'].min():df['listing_date'].max()]
+    # st.write(full_df)
     
-    pu.plot_single_line(price_df, title=f'{ticker} price', x_title='Date', y_title='Price', legend_title='Price')
-  
-  
-    # listing change by cw_issuer
-  
-    listing_change_by_cw_issuer = df.groupby('cw_issuer')['listing_change'].mean()
+    # convert TradingDate str '2020-06-17 17:00:00' -> '2020-06-17 00:00:00'
+    # 17:00:00 -> 00:00:00
+    full_df['TradingDate'] = full_df['TradingDate'].apply(lambda x: x.split()[0])
+    full_df['TradingDate'] = pd.to_datetime(full_df['TradingDate'])
+    full_df['stock'] = full_df['BaseStockCode']
+    full_df['close_stock'] = full_df['BaseClosePrice']
+    full_df['days_to_expired'] = full_df['RemainDays']
+    full_df['listing_change'] = full_df['listing_change'].astype(float)
+    # break_event_price = su.warrant_break_even_point(cw_price, df['Exercise_Price'][i], df['Exercise_Ratio'][i])
+    full_df['Exercise_Price'] = full_df['ExercisePrice'].astype(float)
+    full_df['close_cw'] = full_df['ClosePrice'].astype(float)
+    # 2.3:1 -> 2.3
+    full_df['Exercise_Ratio'] = full_df['conversion_ratio'].apply(lambda x: float(x.split(':')[0]))
+    full_df['break_event_price'] = su.warrant_break_even_point(full_df['close_cw'], full_df['Exercise_Price'], full_df['Exercise_Ratio'])
     
-    pu.plot_single_bar(listing_change_by_cw_issuer, title='Listing change by cw issuer', x_title='CW Issuer', y_title='Listing change', legend_title='Listing change')
+    # premium = (stock price - break_even_price) / break_even_price
+    full_df['premium'] = (full_df['close_stock'] - full_df['break_event_price']) / full_df['break_event_price']
     
-    # listing change by term
+    # sort by TradingDate
+    full_df.sort_values('TradingDate', inplace=True)
     
-    listing_change_by_term = df.groupby('term')['listing_change'].mean()
+    all_tickers = full_df['ticker'].unique()
+    select_all = st.checkbox('Select all', value=False)
+    default_tickers = all_tickers if select_all else []
     
-    pu.plot_single_bar(listing_change_by_term, title='Listing change by term', x_title='Term', y_title='Listing change', legend_title='Listing change')
+    selected_tickers = st.multiselect('Select tickers', all_tickers, default=default_tickers)
+        
+    all_returns = []
+    
+    for selected_ticker in selected_tickers:
+        st.divider()
+        st.write(f"### Selected ticker: {selected_ticker}")
+        selected_df = full_df[full_df['ticker'] == selected_ticker]
+        
+        # reindex to TradingDate
+        selected_df.set_index('TradingDate', inplace=True)
+        
+        result_df = simulate_warrant(stock_df, selected_df, 0)
+        result_df['ticker'] = selected_ticker
+        
+        cap = 100
+        
+        # cap expect_value to -cap +cap
+        result_df['expect_value'] = result_df['expect_value'].clip(-cap, cap)
+        final_listing_change = result_df['listing_change'].iloc[-1]
+        
+        # Example Usage
+        current_cash = 10_000_000
+        portfolio_value = current_cash
+        current_value = 0
+        current_position = 0
+        current_asset = 0
+        volume = 0
+        current_pnl = 0
+        current_return = 1
+        min_order_size = 100
+        ev_threshold = 1,
+        
+        trade_df = backtest_trade_cw_simulation(
+            result_df,
+            current_cash,
+            portfolio_value,
+            current_value,
+            current_position,
+            current_asset,
+            volume,
+            current_pnl,
+            current_return,
+            min_order_size,
+            ev_threshold
+        )
+        
+        final_return = trade_df['Return'].iloc[-1]
+        st.write(f"Final return: {final_return:.2f}")
+         # plot return
+        
+        col1, col2 = st.columns(2)
+        
+        with col1:
+            pu.plot_single_line(result_df['close_cw'], title=f"Close CW {final_listing_change}%")
+            pu.plot_single_line(trade_df['Return'], title=f"Return {selected_ticker}")
+            
+        
+        with col2:
+            # pu.plot_single_line(result_df['close_stock'], title=f"Close Stock {selected_ticker}")
+            pu.plot_single_bar(result_df['expect_value'], title=f"Expected Value {selected_ticker}")
+            # pu.plot_single_bar(result_df['expect_value_annual'], title="Expected Value Annualized by Ticker")
+            # pu.plot_single_bar(result_df['expect_value_daily'] * 100, title="Expected Value Daily by Ticker")
+            # pu.plot_single_bar(result_df['premium'] * 100, title=f"Premium {selected_ticker}")
+            pu.plot_single_bar(trade_df['Volume'], title=f"Volume {selected_ticker}")
+            
+            
+    avg_return = np.mean(all_returns)
+    st.write(f"Average return: {avg_return:.2f}")
