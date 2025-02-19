@@ -424,15 +424,20 @@ def run(symbol_benchmark, symbolsDate_dict):
     full_df['close_stock'] = full_df['BaseClosePrice']
     full_df['days_to_expired'] = full_df['RemainDays']
     full_df['listing_change'] = full_df['listing_change'].astype(float)
-    # break_event_price = su.warrant_break_even_point(cw_price, df['Exercise_Price'][i], df['Exercise_Ratio'][i])
-    full_df['Exercise_Price'] = full_df['ExercisePrice'].astype(float)
+    # break_even_price = su.warrant_break_even_point(cw_price, df['Exercise_Price'][i], df['Exercise_Ratio'][i])
+    # ticker,stock,issuer,cw_issuer,type,exercise_type,
+    # exercise_method,term,issue_date,listing_date,first_trade_date,
+    # last_trade_date,maturity_date,conversion_ratio,adjusted_conversion_ratio,issue_price,exercise_price,
+    # adjusted_exercise_price,listed_volume,circulating_volume,listing_change
+
+    full_df['Exercise_Price'] = full_df['exercise_price'].astype(float)
     full_df['close_cw'] = full_df['ClosePrice'].astype(float)
     # 2.3:1 -> 2.3
     full_df['Exercise_Ratio'] = full_df['conversion_ratio'].apply(lambda x: float(x.split(':')[0]))
-    full_df['break_event_price'] = su.warrant_break_even_point(full_df['close_cw'], full_df['Exercise_Price'], full_df['Exercise_Ratio'])
+    full_df['break_even_price'] = su.warrant_break_even_point(full_df['close_cw'], full_df['Exercise_Price'], full_df['Exercise_Ratio'])
     
     # premium = (stock price - break_even_price) / break_even_price
-    full_df['premium'] = (full_df['close_stock'] - full_df['break_event_price']) / full_df['break_event_price']
+    full_df['premium'] = (full_df['close_stock'] - full_df['break_even_price']) / full_df['break_even_price']
     
     # sort by TradingDate
     full_df.sort_values('TradingDate', inplace=True)
@@ -453,13 +458,13 @@ def run(symbol_benchmark, symbolsDate_dict):
         # reindex to TradingDate
         selected_df.set_index('TradingDate', inplace=True)
         
-        result_df = simulate_warrant(stock_df, selected_df, 0)
+        result_df = simulate_warrant(stock_df, selected_df, 252)
         result_df['ticker'] = selected_ticker
         
-        cap = 100
+        # cap = 100
         
         # cap expect_value to -cap +cap
-        result_df['expect_value'] = result_df['expect_value'].clip(-cap, cap)
+        # result_df['expect_value'] = result_df['expect_value'].clip(-cap, cap)
         final_listing_change = result_df['listing_change'].iloc[-1]
         
         # Example Usage
@@ -470,9 +475,9 @@ def run(symbol_benchmark, symbolsDate_dict):
         current_asset = 0
         volume = 0
         current_pnl = 0
-        current_return = 1
+        current_return = 0
         min_order_size = 100
-        ev_threshold = 1,
+        ev_threshold = 1.5
         
         trade_df = backtest_trade_cw_simulation(
             result_df,
@@ -490,7 +495,8 @@ def run(symbol_benchmark, symbolsDate_dict):
         
         final_return = trade_df['Return'].iloc[-1]
         st.write(f"Final return: {final_return:.2f}")
-         # plot return
+        all_returns.append(final_return)
+        # plot return
         
         col1, col2 = st.columns(2)
         
@@ -508,5 +514,5 @@ def run(symbol_benchmark, symbolsDate_dict):
             pu.plot_single_bar(trade_df['Volume'], title=f"Volume {selected_ticker}")
             
             
-    avg_return = np.mean(all_returns)
+    avg_return = np.nanmean(all_returns)
     st.write(f"Average return: {avg_return:.2f}")

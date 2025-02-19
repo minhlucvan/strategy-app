@@ -21,7 +21,7 @@ import pandas as pd
 import numpy as np
 import pandas as pd
 
-def monte_carlo_simulation(df, num_simulations, num_days, lookback_days=252, break_event_price=0):
+def monte_carlo_simulation(df, num_simulations, num_days, lookback_days=252, break_even_price=0):
     # dynamic lookback_days based on num_days
     # with assumption that future is similar to the past
     if lookback_days == 0:
@@ -70,8 +70,8 @@ def monte_carlo_simulation(df, num_simulations, num_days, lookback_days=252, bre
     sim_std_high = sim_mean + sim_std
     sim_std_low = sim_mean - sim_std
     total_sims = num_simulations * df.shape[1]
-    win_rate = np.sum(simulation_results_last_first_stock > break_event_price) / total_sims
-    loss_mean = np.mean(simulation_results_last_first_stock[simulation_results_last_first_stock < break_event_price])
+    win_rate = np.sum(simulation_results_last_first_stock > break_even_price) / total_sims
+    loss_mean = np.mean(simulation_results_last_first_stock[simulation_results_last_first_stock < break_even_price])
 
     result_df = pd.DataFrame({
         'min': sim_min.flatten(),
@@ -154,7 +154,7 @@ def process_simulations_results(df, all_simulations_df):
     result_df['cw_expected_return_daily'] = result_df['cw_expected_return'] / result_df['days_to_expired']
     
     # expected_loss =  exercise_price - loss_mean
-    result_df['expected_loss'] = result_df['break_event_price'] - result_df['loss_mean']
+    result_df['expected_loss'] = result_df['break_even_price'] - result_df['loss_mean']
     
     # cw_expected_loss = expected_loss / Exercise_Ratio
     result_df['cw_expected_loss'] = result_df['expected_loss'] / result_df['Exercise_Ratio']
@@ -282,8 +282,8 @@ def fetch_cw_data_with_price(cw_ticker, warrants_df, stock_df):
     # merge with df with cw_df
     df = pd.merge(df, cw_df, on='Datetime')
     
-    # break_event_price = su.warrant_break_even_point(cw_price, df['Exercise_Price'][i], df['Exercise_Ratio'][i])
-    df['break_event_price'] = su.warrant_break_even_point(df['close_cw'], df['Exercise_Price'], df['Exercise_Ratio'])
+    # break_even_price = su.warrant_break_even_point(cw_price, df['Exercise_Price'][i], df['Exercise_Ratio'][i])
+    df['break_even_price'] = su.warrant_break_even_point(df['close_cw'], df['Exercise_Price'], df['Exercise_Ratio'])
     
     return df
 
@@ -296,10 +296,10 @@ def simulate_warrant(stock_df, df, lookback_days=252):
         stock_df_copy = stock_df[stock_df.index <= sim_date].copy()
         
         days_to_expired = df['days_to_expired'][i]
-        break_event_price = df['break_event_price'][i]
+        break_even_price = df['break_even_price'][i]
         
         # Perform the Monte Carlo simulation for a fixed period of 100 days
-        sim_df = monte_carlo_simulation(stock_df_copy, 1000, days_to_expired, lookback_days=lookback_days, break_event_price=break_event_price)
+        sim_df = monte_carlo_simulation(stock_df_copy, 1000, days_to_expired, lookback_days=lookback_days, break_even_price=break_even_price)
         
         last_sim = sim_df.iloc[-1]
             
@@ -447,7 +447,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     plot_single_line(result_df['close_cw'], title="Warrant Close Price")
 
     st.write("Days to Expire: ", result_df['days_to_expired'].iloc[-1])
-    st.write("Break Event Price: ", result_df['break_event_price'].iloc[-1])
+    st.write("Break Event Price: ", result_df['break_even_price'].iloc[-1])
     st.write("Expected profit: ", result_df['cw_expected_return'].iloc[-1])
     st.write("Profit probability: ", result_df['win_rate'].iloc[-1])
     st.write("Expected loss: ", result_df['cw_expected_loss_return'].iloc[-1])
