@@ -302,7 +302,7 @@ def reload_warrant_news(ticker='ACB'):
     # first we contruct a posible list of tickers
     # C + ticker + YY + MM
     tickers = []
-    start_year = 20
+    start_year = 19
     end_year = 25
     for y in range(start_year, end_year):
         for m in range(1, 13):
@@ -331,7 +331,7 @@ def reload_warrant_price_history(ticker='ACB'):
     # first we contruct a posible list of tickers
     # C + ticker + YY + MM
     tickers = []
-    start_year = 20
+    start_year = 19
     end_year = 25
     for y in range(start_year, end_year):
         for m in range(1, 13):
@@ -350,22 +350,7 @@ def reload_warrant_price_history(ticker='ACB'):
     
     st.write('Done')
     
-def run(symbol_benchmark, symbolsDate_dict):
-    if len(symbolsDate_dict['symbols']) < 1:
-        st.info("Please select symbols.")
-        st.stop()
-    
-    ticker = symbolsDate_dict['symbols'][0]
-    
-    # button to reload
-    if st.button('Reload Info'):
-        reload_warrant_news(ticker)
-        
-    if st.button('Reload price'):
-        reload_warrant_price_history(ticker)
-        
-    use_cache = st.checkbox('Use cache', value=True)
-
+def load_full_warrants_history(ticker='ACB'):
     df = None
 
     try:
@@ -378,7 +363,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     if df is None:
         st.write('Cache not found')
         st.stop()
-        
+    
     price_df = None
     
     try:
@@ -387,20 +372,6 @@ def run(symbol_benchmark, symbolsDate_dict):
         st.write('Cache not found')
         st.stop()
         
-                
-    stocks_df = get_stocks(symbolsDate_dict, 'close')
-    
-    stock_df = stocks_df[[ticker]]
-    stock_df.columns = ['close']
-    
-    # index to datetime
-    stock_df.index = pd.to_datetime(stock_df.index)
-    # col ticker to close
-    stock_df.columns = ['close']
-    
-    # plot stock
-    pu.plot_single_line(stock_df['close'], title=f'{ticker} price')
-    
     # st.write(df)
     
     # pu.plot_single_bar(df['out_of_money'], title='Out of money', x_title='Warrant', y_title='Out of money', legend_title='Out of money')
@@ -418,7 +389,8 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     # convert TradingDate str '2020-06-17 17:00:00' -> '2020-06-17 00:00:00'
     # 17:00:00 -> 00:00:00
-    full_df['TradingDate'] = full_df['TradingDate'].apply(lambda x: x.split()[0])
+    # st.write(full_df)
+    full_df['TradingDate'] = full_df['TradingDate'].apply(lambda x: x.split()[0] if isinstance(x, str) else x)
     full_df['TradingDate'] = pd.to_datetime(full_df['TradingDate'])
     full_df['stock'] = full_df['BaseStockCode']
     full_df['close_stock'] = full_df['BaseClosePrice']
@@ -442,17 +414,46 @@ def run(symbol_benchmark, symbolsDate_dict):
     # sort by TradingDate
     full_df.sort_values('TradingDate', inplace=True)
     
+    return full_df
+    
+def run(symbol_benchmark, symbolsDate_dict):
+    if len(symbolsDate_dict['symbols']) < 1:
+        st.info("Please select symbols.")
+        st.stop()
+    
+    ticker = symbolsDate_dict['symbols'][0]
+    
+    # button to reload
+    if st.button('Reload Info'):
+        reload_warrant_news(ticker)
+        
+    if st.button('Reload price'):
+        reload_warrant_price_history(ticker)
+        
+    full_df = load_full_warrants_history(ticker)
+    
+    stocks_df = get_stocks(symbolsDate_dict, 'close')
+    
+    stock_df = stocks_df[[ticker]]
+    stock_df.columns = ['close']
+    
+    # index to datetime
+    stock_df.index = pd.to_datetime(stock_df.index)
+
+    # plot stock
+    pu.plot_single_line(stock_df['close'], title=f'{ticker} price')
+    
     all_tickers = full_df['ticker'].unique()
     select_all = st.checkbox('Select all', value=False)
     default_tickers = all_tickers if select_all else []
     
     selected_tickers = st.multiselect('Select tickers', all_tickers, default=default_tickers)
         
-    all_returns = []
+    returns_df = pd.DataFrame()
+    
+    ev_threshold = st.number_input('EV Threshold', value=1)
     
     for selected_ticker in selected_tickers:
-        st.divider()
-        st.write(f"### Selected ticker: {selected_ticker}")
         selected_df = full_df[full_df['ticker'] == selected_ticker]
         
         # reindex to TradingDate
@@ -460,7 +461,6 @@ def run(symbol_benchmark, symbolsDate_dict):
         
         result_df = simulate_warrant(stock_df, selected_df, 252)
         result_df['ticker'] = selected_ticker
-        
         # cap = 100
         
         # cap expect_value to -cap +cap
@@ -477,7 +477,6 @@ def run(symbol_benchmark, symbolsDate_dict):
         current_pnl = 0
         current_return = 0
         min_order_size = 100
-        ev_threshold = 1.5
         
         trade_df = backtest_trade_cw_simulation(
             result_df,
@@ -493,26 +492,37 @@ def run(symbol_benchmark, symbolsDate_dict):
             ev_threshold
         )
         
-        final_return = trade_df['Return'].iloc[-1]
-        st.write(f"Final return: {final_return:.2f}")
-        all_returns.append(final_return)
+        listing_change = result_df['listing_change'].iloc[-1]
+        final_return = trade_df['PnL'].iloc[-1] / current_cash
+        pnl = trade_df['PnL'].iloc[-1]
+        
+        returns = pd.DataFrame({
+            'ticker': [selected_ticker],
+            'listing_change': [listing_change],
+            'pnl': [pnl],
+            'final_return': [final_return]})
+        
+        returns_df = pd.concat([returns_df, returns], axis=0)
         # plot return
         
-        col1, col2 = st.columns(2)
+        if len(selected_tickers) > 1:
+            continue
+
+        pu.plot_single_line(result_df['close_stock'], title=f"Close Stock {selected_ticker}")
+        pu.plot_single_line(result_df['close_cw'], title=f"Close CW {final_listing_change}%")
+        pu.plot_single_line(trade_df['PnL'], title=f"PnL {selected_ticker}")
+        pu.plot_single_bar(trade_df['ExpectedValue'], title=f"Expect Value {selected_ticker}")
+        pu.plot_single_bar(result_df['expect_value'], title=f"Expected Value {selected_ticker}")
+        pu.plot_single_bar(trade_df['Volume'], title=f"Volume {selected_ticker}")
+        pu.plot_single_bar(result_df['expect_value_annual'], title="Expected Value Annualized by Ticker")
+        pu.plot_single_bar(result_df['expect_value_daily'] * 100, title="Expected Value Daily by Ticker")
         
-        with col1:
-            pu.plot_single_line(result_df['close_cw'], title=f"Close CW {final_listing_change}%")
-            pu.plot_single_line(trade_df['Return'], title=f"Return {selected_ticker}")
             
+    if len(selected_tickers) > 1:
+        st.dataframe(returns_df, use_container_width=True)
         
-        with col2:
-            # pu.plot_single_line(result_df['close_stock'], title=f"Close Stock {selected_ticker}")
-            pu.plot_single_bar(result_df['expect_value'], title=f"Expected Value {selected_ticker}")
-            # pu.plot_single_bar(result_df['expect_value_annual'], title="Expected Value Annualized by Ticker")
-            # pu.plot_single_bar(result_df['expect_value_daily'] * 100, title="Expected Value Daily by Ticker")
-            # pu.plot_single_bar(result_df['premium'] * 100, title=f"Premium {selected_ticker}")
-            pu.plot_single_bar(trade_df['Volume'], title=f"Volume {selected_ticker}")
-            
-            
-    avg_return = np.nanmean(all_returns)
-    st.write(f"Average return: {avg_return:.2f}")
+        avg_return = returns_df['final_return'].mean()
+        st.write(f'Average return: {avg_return}')
+        
+        avg_listing_change = returns_df['listing_change'].mean()
+        st.write(f'Average listing change: {avg_listing_change}')

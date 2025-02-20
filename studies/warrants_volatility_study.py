@@ -6,14 +6,13 @@ import utils.algotrade as at
 
 from studies.stock_news_momentum_study import calculate_price_changes
 from studies.stock_overnight_study import plot_scatter_2_sources
-from utils.plot_utils import plot_double_side_bars, plot_multi_bar, plot_multi_line, plot_single_bar, plot_single_line, plot_multi_scatter, plot_events
+import utils.plot_utils as pu
 from utils.processing import get_stocks, get_stocks_foregin_flow, get_stocks_info
 import utils.stock_utils as su
 
 import plotly.graph_objects as go
 import streamlit as st
 import numpy as np
-from studies.stock_gaps_recover_study import run as stock_gaps_recover_study
 
 import numpy as np
 import pandas as pd
@@ -21,234 +20,158 @@ import pandas as pd
 import numpy as np
 import pandas as pd
 
-import pandas as pd
-from optionlab import run_strategy
+from .warrants_history_study import load_full_warrants_history, reload_warrant_news, reload_warrant_price_history
 
-def calculate_volatility(stock_prices):
-    log_returns = np.log(stock_prices / stock_prices.shift(1))
-    volatility = log_returns.rolling(window=252).std() * np.sqrt(252)
-    return volatility
+import numpy as np
+from scipy.stats import norm
 
-def run_option_strategu(input: dict):
-    return run_strategy(input)
+import numpy as np
+from scipy.stats import norm
 
-@st.cache_data
-def calculate_historical_pop(closes_df, stocks_mapped_df, exercise_price_df, volatilities_df, maturity_date_df, exercise_ratios_df, selected_tickers):
-    pop_df = pd.DataFrame(index=closes_df.index, columns=closes_df.columns)
-    implied_volatility_df = pd.DataFrame(index=closes_df.index, columns=closes_df.columns)
-    minimum_return_in_the_domain_df =  pd.DataFrame(index=closes_df.index, columns=closes_df.columns)
-    maximum_return_in_the_domain_df = pd.DataFrame(index=closes_df.index, columns=closes_df.columns)
+import numpy as np
+from scipy.stats import norm
+
+
+def calculate_black_scholes(S, K, T, r, sigma, option_type='put'):
+    """
+    Calculate the Black-Scholes option pricing model.
     
-    for selected_ticker in selected_tickers:
-        if selected_ticker not in stocks_mapped_df.columns:
-            continue
+    Parameters:
+    S (float): Current stock price
+    K (float): Strike price of the option
+    T (float): Time to expiration in years
+    r (float): Risk-free interest rate (annualized)
+    sigma (float): Volatility of the underlying asset (annualized)
+    option_type (str): Type of option ('call' or 'put')
+    
+    Returns:
+    float: Option price calculated using the Black-Scholes model
+    """
+    
+    # Ensure valid input for option type
+    if option_type not in ['call', 'put']:
+        raise ValueError("option_type must be either 'call' or 'put'")
+    
+    # Calculate d1 and d2 according to the Black-Scholes formula
+    d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+    d2 = d1 - sigma * np.sqrt(T)
+    
+    # Compute the option price based on type
+    if option_type == 'call':
+        option_price = S * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+    else:  # 'put'
+        option_price = K * np.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
         
-        stock_mapped_df = stocks_mapped_df[selected_ticker]
+    return option_price
+
+
+def calculate_implied_volatility(S, K, T, r, close_cw, ratio, option_type='put', tol=1e-6, max_iter=1000):
+    """
+    Calculate implied volatility using a brute force approach.
+    
+    Parameters:
+    S (float): Current stock price
+    K (float): Strike price of the option
+    T (float): Time to expiration in years
+    r (float): Risk-free interest rate (annualized)
+    close_cw (float): Observed closing price of the covered warrant
+    ratio (float): Conversion ratio
+    option_type (str): Type of option ('call' or 'put')
+    tol (float): Tolerance for price difference
+    max_iter (int): Maximum number of iterations
+    
+    Returns:
+    float: Implied volatility
+    """
+    
+    market_price = close_cw * ratio
+    sigma_low, sigma_high = 0.0001, 5.0  # Set reasonable bounds for volatility
+    for _ in range(max_iter):
+        sigma_mid = (sigma_low + sigma_high) / 2
+        price = calculate_black_scholes(S, K, T, r, sigma_mid, option_type)
         
-        if selected_ticker not in closes_df.columns:
-            continue
-        
-        close_df = closes_df[selected_ticker]
-
-        probability_of_profit = np.nan
-        implied_volatility = np.nan
-        minimum_return_in_the_domain = np.nan
-        maximum_return_in_the_domain = np.nan
-                
-        for idx in closes_df.index:
-            stock_mapped_recent_df = stock_mapped_df.loc[:idx].iloc[-252:]
-            
-            exercise_price = exercise_price_df[selected_ticker].loc[idx]
-            maturity_date = maturity_date_df[selected_ticker].loc[idx]
-            
-            maturity_date_str = maturity_date.strftime("%Y-%m-%d")
-            today_date_str = idx.strftime("%Y-%m-%d")
-            
-            last_stock_price = stock_mapped_df.loc[idx]
-            last_close_price = close_df.loc[idx]
-            
-            exercise_ratio = exercise_ratios_df[selected_ticker].loc[idx]
-            
-            # premium_price = exercise_ratio * last_close_price
-            
-            volatilities = volatilities_df[selected_ticker]
-            
-            volatility = volatilities.loc[idx]
-            days_to_maturity = (maturity_date - idx).days
-            
-            min_stock = stock_mapped_recent_df.min()
-            max_stock = stock_mapped_recent_df.max()
-            
-            inputs_data = {
-                "stock_price": last_stock_price,
-                "start_date": today_date_str,
-                "target_date": maturity_date_str,
-                "volatility": volatility,
-                "interest_rate": 0.0002,
-                "min_stock": min_stock,
-                "max_stock": max_stock,
-                "strategy": [
-                    {
-                        "type":  "call",
-                        "expiration": days_to_maturity,
-                        "strike": exercise_price,
-                        "premium": last_close_price,
-                        "n": 100,
-                        "action": "buy"
-                    }
-                ],
-            }
-            
-            try:
-                out = run_option_strategu(inputs_data)
-                probability_of_profit = out.probability_of_profit
-                implied_volatility = out.implied_volatility
-                minimum_return_in_the_domain = out.minimum_return_in_the_domain / last_close_price
-                maximum_return_in_the_domain = out.maximum_return_in_the_domain / last_close_price
-                
-            except Exception as e:
-                print(inputs_data)
-                print(e)
-            finally:
-                pop_df.at[idx, selected_ticker] = probability_of_profit
-                implied_volatility_df.at[idx, selected_ticker] = implied_volatility
-                minimum_return_in_the_domain_df.at[idx, selected_ticker] = minimum_return_in_the_domain
-                maximum_return_in_the_domain_df.at[idx, selected_ticker] = maximum_return_in_the_domain
-                
-    return pop_df, implied_volatility_df, maximum_return_in_the_domain_df, minimum_return_in_the_domain_df
-
-def calculate_premium(stock_price, exercise_price, premium):
-    return stock_price - exercise_price - premium
-
-@st.cache_data
-def fetch_warrants_data():
-    data =  su.get_warrants_data()
-
-    data_df = pd.DataFrame(data)
-
-    # keep the first word of the period
-    data_df['period'] = data_df['period'].str.split().str[0]
-
-    # convert to date
-    data_df['listedDate'] = pd.to_datetime(data_df['listedDate'])
-    data_df['issuedDate'] = pd.to_datetime(data_df['issuedDate'])
-    data_df['expiredDate'] = pd.to_datetime(data_df['expiredDate'])
-
-    return data_df
-
-@st.cache_data
-def fetch_data():
-    warrants_df = fetch_warrants_data()
+        if abs(price - market_price) < tol:
+            return sigma_mid
+        elif price < market_price:
+            sigma_low = sigma_mid
+        else:
+            sigma_high = sigma_mid
     
-    warrants_df['days_to_expire'] = (warrants_df['expiredDate'] - pd.Timestamp.today()).dt.days
-    
-    # filter out the expired warrants > 60
-    
-    warrants_df = warrants_df[warrants_df['days_to_expire'] > 3]
-    
-    tickers = warrants_df['cw'].unique()
-    
-    warrants_intraday_df = su.get_last_trading_history(tickers=tickers)
-    
-    return warrants_df, warrants_intraday_df
+    return sigma_mid  # Return best estimate after max_iter
+
+def calculate_volatility(df, window=252, column='close'):
+    vol = df[column].pct_change().rolling(window=window).std()
+    return vol
 
 def run(symbol_benchmark, symbolsDate_dict):
-    
-    # copy the symbolsDate_dict
-    # benchmark_dict = symbolsDate_dict.copy()
-    warrants_df, warrants_intraday_df = fetch_data()
-    
-    stock_tickers = warrants_df['underlyingStock'].unique()
-    
-    selected_stocks = st.multiselect('Select Stocks', stock_tickers, default=[])
-    
-    if len(selected_stocks) > 0:
-        warrants_df = warrants_df[warrants_df['underlyingStock'].isin(selected_stocks)]
-        warrants_intraday_df = warrants_intraday_df[warrants_intraday_df.index.get_level_values(0).isin(warrants_df['cw'])]
-
-    warrants_intraday_df['value'] = warrants_intraday_df['volume'] * warrants_intraday_df['close']
-    
-    value_filter = st.slider('Value Filter', min_value=0, max_value=1_000_000_000, value=100_000_000, step=1_000, format="%d")
-    
-    warrants_intraday_value_df = warrants_intraday_df[warrants_intraday_df['value'] > value_filter]
-    
-    tickers = warrants_intraday_value_df.index.get_level_values(0).unique().values.tolist()
-        
-    st.write(f"Number of Warrants: {len(tickers)}")
-    
-    select_all = st.checkbox('Select All')
-    
-    selected_tickers = st.multiselect('Select Tickers', tickers, default=tickers if select_all else [])
-    
-    # st.write(warrants_df)
-        
-    if len(selected_tickers) < 1:
+    if len(symbolsDate_dict['symbols']) < 1:
         st.info("Please select symbols.")
         st.stop()
     
-    symbolsDate_dict['symbols'] = selected_tickers
+    ticker = symbolsDate_dict['symbols'][0]
     
-    
-    closes_df = get_stocks(symbolsDate_dict, 'close', stock_type='warrant')
-    
-    warrants_selected_df = warrants_df[warrants_df['cw'].isin(selected_tickers)]
-    
-    stocks_tickers = warrants_selected_df['underlyingStock'].unique()
-    
-    symbolsDate_dict_copy = symbolsDate_dict.copy()
-    symbolsDate_dict_copy['symbols'] = stocks_tickers
-    
-    stocks_df = get_stocks(symbolsDate_dict_copy, 'close')
-    
-    exercise_prices = get_stocks_info(symbolsDate_dict, 'Exercise_Price')
-    
-    maturity_date = get_stocks_info(symbolsDate_dict, 'Maturity_Date')
-    
-    exercise_ratios = get_stocks_info(symbolsDate_dict, 'Exercise_Ratio')
-    
-    exercise_ratios_df = pd.DataFrame(index=closes_df.index, columns=closes_df.columns)
-    
-    for stock in exercise_ratios_df.columns:
-        exercise_ratios_df[stock] = exercise_ratios[stock].values[0]    
-    
-    maturity_date_df = pd.DataFrame(index=closes_df.index, columns=closes_df.columns)
-    
-    for stock in maturity_date_df.columns:
-        maturity_date_df[stock] = maturity_date[stock].values[0]
-    
-    exercise_price_df = pd.DataFrame(index=closes_df.index, columns=closes_df.columns)
-    
-    for stock in exercise_price_df.columns:
-        exercise_price_df[stock] = exercise_prices[stock].values[0]
+    # button to reload
+    if st.button('Reload Info'):
+        reload_warrant_news(ticker)
         
-    stocks_mapped_df = pd.DataFrame()
+    if st.button('Reload price'):
+        reload_warrant_price_history(ticker)
+        
+    full_df = load_full_warrants_history(ticker)
     
-    for warrant in selected_tickers:
-        # CABCXXX => ABC
-        stock_ticker = warrant[1:4]
-        stock_df = stocks_df[stock_ticker]
-        # rename the column to warrant
-        stock_df.name = warrant
-        
-        stocks_mapped_df = pd.concat([stocks_mapped_df, stock_df], axis=1)
-        
-    # calculate volatilities
-    volatilities_df = calculate_volatility(stocks_mapped_df)
-        
-    # start date 
-    start_date = closes_df.index[0]
-    stocks_plot_df = stocks_df[stocks_df.index >= start_date]
-        
-    plot_multi_line(stocks_plot_df, title="Stocks Close Price")
+    stocks_df = get_stocks(symbolsDate_dict, 'close')
+    
+    stock_df = stocks_df[[ticker]]
+    stock_df.columns = ['close']
+    
+    # index to datetime
+    stock_df.index = pd.to_datetime(stock_df.index)
 
-    plot_multi_line(closes_df, title="Warrants Close Price")    
+    # plot stock
+    pu.plot_single_line(stock_df['close'], title=f'{ticker} price')
+    
+    all_tickers = full_df['ticker'].unique()
+    select_all = st.checkbox('Select all', value=False)
+    default_tickers = all_tickers if select_all else []
+    
+    selected_tickers = st.multiselect('Select tickers', all_tickers, default=default_tickers)
         
-    # Usage example:
-    pop_df, imp_df, max_df, min_df = calculate_historical_pop(closes_df, stocks_mapped_df, exercise_price_df, volatilities_df, maturity_date_df, exercise_ratios_df, selected_tickers)
+    for cw_ticker in selected_tickers:
+        st.write(f'Warrant: {cw_ticker}')
+        cw_df = full_df[full_df['ticker'] == cw_ticker]
+        
+        # index to datetime
+        stock_volatility = calculate_volatility(stock_df)
+        
+        # pu.plot_single_line(stock_volatility, title=f'{ticker} volatility 1y')
+        
+        # pu.plot_single_line(stock_volatility, title=f'{cw_ticker} volatility 1y')
+        pu.plot_single_line(cw_df['close_cw'], title=f'{cw_ticker} price')
+        
+        implied_volatility_df = pd.DataFrame()
+        
+        # caculate implied volatility history
+        for row in cw_df.itertuples():
+            date = row.TradingDate
+            S = row.close_stock
+            K = row.Exercise_Price
+            T = row.days_to_expired / 365
+            r = 0.045
+            market_price = row.close_cw
+            option_type = 'put'
+            ratio  = row.Exercise_Ratio
+            
+            # st.write(f'Date: {date}, S: {S}, K: {K}, T: {T}, r: {r}, market_price: {market_price}, option_type: {option_type}, ratio: {ratio}')
+            
+            implied_vol = calculate_implied_volatility(S, K, T, r, ratio, market_price, option_type)
+            implied_volatility_df = pd.concat([implied_volatility_df, pd.DataFrame({'date': [date], 'implied_vol': [implied_vol]})])
+            
+        implied_volatility_df.set_index('date', inplace=True)
+        
+        stock_volatility_aligned_df = stock_volatility.reindex(implied_volatility_df.index).dropna()
 
-    plot_multi_line(pop_df, title="Historical Probability of Profit")
-    
-    plot_multi_line(min_df, title="Min")
-    
-    plot_multi_line(max_df, title="Max")
-    
+        vol_df = pd.concat([implied_volatility_df, stock_volatility_aligned_df], axis=1)
+        vol_df.columns = ['stock_vol', 'implied_vol']
+        
+        pu.plot_multi_line(vol_df, title='Prices', x_title='Date', y_title='Price', legend_title='Ticker')
+        

@@ -204,7 +204,7 @@ def dynamic_position_sizing(
     """
     # Compute Expected Value
     expected_value = win_prob * expected_profit - (1 - win_prob) * expected_loss
-    if expected_value <= ev_threshold:
+    if expected_value <= -ev_threshold:
         return 0  # Avoid low expectancy trades
 
     # Compute Reward-to-Risk Ratio
@@ -344,10 +344,19 @@ def backtest_trade_cw_simulation(
             new_value = volume * cw_price
             new_pnl = round(new_value - current_value)
             current_pnl += new_pnl
-            new_return = new_pnl / current_value if current_value > 0 else 0
+            new_return = new_pnl / portfolio_value
             current_return += new_return
         
-        new_position = dynamic_position_sizing(1, win_prob, expected_profit, expected_loss, 1, ev_threshold=ev_threshold)    
+        # new_position = dynamic_position_sizing(1, win_prob, expected_profit, expected_loss, 1, ev_threshold=ev_threshold)    
+        expected_value = win_prob * expected_profit - (1 - win_prob) * expected_loss
+        
+        new_position = current_position
+        
+        if expected_value > ev_threshold and current_position < 1:
+            new_position = current_position + 0.1
+        elif expected_value < -ev_threshold and current_position > 0:
+            new_position = 0
+            
         new_volume = new_position * portfolio_value / cw_price 
         # round to the nearest 100
         new_volume = round(new_volume / min_order_size) * min_order_size
@@ -355,18 +364,12 @@ def backtest_trade_cw_simulation(
         action_volume = 0
         
         # update cash
-        if days_to_expired < 30 and volume > 0:
-            # sell all
-            current_cash += volume * cw_price
-            action = 'Sell'
-            action_volume = volume
-            volume = 0
-        elif new_volume > volume and days_to_expired > 30:
+        if new_volume > volume:
             # buy
             current_cash -= (new_volume - volume) * cw_price
             action = 'Buy'
             action_volume = new_volume - volume
-        elif new_volume < volume and days_to_expired > 30:
+        elif new_volume < volume:
             # sell
             current_cash += (volume - new_volume) * cw_price
             action = 'Sell'
@@ -393,7 +396,8 @@ def backtest_trade_cw_simulation(
             'Volume': [volume],
             'Action': [action],
             'TotalTrades': [total_trades],
-            'ActionVolume': [action_volume]
+            'ActionVolume': [action_volume],
+            'ExpectedValue': [expected_value]
         })
         
         trade_df = pd.concat([trade_df, new_trade])
