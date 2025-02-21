@@ -42,3 +42,27 @@ The portfolio page provides a detailed view of the portfolio. It shows the optim
 The studies page provides a detailed view of the studies. It shows the performance of the studies, the trades they have made, and the current positions.
 
 ![Studies](./docs/images/study.png)
+
+## Installation
+
+pre-requisites:
+- python 3.10
+- conda
+
+```bash
+git clone https://github.com/minhlucvan/strategy-app.git
+cd strategy-app
+```
+
+Create a virtual environment and install the dependencies:
+
+```bash
+conda env create --name quant --file=environments.yml
+conda activate quant
+```
+
+Run the app:
+
+```bash
+streamlit run 01_🏠_main.py
+```

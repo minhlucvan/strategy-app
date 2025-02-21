@@ -4,13 +4,8 @@ import json
 
 from utils.component import input_SymbolsDate, check_password, params_selector, form_SavePortfolio
 from utils.db import get_SymbolsName, get_SymbolsNames
+from utils.st import check_params
 
-def check_params(params):
-    # for key, value in params.items():
-    #     if len(params[key]) < 2:
-    #         st.error(f"{key} 's numbers are not enough. ")
-    #         return False
-    return True
 
 if check_password():
     strategy_list = getattr(__import__(f"vbt_strategy"), 'strategy_list')

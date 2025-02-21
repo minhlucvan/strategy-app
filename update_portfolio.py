@@ -3,7 +3,7 @@ import vectorbt as vbt
 
 from utils.portfolio import Portfolio
 
-from telegram.ext import CommandHandler
+# from telegram.ext import CommandHandler
 
 import toml
 import logging

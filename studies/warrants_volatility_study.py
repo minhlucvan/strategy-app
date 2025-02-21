@@ -32,49 +32,56 @@ import numpy as np
 from scipy.stats import norm
 
 
-def calculate_black_scholes(S, K, T, r, sigma, option_type='put'):
+import numpy as np
+from scipy.stats import norm
+
+def calculate_black_scholes(S, K, T, r, ratio, sigma, option_type='put'):
     """
-    Calculate the Black-Scholes option pricing model.
+    Calculate the Black-Scholes option pricing model with a conversion ratio.
     
     Parameters:
     S (float): Current stock price
     K (float): Strike price of the option
     T (float): Time to expiration in years
     r (float): Risk-free interest rate (annualized)
+    ratio (float): Conversion ratio (e.g., 10 options = 1 stock, ratio = 10)
     sigma (float): Volatility of the underlying asset (annualized)
     option_type (str): Type of option ('call' or 'put')
     
     Returns:
-    float: Option price calculated using the Black-Scholes model
+    float: Option price per option contract
     """
     
     # Ensure valid input for option type
     if option_type not in ['call', 'put']:
         raise ValueError("option_type must be either 'call' or 'put'")
     
+    # Adjust stock price and strike price based on the conversion ratio
+    adjusted_S = S / ratio
+    adjusted_K = K / ratio
+    
     # Calculate d1 and d2 according to the Black-Scholes formula
-    d1 = (np.log(S / K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
+    d1 = (np.log(adjusted_S / adjusted_K) + (r + 0.5 * sigma ** 2) * T) / (sigma * np.sqrt(T))
     d2 = d1 - sigma * np.sqrt(T)
     
     # Compute the option price based on type
     if option_type == 'call':
-        option_price = S * norm.cdf(d1) - K * np.exp(-r * T) * norm.cdf(d2)
+        option_price = adjusted_S * norm.cdf(d1) - adjusted_K * np.exp(-r * T) * norm.cdf(d2)
     else:  # 'put'
-        option_price = K * np.exp(-r * T) * norm.cdf(-d2) - S * norm.cdf(-d1)
+        option_price = adjusted_K * np.exp(-r * T) * norm.cdf(-d2) - adjusted_S * norm.cdf(-d1)
         
     return option_price
 
-
-def calculate_implied_volatility(S, K, T, r, close_cw, ratio, option_type='put', tol=1e-6, max_iter=1000):
+def calculate_implied_volatility(S, K, T, r, market_price, ratio, option_type='put', tol=1e-6, max_iter=10000):
     """
-    Calculate implied volatility using a brute force approach.
+    Calculate implied volatility using a binary search approach.
     
     Parameters:
     S (float): Current stock price
     K (float): Strike price of the option
     T (float): Time to expiration in years
     r (float): Risk-free interest rate (annualized)
-    close_cw (float): Observed closing price of the covered warrant
+    market_price (float): Observed closing price of the covered warrant
     ratio (float): Conversion ratio
     option_type (str): Type of option ('call' or 'put')
     tol (float): Tolerance for price difference
@@ -84,11 +91,10 @@ def calculate_implied_volatility(S, K, T, r, close_cw, ratio, option_type='put',
     float: Implied volatility
     """
     
-    market_price = close_cw * ratio
-    sigma_low, sigma_high = 0.0001, 5.0  # Set reasonable bounds for volatility
+    sigma_low, sigma_high = 0.01, 1.5  # Set more reasonable bounds for volatility
     for _ in range(max_iter):
         sigma_mid = (sigma_low + sigma_high) / 2
-        price = calculate_black_scholes(S, K, T, r, sigma_mid, option_type)
+        price = calculate_black_scholes(S, K, T, r, ratio, sigma_mid, option_type)
         
         if abs(price - market_price) < tol:
             return sigma_mid
@@ -97,10 +103,25 @@ def calculate_implied_volatility(S, K, T, r, close_cw, ratio, option_type='put',
         else:
             sigma_high = sigma_mid
     
-    return sigma_mid  # Return best estimate after max_iter
+    return sigma_mid  # Return the best estimate
 
-def calculate_volatility(df, window=252, column='close'):
-    vol = df[column].pct_change().rolling(window=window).std()
+
+def calculate_volatility(
+    df, 
+    window=252, 
+    column='close', 
+    annualize=False, 
+    periods_per_year=252
+):
+    if column not in df.columns:
+        raise ValueError(f"Column '{column}' not found in DataFrame")
+    
+    returns = df[column].pct_change()
+    vol = returns.rolling(window=window).std()
+    
+    if annualize:
+        vol *= np.sqrt(periods_per_year)
+    
     return vol
 
 def run(symbol_benchmark, symbolsDate_dict):
@@ -116,6 +137,7 @@ def run(symbol_benchmark, symbolsDate_dict):
         
     if st.button('Reload price'):
         reload_warrant_price_history(ticker)
+        
         
     full_df = load_full_warrants_history(ticker)
     
@@ -141,7 +163,7 @@ def run(symbol_benchmark, symbolsDate_dict):
         cw_df = full_df[full_df['ticker'] == cw_ticker]
         
         # index to datetime
-        stock_volatility = calculate_volatility(stock_df)
+        stock_volatility = calculate_volatility(stock_df, window=252, column='close', annualize=True)
         
         # pu.plot_single_line(stock_volatility, title=f'{ticker} volatility 1y')
         
@@ -165,13 +187,17 @@ def run(symbol_benchmark, symbolsDate_dict):
             
             implied_vol = calculate_implied_volatility(S, K, T, r, ratio, market_price, option_type)
             implied_volatility_df = pd.concat([implied_volatility_df, pd.DataFrame({'date': [date], 'implied_vol': [implied_vol]})])
-            
+        
+        st.dataframe(cw_df[['TradingDate', 'close_stock', 'Exercise_Price', 'days_to_expired', 'Exercise_Ratio', 'close_cw']])
+        
         implied_volatility_df.set_index('date', inplace=True)
         
         stock_volatility_aligned_df = stock_volatility.reindex(implied_volatility_df.index).dropna()
 
         vol_df = pd.concat([implied_volatility_df, stock_volatility_aligned_df], axis=1)
-        vol_df.columns = ['stock_vol', 'implied_vol']
+        vol_df.columns = ['implied_vol', 'stock_vol']
         
         pu.plot_multi_line(vol_df, title='Prices', x_title='Date', y_title='Price', legend_title='Ticker')
         
+        
+        pu.plot_single_line(vol_df['stock_vol'], title=f'{cw_ticker} implied volatility')

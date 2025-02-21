@@ -43,8 +43,8 @@ def load_symbol(symbol:str):
             return result_df
 
         except Exception as e:
-            print(f"Connnecting Database Error: {e}")
-            return None
+            print(f"Error while loading symbol {symbol}: {e}")
+            return symbol
 
 @cache
 def get_SymbolName(symbol:str | list):
@@ -56,8 +56,8 @@ def get_SymbolName(symbol:str | list):
             return result_df.loc[0, 'name']
 
         except Exception as e:
-            print(f"Connnecting Database Error: {e}")
-            return None
+            print(f"Error while loading symbol name {symbol}: {e}")
+            return symbol
 
 def get_SymbolsNames(symbols:list):
         

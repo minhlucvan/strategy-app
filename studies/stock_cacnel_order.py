@@ -10,7 +10,7 @@ import plotly.express as px
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots
 
-from pages.LiveTrade import execute_trade, show_trade_form
+from utils.st import execute_trade, show_trade_form
 from utils.component import check_password, input_dates, input_SymbolsDate
 import matplotlib.pyplot as plt
 

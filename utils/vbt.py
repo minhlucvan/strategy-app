@@ -259,7 +259,8 @@ def display_pfbrief(pf, param_dict:dict, key=None):
         st.metric('Max DD', '{0:.0%}'.format(maxdrawdown))
     with cols[4]:
         param_str = dict(filter(lambda item: item[0] not in ['RARM', 'WFO'], param_dict.items()))
-        st.text_area("Parameters", value = param_str, height=2, label_visibility='collapsed',disabled=True, key=id(object()) if key is None else key)
+        # st.text_area("Parameters", value=param_str, label_visibility='collapsed', disabled=True, key=id(object()) if key is None else key)
+        st.write(param_str)
     
     return lastday_return, sharpe_ratio, maxdrawdown, annual_return
 

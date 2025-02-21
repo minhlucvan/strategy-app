@@ -1,6 +1,5 @@
 from utils.vbt import display_pfbrief
 from utils.db import get_SymbolName, get_SymbolsNames
-from pages.Strategy import check_params
 from vbt_strategy.PairTrade import pairtrade_pfs
 from utils.portfolio import Portfolio, selectpf_bySymbols
 from utils.component import check_password, params_selector
@@ -14,7 +13,7 @@ import json
 
 import streamlit as st
 
-from pages.LiveTrade import show_PortfolioTable, show_PortforlioDetail
+from utils.st import check_params, show_PortfolioTable, show_PortforlioDetail
 from utils.riskfolio import get_pfOpMS
 
 def show_PortforlioYearly(pf_row):
@@ -67,7 +66,7 @@ def show_PortforlioYearly(pf_row):
 
 
 def main():
-    st.header("Portfolio Board")
+    st.header("Dashboard")
     selected_pfs = []
     portfolio = Portfolio()
     if 'update_bokeh' not in st.session_state:
