@@ -11,6 +11,8 @@ from bs4 import BeautifulSoup
 import yfinance as yf
 import re
 from utils.calendar_utils import get_last_working_day_before
+import utils.config as cfg
+import requests
 
 import pytz
 
@@ -1519,6 +1521,68 @@ def load_stock_insider_dealing_to_dataframe(value, ma_period=14):
 
     return df
 
+def load_stock_evaluation_snapshot_to_dataframe(value):
+    if value is None:
+        raise ValueError("The input value is None")
+    # Convert dictionary to DataFrame-friendly format
+    # {'typeId': 'CT', 'index': {'pe': 14.4, 'pb': 1.7, 'evebitda': 20.1}, 'industry': {'pe': 26.6, 'pb': 4.4, 'evebitda': 16.2}, 'top5': [{'ticker': 'CMG', 'pe': 29.2, 'pb': 3.3, 'evebitda': 12.6}, {'ticker': 'SGT', 'pe': 22.7, 'pb': 1.7, 'evebitda': 19.3}, {'ticker': 'SAM', 'pe': 32.2, 'pb': 0.7, 'evebitda': 71.7}, {'ticker': 'ELC', 'pe': 26.9, 'pb': 2.5, 'evebitda': 22.8}, {'ticker': 'ICT', 'pe': 13.7, 'pb': 0.7, 'evebitda': 13.2}], 'cashFlow': [{'year': 2025, 'freeCashFlow': 10654}, {'year': 2026, 'freeCashFlow': 12586}, {'year': 2027, 'freeCashFlow': 15511}, {'year': 2028, 'freeCashFlow': 18608}, {'year': 2029, 'freeCashFlow': 22539}], 'eps': 5336, 'bvps': 20300, 'ebitda': 9540, 'enterpriseValue': 247036522525438, 'cash': 9315440438884, 'shortTermDebt': -14446238451323, 'longTermDebt': -501115537075, 'netDebt': 5631913549514, 'minorityInterest': 0, 'shareOutstanding': 1471069183, 'growth': 0.05, 'wacc': 0.12}
+    data_dict = {
+        'index_pe': value['index']['pe'],
+        'index_pb': value['index']['pb'],
+        'index_evebitda': value['index']['evebitda'],
+        'industry_pe': value['industry']['pe'],
+        'industry_pb': value['industry']['pb'],
+        'industry_evebitda': value['industry']['evebitda'],
+        'eps': value['eps'],
+        'bvps': value['bvps'],
+        'ebitda': value['ebitda'],
+        'enterprise_value': value['enterpriseValue'],
+        'net_debt': value['netDebt'],
+        'share_outstanding': value['shareOutstanding'],
+        'growth': value['growth'],
+        'wacc': value['wacc'],
+    }
+    
+    # Convert top5 stocks to DataFrame
+    top5_df = pd.DataFrame(value['top5'])
+    
+    # Convert cash flow to DataFrame
+    cashflow_df = pd.DataFrame(value['cashFlow'])
+    
+    return pd.DataFrame([data_dict]), top5_df, cashflow_df
+
+def get_stock_evaluation_snapshot(ticker='MWG'):
+    # https://apiextaws.tcbs.com.vn/tcanalysis/v1/evaluation/BFC/evaluation
+    url = f'https://apiextaws.tcbs.com.vn/tcanalysis/v1/evaluation/{ticker}/evaluation'
+    
+    tcbs_config = cfg.get_config('tcbs.info')
+    
+    auth_token = tcbs_config.get('authToken')
+    
+    headers = {
+        'Authorization': f'Bearer {auth_token}',
+        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'DNT': '1',
+        'Accept-language': 'vi',
+        'sec-ch-ua-mobile': '?0',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome',
+        'Content-type': 'application/json',
+        'Accept': 'application/json',
+        'Referer': 'https://tcinvest.tcbs.com.vn/',
+        'sec-ch-ua-platform': '"macOS"'
+    }
+    
+    response = requests.get(url, headers=headers)
+    
+    
+    if response.status_code == 200:
+        json = response.json()
+
+        return json
+    
+    print(f"Request failed with status code {response.status_code}")
+    
+    return None
 
 def get_stock_evaluation(ticker='MWG'):
     # https://apipubaws.tcbs.com.vn/tcanalysis/v1/evaluation/HDG/historical-chart?period=5&tWindow=D
@@ -1768,6 +1832,63 @@ def get_stock_financial(ticker='MWG', yearly=0, is_all=True):
     else:
         print(f"Request failed with status code {response.status_code}")
         return None
+   
+# Your existing load_stock_cash_flow_df function
+def load_stock_cash_flow_df(data):
+    df = pd.DataFrame(data)
+    
+    # Type conversions
+    numeric_columns = ['initLiquid', 'deltaLiquid', 'deltaOtherLiquid', 'deltaReceivable', 
+                      'deltaInventory', 'deltaPayble', 'initDebt', 'capex', 'dividend', 
+                      'ebitda', 'tax', 'deltaDebt', 'preTax', 'depreciation', 
+                      'interestExpense', 'financialInvest', 'raiseCapital', 
+                      'dividendPayment', 'longAndShortDebt', 'initCash', 'endCash', 
+                      'capexDebt', 'deltaLiquidDebt', 'endLiquid', 'endDebt']
+    
+    for col in ['quarter', 'year']:
+        df[col] = df[col].astype(int)
+    for col in numeric_columns:
+        df[col] = df[col].astype(float)
+    
+    # Date handling
+    # start of the year
+    df['start_date'] = df.apply(lambda row: pd.Timestamp(f"{row['year']}-01-01"), axis=1)
+    # end of the yeat
+    df['date'] = df.apply(lambda row: row['start_date'] + pd.DateOffset(months=(row['quarter']) * 3), axis=1)
+    
+    df.set_index('date', inplace=True)
+    return df
+
+# Your existing get_stock_cash_flow function
+def get_stock_cash_flow(ticker='MWG', yearly=1, is_all=True):
+    url = f'https://apiextaws.tcbs.com.vn/tcanalysis/v1/finance/{ticker}/cashflowanalyze'
+    tcbs_config = cfg.get_config('tcbs.info')
+    
+    auth_token = tcbs_config.get('authToken')
+    
+    
+    headers = {
+        'Authorization': f'Bearer {auth_token}',
+        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'DNT': '1',
+        'Accept-language': 'vi',
+        'sec-ch-ua-mobile': '?0',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome',
+        'Content-type': 'application/json',
+        'Accept': 'application/json',
+        'Referer': 'https://tcinvest.tcbs.com.vn/',
+        'sec-ch-ua-platform': '"macOS"'
+    }
+    
+    params = {'yearly': yearly, 'isAll': is_all}
+    response = requests.get(url, params=params, headers=headers)
+    
+    if response.status_code == 200:
+        return load_stock_cash_flow_df(response.json())
+    
+    print(f"Request failed with status code {response.status_code}")
+    
+    return None
 
 def load_stock_financial_to_dataframe(data):
     # [
@@ -2445,7 +2566,9 @@ def get_intraday_snapshots(tickers):
     
     if response.status_code == 200:
         json = response.json()
-        return json['data']
+        data = json['data']
+
+        return data
     else:
         print(f"Request failed with status code {response.status_code}")
         return None
@@ -2505,7 +2628,7 @@ def load_intraday_snapshots_to_dataframe(data):
             if column not in factor_dfs:
                 factor_dfs[column] = pd.DataFrame()
             factor_dfs[column][symbol] = stocks_dfs[symbol][column]
-    
+
     stocks_df = pd.concat(factor_dfs, axis=1)
     
     # drop date column

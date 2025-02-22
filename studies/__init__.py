@@ -57,6 +57,9 @@ from .tcbs_stock_noti_study import run as run_tcbs_stock_noti_study
 from .stock_123_pullback_study import run as run_stock_123_pullback_study
 from .stock_darvas_box_study import run as run_stock_darvas_box_study
 from .stock_tet_study import run as run_stock_tet_study
+from .stock_fear_zone_study import run as run_stock_fear_zone_study
+from .stock_dcf_study import run as run_stock_dcf_study
+from .stock_evaluation_study import run as run_stock_evaluation_study
 
 study_list = [
     {
@@ -299,4 +302,16 @@ study_list = [
         "name": "TCBS Stock Noti",
         "module": run_tcbs_stock_noti_study
     },
+    {
+        "name": "Stock Fear Zone",
+        "module": run_stock_fear_zone_study
+    },
+    {
+        "name": "Stock DCF",
+        "module": run_stock_dcf_study
+    },
+    {
+        "name": "Stock Evaluation",
+        "module": run_stock_evaluation_study
+    }
 ]

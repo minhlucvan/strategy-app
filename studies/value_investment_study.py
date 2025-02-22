@@ -8,7 +8,7 @@ import vectorbt as vbt
 import plotly.express as px
 import plotly.graph_objs as go
 from plotly.subplots import make_subplots # creating subplots
-
+import utils.plot_utils as pu
 
 from utils.component import  check_password, input_dates, input_SymbolsDate
 import matplotlib.pyplot as plt
@@ -114,27 +114,45 @@ def run(symbol_benchmark, symbolsDate_dict):
    
     pe_df = get_stocks_valuation(symbolsDate_dict, indicator='pe')
     pb_df = get_stocks_valuation(symbolsDate_dict, indicator='pb')
+    
+    # clip the ratio
+    pe_ratio_df = pe_df.clip(0, upper=20.0)
+    pb_ratio_df = pb_df.clip(0, upper=10.0)
+    
     industry_pe_df = get_stocks_valuation(symbolsDate_dict, indicator='industryPe')
     industry_pb_df = get_stocks_valuation(symbolsDate_dict, indicator='industryPb')
+    
+    # clip the ratio
+    industry_pe_df = industry_pe_df.clip(0, upper=20.0)
+    industry_pb_df = industry_pb_df.clip(0, upper=10.0)
+    
     pe_ratio_df = pe_df.div(industry_pe_df)
     pb_ratio_df = pb_df.div(industry_pb_df)
+    
+    
     
     # mean pe and pb
     peb_ratio_df = (pe_df + pb_df) / 2
     
+    # Price
+    pu.plot_multi_line(stocks_df, title='Price')
+    
     st.write(f"### PE")
-    plot_evaluation_pe(stocks_df, pe_df, industry_pe_df)
+    pu.plot_multi_line(pe_df, title='PE')
+    
+    st.write(f"### Industry PE")
+    pu.plot_multi_line(industry_pe_df, title='Industry PE')
     
     st.write(f"### PE Ratio")
     # plot pb ratio
-    plot_evaluation_pe_ratio(stocks_df, pb_ratio_df)
+    pu.plot_multi_line(pe_ratio_df, title='PE Ratio')
     
     st.write(f"### PB")
-    plot_evaluation_pb(stocks_df, pb_df, industry_pb_df)
+    pu.plot_multi_line(pb_df, title='PB')
     
     st.write(f"### PB Ratio")
     # plot pe ratio
-    plot_evaluation_pb_ratio(stocks_df, pe_ratio_df)
+    pu.plot_multi_line(pb_ratio_df, title='PB Ratio')
     
     
     # snapshot analysis
