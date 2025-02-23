@@ -12,6 +12,7 @@ import vnquant as vnquant
 from utils.db import load_symbol
 from utils import stock_utils
 from utils import vietstock
+import os
 from utils.stock_utils import get_stock_bars_very_long_term_cached, get_stock_balance_sheet, load_stock_balance_sheet_to_dataframe
 
 def get_intervals():
@@ -239,8 +240,24 @@ def get_vn_financial(symbol: str) -> pd.DataFrame:
         pd.DataFrame: _description_
     """
     print(f"get_vn_financial: {symbol}")
-    finance = stock_utils.get_stock_financial(symbol)
-    finance_df = stock_utils.load_stock_financial_to_dataframe(finance)
+    
+    # Define cache file path
+    cache_file = f'data/financials/financial_{symbol}.csv'
+    
+    try:
+        # Try to read from cache
+        finance_df = pd.read_csv(cache_file, index_col=0)
+        print(f"Loaded {symbol} financial data from cache")
+    except FileNotFoundError:
+        # If cache does not exist, fetch data and save to cache
+        finance = stock_utils.get_stock_financial(symbol)
+        finance_df = stock_utils.load_stock_financial_to_dataframe(finance)
+        
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+        
+        finance_df.to_csv(cache_file)
+        print(f"Saved {symbol} financial data to cache")
     
     # drop columns
     finance_df = finance_df.drop(columns=['ticker', 'quarter', 'year', 'date'])
@@ -349,3 +366,35 @@ def get_vn_stock_info(symbol: str) -> pd.DataFrame:
     stock_info_df = stock_utils.load_cw_info_to_dataframe(stock_info)
     
     return stock_info_df
+
+@lru_cache
+def get_vn_income_statement(symbol: str) -> pd.DataFrame:
+    """get vietnam stock data
+
+    Args:
+        ak_params symbol:str, start_date:str 20170301, end_date:str
+
+    Returns:
+        pd.DataFrame: _description_
+    """
+    print(f"get_vn_income_statement: {symbol}")
+    
+    # Define cache file path
+    cache_file = f'data/incomes/income_{symbol}.csv'
+
+    try:
+        # Try to read from cache
+        income_statement_df = pd.read_csv(cache_file, index_col=0)
+        print(f"Loaded {symbol} income statement from cache")
+    except FileNotFoundError:
+        # If cache does not exist, fetch data and save to cache
+        income_statement = stock_utils.get_stock_income_statement(symbol)
+        income_statement_df = stock_utils.load_stock_income_statement_to_dataframe(income_statement)
+        
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+        
+        income_statement_df.to_csv(cache_file)
+        print(f"Saved {symbol} income statement to cache")
+    
+    return income_statement_df

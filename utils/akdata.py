@@ -66,7 +66,7 @@ class AKData(object):
                 print("get_pettm()---", e)
 
             if not stock_df.empty:
-                stock_df.index = pd.to_datetime(stock_df['date'], utc=True)
+                stock_df.index = pd.to_datetime(stock_df['date']).tz_localize(None)
                 stock_df = stock_df['value']
         return stock_df
     
@@ -84,7 +84,7 @@ class AKData(object):
                 print("get_pettm()---", e)
 
             if not stock_df.empty:
-                stock_df.index = pd.to_datetime(stock_df['date'], utc=True)
+                stock_df.index = pd.to_datetime(stock_df['date']).dt.tz_localize(None)
                 
         return stock_df
         
@@ -114,10 +114,32 @@ class AKData(object):
             try:
                 stock_df = eval(func)(symbol=symbol)
 
-                stock_df.index = pd.to_datetime(stock_df.index, utc=True)
+                stock_df.index = pd.to_datetime(stock_df.index).tz_localize(None)
                 if start_date is not None and end_date is not None:
-                    start_date = pd.to_datetime(start_date)
-                    end_date = pd.to_datetime(end_date)
+                    start_date = pd.to_datetime(start_date).tz_localize(None)
+                    end_date = pd.to_datetime(end_date).tz_localize(None)
+                    stock_df = stock_df[(stock_df.index >= start_date) & (stock_df.index <= end_date)]
+                    
+            except Exception as e:
+                print(e)
+
+        return stock_df
+    
+    @vbt.cached_method
+    def get_income_statement(self, symbol: str, start_date: datetime.datetime = None, end_date: datetime.datetime = None) -> pd.DataFrame:
+        print(f"AKData-get_income_statement: {symbol}, {self.market}, {start_date} - {end_date}")
+        stock_df = pd.DataFrame()
+        symbol_df = load_symbol(symbol)
+
+        if len(symbol_df) == 1:
+            func = ('get_' + self.market + '_income_statement').lower()
+            try:
+                stock_df = eval(func)(symbol=symbol)
+
+                stock_df.index = pd.to_datetime(stock_df.index).tz_localize(None)
+                if start_date is not None and end_date is not None:
+                    start_date = pd.to_datetime(start_date).tz_localize(None) 
+                    end_date = pd.to_datetime(end_date).tz_localize(None)
                     stock_df = stock_df[(stock_df.index >= start_date) & (stock_df.index <= end_date)]
                     
             except Exception as e:
@@ -171,8 +193,8 @@ class AKData(object):
                 print("get_pettm()---", e)
 
             if not mv_df.empty and not pettm_df.empty:
-                pettm_df.index = pd.to_datetime(pettm_df['date'], utc=True)
-                mv_df.index = pd.to_datetime(mv_df['date'], utc=True)
+                pettm_df.index = pd.to_datetime(pettm_df['date']).tz_localize(None)
+                mv_df.index = pd.to_datetime(mv_df['date']).tz_localize(None)
                 stock_df = pd.DataFrame()
                 stock_df['pettm'] = pettm_df['value']
                 stock_df['mv'] = mv_df['value']

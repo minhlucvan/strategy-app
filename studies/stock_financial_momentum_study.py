@@ -10,7 +10,6 @@ import plotly.graph_objs as go
 from plotly.subplots import make_subplots # creating subplots
 
 
-from studies.stock_financial_report_study import calculate_real_ratios
 from studies.stock_news_momentum_study import calculate_price_changes, filter_events, filter_news_by_pe_change, plot_correlation, plot_price_changes_agg, plot_scatter_matrix, run_simulation
 from utils.component import  check_password, input_dates, input_SymbolsDate
 import matplotlib.pyplot as plt
@@ -26,6 +25,40 @@ from studies.stock_custom_event_study import run as run_custom_event_study
 
 import utils.vietstock as vietstock
 import utils.google as google
+
+def calculate_real_ratios(stocks_df, financials_dfs):
+    eps_df = pd.DataFrame()
+    pe_df = pd.DataFrame()
+    pb_df = pd.DataFrame()
+    real_pe_df = pd.DataFrame()
+    real_pb_df = pd.DataFrame()
+
+    for symbol in financials_dfs:
+        financials_df = financials_dfs[symbol].copy()
+        financials_df.index = pd.to_datetime(financials_df.index).tz_localize(None)
+        financials_df = financials_df[financials_df.index >= stocks_df.index[0]]
+
+        if financials_df.empty:
+            continue
+        
+        if symbol not in stocks_df.columns:
+            continue
+        
+        stock_df = stocks_df[symbol]
+        union_df = financials_df.reindex(stock_df.index, method='ffill')
+        
+        union_df['close'] = stock_df.astype(float)
+        union_df['realPriceToEarning'] = union_df['close'] / union_df['earningPerShare']
+        union_df['realPriceToBook'] = union_df['close'] / union_df['bookValuePerShare']
+
+        eps_df = pd.concat([eps_df, pd.DataFrame({symbol: union_df['earningPerShare']})], axis=1)
+        pe_df = pd.concat([pe_df, pd.DataFrame({symbol: union_df['priceToEarning']})], axis=1)
+        pb_df = pd.concat([pb_df, pd.DataFrame({symbol: union_df['priceToBook']})], axis=1)
+        real_pe_df = pd.concat([real_pe_df, pd.DataFrame({symbol: union_df['realPriceToEarning']})], axis=1)
+        real_pb_df = pd.concat([real_pb_df, pd.DataFrame({symbol: union_df['realPriceToBook']})], axis=1)
+
+    return eps_df, pe_df, pb_df, real_pe_df, real_pb_df
+
 
 def run(symbol_benchmark, symbolsDate_dict):
     

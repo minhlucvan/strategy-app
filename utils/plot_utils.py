@@ -81,6 +81,7 @@ def plot_single_bar(df, title="", x_title="", y_title="", legend_title="", price
     fig.add_trace(go.Bar(x=df.index, y=df, name=legend_title))
     fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
     st.plotly_chart(fig, use_container_width=True)
+    
 def plot_single_bar_with_price(df, title, x_title, y_title, legend_title, price_df):
     fig = sp.make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.01)
     fig.add_trace(go.Bar(x=df.index, y=df, name=legend_title), row=1, col=1)

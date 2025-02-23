@@ -60,6 +60,8 @@ from .stock_tet_study import run as run_stock_tet_study
 from .stock_fear_zone_study import run as run_stock_fear_zone_study
 from .stock_dcf_study import run as run_stock_dcf_study
 from .stock_evaluation_study import run as run_stock_evaluation_study
+from .stock_income_statement_study import run as run_stock_income_statement_study
+from .stock_growth_study import run as run_stock_growth_study
 
 study_list = [
     {
@@ -313,5 +315,13 @@ study_list = [
     {
         "name": "Stock Evaluation",
         "module": run_stock_evaluation_study
+    },
+    {
+        "name": "Stock Income Statement",
+        "module": run_stock_income_statement_study
+    },
+    {
+        "name": "Stock Growth",
+        "module": run_stock_growth_study
     }
 ]

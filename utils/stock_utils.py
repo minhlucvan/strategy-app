@@ -849,7 +849,6 @@ def get_warrants_data():
         'DNT': '1',
         'Accept-language': 'vi',
         'sec-ch-ua-mobile': '?0',
-        'Authorization': 'Bearer eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJhdXRoZW5fc2VydmljZSIsImV4cCI6MTcwMTI3OTkyMCwianRpIjoiIiwiaWF0IjoxNzAxMjM2NzIwLCJzdWIiOiIwMDAxOTY0ODAyIiwiY3VzdG9keUlEIjoiMTA1Qzk2NDgwMiIsImVtYWlsIjoibHVrLm1pbmtAZ21haWwuY29tIiwicm9sZXMiOlsiY3VzdG9tZXIiXSwic2NvcGVzIjpbImFsbDphbGwiXSwic3RlcHVwX2V4cCI6MCwic290cF9zaWduIjoiIiwiY2xpZW50X2tleSI6IjRPaEp6Y2R6WktJWVltalA3TllydUtpbm9oMDVKTVlsIiwic2Vzc2lvbklEIjoiM2UxZTgzY2QtMmRjMy00NzE4LTgzZWItMTM0MGEzZjY3ODlkIiwiYWNjb3VudF9zdGF0dXMiOiIxIiwib3RwIjoiIiwib3RwVHlwZSI6IiIsIm90cFNvdXJjZSI6IlRDSU5WRVNUIiwib3RwU2Vzc2lvbklkIjoiIiwiYWNjb3VudFR5cGUiOiJQUklNQVJZIiwicHJpbWFyeVN1YiI6IiIsInByaW1hcnlDdXN0b2R5SUQiOiIifQ.01x1o-g642HNCn-WwaRmCBKsaouAI34hw7-Yd3kLAHh0M0I3zC8D8cKAWTC4AgFviWnNwjwO7lpD4bwXvgLDObMe88V6fcLfTHvi92rhQtuzacz-NJdrY0LwiD9u7wH4wumIjN2ZbARepQW9RazJDCX7IFig0swcUpdDLZJMB1OpXX6ceeG3JiLsUtBXgM1COBXNOhIJoFnf5q8U5L9i6bf-sGh7FxeueSK-OF3mdcPl-Y_NMZGgSt12VcRZHf3x8_3EcsvvcVYoKldMCVcalBZoc5extarWOjFdVENRU29tAE5j4tpAgzoQjuZAiGfzj0PxE07xR7GMif_j6s7ZXA',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/119.0.0.0 Safari/537.36',
         'Content-Type': 'application/json',
         'Accept': 'application/json',
@@ -1802,6 +1801,113 @@ def load_stock_balance_sheet_to_dataframe(data):
 
     return df
 
+
+def load_stock_income_statement_to_dataframe(data):
+    # [{
+    #     "ticker": "VND",
+    #     "quarter": 4,
+    #     "year": 2024,
+    #     "revenue": 1212,
+    #     "yearRevenueGrowth": -0.373,
+    #     "quarterRevenueGrowth": -0.046,
+    #     "costOfGoodSold": -630,
+    #     "grossProfit": 582,
+    #     "operationExpense": -124,
+    #     "operationProfit": 458,
+    #     "yearOperationProfitGrowth": -0.637,
+    #     "quarterOperationProfitGrowth": -0.423,
+    #     "interestExpense": -182,
+    #     "preTaxProfit": 275,
+    #     "postTaxProfit": 251,
+    #     "shareHolderIncome": 251,
+    #     "yearShareHolderIncomeGrowth": -0.694,
+    #     "quarterShareHolderIncomeGrowth": -0.502,
+    #     "investProfit": null,
+    #     "serviceProfit": null,
+    #     "otherProfit": null,
+    #     "provisionExpense": null,
+    #     "operationIncome": null,
+    #     "ebitda": 475
+    # }]
+    
+    df = pd.DataFrame(data)
+    df['quarter'] = df['quarter'].astype(int)
+    df['year'] = df['year'].astype(int)
+    df['revenue'] = df['revenue'].astype(float)
+    df['yearRevenueGrowth'] = df['yearRevenueGrowth'].astype(float)
+    df['quarterRevenueGrowth'] = df['quarterRevenueGrowth'].astype(float)
+    df['costOfGoodSold'] = df['costOfGoodSold'].astype(float)
+    df['grossProfit'] = df['grossProfit'].astype(float)
+    df['operationExpense'] = df['operationExpense'].astype(float)
+    df['operationProfit'] = df['operationProfit'].astype(float)
+    df['yearOperationProfitGrowth'] = df['yearOperationProfitGrowth'].astype(float)
+    df['quarterOperationProfitGrowth'] = df['quarterOperationProfitGrowth'].astype(float)
+    df['interestExpense'] = df['interestExpense'].astype(float)
+    df['preTaxProfit'] = df['preTaxProfit'].astype(float)
+    df['postTaxProfit'] = df['postTaxProfit'].astype(float)
+    df['shareHolderIncome'] = df['shareHolderIncome'].astype(float)
+    df['yearShareHolderIncomeGrowth'] = df['yearShareHolderIncomeGrowth'].astype(float)
+    df['quarterShareHolderIncomeGrowth'] = df['quarterShareHolderIncomeGrowth'].astype(float)
+    df['ebitda'] = df['ebitda'].astype(float)
+    
+     # Convert 'year' to datetime at the beginning of the year
+    df['date'] = pd.to_datetime(df['year'], format='%Y')
+    
+    # start date of the quarter
+    df['start_date'] = df.apply(lambda row: pd.Timestamp(f"{row['year']}-{(row['quarter'] - 1) * 3 + 1}-01"), axis=1)
+    
+    # Calculate the number of months to add based on the quarter
+    df['date'] = df.apply(lambda row: row['date'] + pd.DateOffset(months=(row['quarter']) * 3), axis=1)
+    
+    # set index
+    df['index'] = df['date']
+    
+    # dt.tz_localize(None)
+    df['index'] = df['index'].dt.tz_localize(None)
+    df['start_date'] = df['start_date'].dt.tz_localize(None)
+    
+    df.set_index('index', inplace=True)
+
+    return df
+    
+
+def get_stock_income_statement(ticker='MWG', yearly=0, is_all=True):
+    print(f"Getting income statement for {ticker}")
+    # https://apiextaws.tcbs.com.vn/tcanalysis/v1/finance/VND/incomestatement?yearly=0&isAll=true
+    
+    url = f'https://apiextaws.tcbs.com.vn/tcanalysis/v1/finance/{ticker}/incomestatement'
+    
+    config = cfg.get_config('tcbs.info')
+    token = config.get('authToken')
+    
+    headers = {
+        'Authorization': f'Bearer {token}',
+        'sec-ch-ua': '"Not_A Brand";v="8", "Chromium";v="120", "Google Chrome";v="120"',
+        'DNT': '1',
+        'Accept-language': 'vi',
+        'sec-ch-ua-mobile': '?0',
+        'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/',
+        'Content-type': 'application/json',
+        'Accept': 'application/json',
+        'Referer': 'https://tcinvest.tcbs.com.vn/',
+        'sec-ch-ua-platform': '"macOS"'
+    }
+    
+    params = {
+        'yearly': yearly,
+        'isAll': is_all
+    }
+    
+    response = requests.get(url, params=params, headers=headers)
+    
+    if response.status_code == 200:
+        json = response.json()
+        return json
+    
+    print(f"Get income statement failed with status code {response.status_code}")
+    
+    return None
+    
 def get_stock_financial(ticker='MWG', yearly=0, is_all=True):
     # https://apipubaws.tcbs.com.vn/tcanalysis/v1/finance/VHM/financialratio?yearly=0&isAll=true
     
@@ -2004,7 +2110,7 @@ def load_stock_financial_to_dataframe(data):
     df['date'] = df.apply(lambda row: row['date'] + pd.DateOffset(months=(row['quarter']) * 3), axis=1)
     
     # convert date to datetime
-    df['date'] = pd.to_datetime(df['date'])
+    df['date'] = pd.to_datetime(df['date']).dt.tz_localize(None)
     
     # set index
     df['index'] = df['date']

@@ -128,8 +128,7 @@ def get_stocks_financial(symbolsDate_dict: dict, column=None,  stack=False, stac
                 print(
                     f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
             elif stack and stack_level == 'factor' and column is not None:
-                stocks_dfs[symbol] = stock_df[column]
-                stocks_dfs[symbol] = stock_df
+                stocks_dfs[symbol] = stock_df[[column]]
             else:
                 stocks_dfs[symbol] = stock_df
     
@@ -150,6 +149,13 @@ def get_stocks_financial(symbolsDate_dict: dict, column=None,  stack=False, stac
                     factor_dfs[column] = pd.DataFrame()
                 factor_dfs[column][symbol] = stocks_dfs[symbol][column]
         stocks_df = pd.concat(factor_dfs, axis=1)
+    elif not stack and column is not None:
+        # not stack and column is not None
+        # act like a single stock
+        factor_dfs = {}
+        for symbol in stocks_dfs:
+            factor_dfs[symbol] = stocks_dfs[symbol][column]
+        stocks_df = pd.DataFrame(factor_dfs)
     elif stack:
         stocks_df = pd.concat(stocks_dfs, axis=1)
     else:
@@ -160,7 +166,7 @@ def get_stocks_financial(symbolsDate_dict: dict, column=None,  stack=False, stac
             
     return stocks_df
 
-st.cache_data
+@st.cache_data
 def get_stocks_events(symbolsDate_dict: dict, column='label',  stack=False, stack_level='factor', event_type=None):
     print(f"get_stocks_events: {symbolsDate_dict} {column} {stack} {stack_level}")
     datas = AKData(symbolsDate_dict['market'])
@@ -362,3 +368,51 @@ def get_stocks_valuation(symbolsDate_dict: dict, indicator='pe'):
                 
     return stocks_df
 
+
+@st.cache_data
+def get_stocks_income_statement(symbolsDate_dict: dict, column=None,  stack=False, stack_level='factor', raw=False):
+    datas = AKData(symbolsDate_dict['market'])
+    stocks_dfs = {}
+    
+    for symbol in symbolsDate_dict['symbols']:
+        if symbol != '':
+            stock_df = datas.get_income_statement(symbol, symbolsDate_dict['start_date'], symbolsDate_dict['end_date'])
+            if stock_df.empty:
+                print(
+                    f"Warning: stock '{symbol}' is invalid or missing. Ignore it")
+            else:
+                stocks_dfs[symbol] = stock_df
+    
+    if raw:
+        return stocks_dfs
+    
+    stocks_df = pd.DataFrame()
+
+    if stack and stack_level == 'factor':
+        # each frame represents one stock with all factors
+        # stack the dataframes is 2 levels
+        # level 0 is the factor name, level 1 is the stock symbol
+        # eg. stocks_df['pe']['AAPL'] = 12.3
+        factor_dfs = {}
+        for symbol in stocks_dfs:
+            for factor in stocks_dfs[symbol].columns:
+                # Initialize an empty DataFrame for the factor only if it doesn't exist
+                if factor not in factor_dfs:
+                    factor_dfs[factor] = pd.DataFrame()
+                    
+                factor_dfs[factor][symbol] = stocks_dfs[symbol][factor]
+        stocks_df = pd.concat(factor_dfs, axis=1)
+    elif not stack and column is not None:
+        # not stack and column is not None
+        # act like a single stock
+        factor_dfs = {}
+        for symbol in stocks_dfs:
+            factor_dfs[symbol] = stocks_dfs[symbol][column]
+        stocks_df = pd.DataFrame(factor_dfs)
+    else:
+        for symbol in stocks_dfs:
+            stock_df = stocks_dfs[symbol]
+            stock_df['symbol'] = symbol
+            stocks_df = pd.concat([stocks_df, stock_df])
+            
+    return stocks_df

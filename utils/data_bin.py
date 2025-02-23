@@ -14,10 +14,10 @@ import streamlit as st
 apikey = cfg.get_config('binance.api_key')
 apisecret = cfg.get_config('binance.api_secret')
 
-client = Client(apikey, apisecret)
-
 
 def get_all_tickers():
+    client = Client(apikey, apisecret)
+    
     tickers = client.get_all_tickers()
     tickers_df = pd.DataFrame(tickers)
     return tickers_df
@@ -48,6 +48,8 @@ def get_intervals():
     return ['1d', '1w', '1M', '12h', '6h', '4h', '2h', '1h', '30m', '15m', '5m', '3m', '1m']
 
 def map_interval_to_enum(interval):
+    client = Client(apikey, apisecret)
+    
     interval_map = {
         '1m': Client.KLINE_INTERVAL_1MINUTE,
         '3m': Client.KLINE_INTERVAL_3MINUTE,
@@ -83,6 +85,8 @@ def get_historical_klines(
     interval, # 1m, 3m, 5m, 15m, 30m, 1h, 2h, 4h, 6h, 8h, 12h, 1d, 3d, 1w, 1M
     start_str,  # 5 July 2020
     end_str=None):    
+    client = Client(apikey, apisecret)
+    
     interval = map_interval_to_enum(interval)
     start_str = convert_date_to_string(start_str)
     end_str = convert_date_to_string(end_str)
