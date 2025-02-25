@@ -7,7 +7,6 @@ import vectorbt as vbt
 
 from indicators.EventArb import generate_arbitrage_signal, get_EventArbInd
 from studies.momentum_top_study import compute_sizes
-from studies.rrg import RRG_Strategy
 from utils.processing import get_stocks_events
 
 from .base import BaseStrategy

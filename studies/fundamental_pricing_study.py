@@ -14,7 +14,6 @@ from utils.component import  check_password, input_dates, input_SymbolsDate
 import matplotlib.pyplot as plt
 
 from utils.processing import get_stocks, get_stocks_valuation
-from studies.rrg import plot_RRG, rs_ratio, RRG_Strategy
 
 def run(symbol_benchmark, symbolsDate_dict):
         

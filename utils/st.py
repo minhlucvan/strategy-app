@@ -6,7 +6,6 @@ from utils.component import check_password, params_selector
 from utils.vbt import plot_pf
 from utils.portfolio import selectpf_bySymbols
 from utils.vbt import display_pfbrief
-from vbt_strategy.PairTrade import pairtrade_pfs
 from utils.db import get_SymbolName, get_SymbolsNames
 
 def check_params(params):
@@ -16,6 +15,87 @@ def check_params(params):
     #         return False
     return True
 
+
+
+def pairtrade_pfs(symbol1, symbol2, price1, price2, output_bool=False):
+    #initialize Parameters
+    window = 100
+    CASH = 100000
+    COMMPERC = 0.005  # 0.5%
+    ORDER_PCT1 = 0.95   #0.1
+    ORDER_PCT2 = 0.95   #0.1
+    MODE = 'OLS'  # OLS, log_return
+
+    windows = np.arange(50, 105, 5)
+    uppers = np.arange(1.5, 2.2, 0.1)
+    lowers = np.arange(1.5, 2.2, 0.1)
+
+    score, pvalue, _ = coint(price1, price2)
+    st.write(f"P-Value is {pvalue}")
+      
+    symbol_cols = pd.Index([symbol1, symbol2], name='symbol')
+    vbt_close_price = pd.concat((price1+1, price2+1), axis=1, keys=symbol_cols)
+    vbt_open_price = vbt_close_price
+
+    def simulate_mult_from_order_func(windows, uppers, lowers):
+            """Simulate multiple parameter combinations using `Portfolio.from_order_func`."""
+            # Build param grid
+            param_product = vbt.utils.params.create_param_product([windows, uppers, lowers])
+            param_tuples = list(zip(*param_product))
+            param_columns = pd.MultiIndex.from_tuples(param_tuples, names=['window', 'upper', 'lower'])
+            
+            # We need two price columns per param combination
+            vbt_close_price_mult = vbt_close_price.vbt.tile(len(param_columns), keys=param_columns)
+            vbt_open_price_mult = vbt_open_price.vbt.tile(len(param_columns), keys=param_columns)
+
+            return vbt.Portfolio.from_order_func(
+                vbt_close_price_mult,
+                order_func_nb, 
+                vbt_open_price_mult.values, COMMPERC,  # *args for order_func_nb
+                pre_group_func_nb=pre_group_func_nb, 
+                pre_group_args=(
+                    np.array(param_product[0]), 
+                    np.array(param_product[1]), 
+                    np.array(param_product[2]), 
+                    ORDER_PCT1, 
+                    ORDER_PCT2
+                ),
+                pre_segment_func_nb=pre_segment_func_nb, 
+                pre_segment_args=(MODE,),
+                fill_pos_record=False,
+                init_cash=CASH,
+                cash_sharing=True, 
+                group_by=param_columns.names,
+                freq='d'
+            )
+    try:   
+        vbt_pf_mult = simulate_mult_from_order_func(windows, uppers, lowers)
+        if output_bool:
+            # Draw all window combinations as a 3D volume
+            st.plotly_chart(
+                vbt_pf_mult.total_return().vbt.volume(
+                        x_level='upper',
+                        y_level='lower',
+                        z_level='window',
+
+                        trace_kwargs=dict(
+                            colorbar=dict(
+                                title='Total return', 
+                                tickformat='%'
+                            )
+                        )
+                    )
+                )
+
+        # Max Sharpe_ratio Parameter    
+        idxmax = (vbt_pf_mult.sharpe_ratio().idxmax())
+        pf = vbt_pf_mult[idxmax]
+    except Exception as e:
+        print(f"PairTrade_pf Error:    {e}")
+        pf = None
+    # param_dict = dict(zip(['window', 'upper', 'lower'], [int(idxmax[0]), round(idxmax[1], 4), round(idxmax[2], 4)]))
+    return pf
+    
 
 def select_portfolios(portfolio_df, default_selected=False):
         df_with_selections = portfolio_df.copy()
@@ -110,3 +190,4 @@ def show_trade_form(prefix, row, trader):
     
     if st.button("Execute", key=f'{id}_execute'):
         execute_trade(trader, side, row['Symbol'], price, volume, price_type)
+        

@@ -1,6 +1,6 @@
 from utils.vbt import display_pfbrief
 from utils.db import get_SymbolName, get_SymbolsNames
-from vbt_strategy.PairTrade import pairtrade_pfs
+from utils.st import pairtrade_pfs
 from utils.portfolio import Portfolio, selectpf_bySymbols
 from utils.component import check_password, params_selector
 from utils.vbt import plot_pf

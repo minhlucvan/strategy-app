@@ -11,6 +11,10 @@ if check_password():
     strategy_list = getattr(__import__(f"vbt_strategy"), 'strategy_list')
     strategyName = st.sidebar.selectbox("Please select strategy", strategy_list)
     
+    if not strategyName:
+        st.info("Please select strategy.")
+        st.stop()
+    
     if strategyName:
         symbolsDate_dict = input_SymbolsDate()
         

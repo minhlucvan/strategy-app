@@ -15,7 +15,6 @@ from utils.component import check_password, input_dates, input_SymbolsDate
 import matplotlib.pyplot as plt
 
 from utils.processing import get_stocks
-from studies.rrg import plot_RRG, rs_ratio, RRG_Strategy
 from utils.stock_utils import get_last_trading_history
 from utils.trader import get_trader, get_trader_list
 from utils.vbt import plot_pf

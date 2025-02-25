@@ -83,18 +83,23 @@ class BaseStrategy(object):
     
     def get_stocks_stacked(self, symbolsDate_dict:dict):
         symbolsDate_dict_cp = symbolsDate_dict.copy()
-        if self.include_bm and self.bm_symbol is not None:
-            if self.bm_symbol not in symbolsDate_dict_cp['symbols']:
-                symbolsDate_dict_cp['symbols'].append(self.bm_symbol)
-            
-        self.stocks_df = get_stocks(symbolsDate_dict_cp,
-            column=self.column,
-            timeframe=self.timeframe,
-            value_filter=self.value_filter)
+        
+        if self.column is not None:
+            self.stocks_df = get_stocks(symbolsDate_dict_cp,
+                column=self.column,
+                timeframe=self.timeframe,
+                value_filter=self.value_filter)
+        else:
+            self.stocks_df = get_stocks(symbolsDate_dict_cp, stack=True, timeframe=self.timeframe, value_filter=self.value_filter)
         
         if self.include_bm and self.bm_symbol is not None:
-            self.bm_price = self.stocks_df[self.bm_symbol]
-            self.stocks_df = self.stocks_df.drop(self.bm_symbol, axis=1)
+            bm_df = self.datas.get_stock(self.bm_symbol, self.start_date, self.end_date)
+            if bm_df.empty:
+                print(f"Warning: benchmark '{self.bm_symbol}' is invalid or missing. Ignore it")
+            else:
+                # align the benchmark price with the stock price
+                bm_df = bm_df.reindex(self.stocks_df.index)
+                self.bm_price = bm_df['close']
         
     def init_stocks(self, symbolsDate_dict:dict):
         for symbol in symbolsDate_dict['symbols']:

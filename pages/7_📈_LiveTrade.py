@@ -17,8 +17,7 @@ import vectorbt as vbt
 from utils.vbt import plot_pf
 from utils.component import check_password, params_selector
 from utils.portfolio import Portfolio, selectpf_bySymbols
-from vbt_strategy.PairTrade import pairtrade_pfs
-from utils.st import check_params, show_PortfolioTable, show_PortforlioDetail, show_trade_form
+from utils.st import check_params, show_PortfolioTable, show_PortforlioDetail, show_trade_form, pairtrade_pfs
 from utils.db import get_SymbolName, get_SymbolsNames
 from utils.vbt import display_pfbrief
 

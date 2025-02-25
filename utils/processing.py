@@ -50,7 +50,7 @@ def get_stocks(symbolsDate_dict: dict, column=None, stack=False, stack_level='fa
                     stock_df['hlc3'] = (stock_df['high'] + stock_df['low'] + stock_df['close']) / 3
                     stock_df['ohlc4'] = (stock_df['open'] + stock_df['high'] + stock_df['low'] + stock_df['close']) / 4
 
-                    stocks_dfs[symbol] = stock_df[column] if column is not None else stock_df
+                    stocks_dfs[symbol] = stock_df[[column]] if column is not None else stock_df
                     
                     stocks_dfs[symbol].index = stocks_dfs[symbol].index.tz_localize(None)
                     
@@ -74,10 +74,15 @@ def get_stocks(symbolsDate_dict: dict, column=None, stack=False, stack_level='fa
         
         # drop date column
         stocks_df = stocks_df.drop(columns='date')
+    elif not stack and column is not None:
+        # not stack and column is not None
+        # act like a single stock
+        factor_dfs = {}
+        for symbol in stocks_dfs:
+            factor_dfs[symbol] = stocks_dfs[symbol][column]
+        stocks_df = pd.DataFrame(factor_dfs)
     elif stack:
         stocks_df = pd.concat(stocks_dfs, axis=1)
-    # elif len(stocks_dfs) == 1:
-    #     return stocks_dfs[symbol]
     else:
         stocks_df = pd.DataFrame(stocks_dfs)
                 
@@ -109,10 +114,20 @@ def get_stocks_funamental(symbolsDate_dict: dict, column='close',  stack=False, 
                     factor_dfs[column] = pd.DataFrame()
                 factor_dfs[column][symbol] = stocks_dfs[symbol][column]
         stocks_df = pd.concat(factor_dfs, axis=1)
+    elif not stack and column is not None:
+        # not stack and column is not None
+        # act like a single stock
+        factor_dfs = {}
+        for symbol in stocks_dfs:
+            factor_dfs[symbol] = stocks_dfs[symbol][column]
+        stocks_df = pd.DataFrame(factor_dfs)
     elif stack:
         stocks_df = pd.concat(stocks_dfs, axis=1)
     else:
-        stocks_df = pd.DataFrame(stocks_dfs)
+        for symbol in stocks_dfs:
+            stock_df = stocks_dfs[symbol]
+            stock_df['symbol'] = symbol
+            stocks_df = pd.concat([stocks_df, stock_df])
         
     return stocks_df
 

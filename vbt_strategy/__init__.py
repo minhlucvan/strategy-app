@@ -26,6 +26,7 @@ from .GapsRecover import GapsRecoverStrategy
 from .SplitArb import SplitArbStrategy
 from .EventArb import EventArbStrategy
 from .FearZone import FearGreedStrategy
+from .BBSR import BBSRStrategy
 
 __all__ = [
     "MOMStrategy",
@@ -55,7 +56,8 @@ __all__ = [
     "GapsRecoverStrategy",
     "SplitArbStrategy",
     "EventArbStrategy",
-    'FearGreedStrategy'
+    'FearGreedStrategy',
+    'BBSRStrategy'
 ]
 
 strategy_list = [
@@ -86,5 +88,6 @@ strategy_list = [
     "GapsRecover",
     "SplitArb",
     "EventArb",
-    'FearGreed'
+    'FearGreed',
+    'BBSR'
 ]

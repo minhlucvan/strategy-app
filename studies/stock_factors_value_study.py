@@ -14,7 +14,6 @@ import matplotlib.pyplot as plt
 
 from utils.plot_utils import plot_multi_line, plot_snapshot
 from utils.processing import get_stocks, get_stocks_financial
-from studies.rrg import plot_RRG, rs_ratio, RRG_Strategy
 from utils.vbt import plot_pf
 from vbt_strategy.MOM_D import get_MomDInd
 from studies.magic_fomula_study import calculate_realtime_metrics, run as run_magic_fomula

@@ -62,6 +62,7 @@ from .stock_dcf_study import run as run_stock_dcf_study
 from .stock_evaluation_study import run as run_stock_evaluation_study
 from .stock_income_statement_study import run as run_stock_income_statement_study
 from .stock_growth_study import run as run_stock_growth_study
+from .scraping_bbsr_study import run as run_scraping_bbsr_study
 
 study_list = [
     {
@@ -323,5 +324,9 @@ study_list = [
     {
         "name": "Stock Growth",
         "module": run_stock_growth_study
+    },
+    {
+        "name": "Scraping BBSR",
+        "module": run_scraping_bbsr_study
     }
 ]

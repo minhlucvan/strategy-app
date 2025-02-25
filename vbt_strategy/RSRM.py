@@ -7,8 +7,6 @@ import vectorbt as vbt
 from .base import BaseStrategy
 from utils.vbt import plot_CSCV
 
-from studies.rrg import rs_ratio
-
 def apply_RSRM(price, window):
     mom_pct = np.full(price.shape, np.nan, dtype=np.float64)
     entry_signal = np.full(price.shape, np.nan, dtype=np.bool_)

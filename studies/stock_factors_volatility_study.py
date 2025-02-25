@@ -14,7 +14,6 @@ from utils.component import check_password, input_dates, input_SymbolsDate
 import matplotlib.pyplot as plt
 
 from utils.processing import get_stocks
-from studies.rrg import plot_RRG, rs_ratio, RRG_Strategy
 from utils.vbt import plot_pf
 from vbt_strategy.MOM_D import get_MomDInd
 from studies.stock_factor_base_study import run as run_magic_fomula
