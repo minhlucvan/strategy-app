@@ -27,6 +27,7 @@ from .SplitArb import SplitArbStrategy
 from .EventArb import EventArbStrategy
 from .FearZone import FearGreedStrategy
 from .BBSR import BBSRStrategy
+from .FibZone import FibZoneStrategy
 
 __all__ = [
     "MOMStrategy",
@@ -57,7 +58,8 @@ __all__ = [
     "SplitArbStrategy",
     "EventArbStrategy",
     'FearGreedStrategy',
-    'BBSRStrategy'
+    'BBSRStrategy',
+    'FibZoneStrategy'
 ]
 
 strategy_list = [
@@ -89,5 +91,6 @@ strategy_list = [
     "SplitArb",
     "EventArb",
     'FearGreed',
-    'BBSR'
+    'BBSR',
+    'FibZone'
 ]

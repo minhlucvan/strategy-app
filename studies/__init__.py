@@ -63,6 +63,8 @@ from .stock_evaluation_study import run as run_stock_evaluation_study
 from .stock_income_statement_study import run as run_stock_income_statement_study
 from .stock_growth_study import run as run_stock_growth_study
 from .scraping_bbsr_study import run as run_scraping_bbsr_study
+from .stock_fib_zone_study import run as run_stock_fib_zone_study
+from .fibo_retracement_study import run as run_fibo_retracement_study
 
 study_list = [
     {
@@ -328,5 +330,13 @@ study_list = [
     {
         "name": "Scraping BBSR",
         "module": run_scraping_bbsr_study
+    },
+    {
+        "name": "Stock Fib Zone",
+        "module": run_stock_fib_zone_study
+    },
+    {
+        "name": "Fibo Retracement",
+        "module": run_fibo_retracement_study
     }
 ]

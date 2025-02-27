@@ -1,74 +1,89 @@
 import numpy as np
 import pandas as pd
 import vectorbt as vbt
+import talib
 from .base import BaseStrategy
 
-def FibZoneDef(close, high, low, per=21):
-    # Handle inputs as either Pandas Series or NumPy arrays
+from talib import MA_Type
+import numpy as np
+import pandas as pd
+import vectorbt as vbt
+from utils.vbt import plot_CSCV
+
+
+def BBSRDef(close, length=20, mult=2.0, lengthRSI=14, upperlimit=70, lowerlimit=30):
+    # Handle close as either Pandas Series or NumPy array
     if isinstance(close, pd.Series):
         index = close.index
-        close = close.values
-        high = high.values
-        low = low.values
+        close = close.values  # Convert to NumPy array for TA-Lib
     else:
         close = np.asarray(close)
-        high = np.asarray(high)
-        low = np.asarray(low)
-        index = pd.RangeIndex(len(close))
+        index = pd.RangeIndex(len(close))  # Default index if none provided
     
-    # Calculate rolling highest high and lowest low
-    hl = vbt.nb.rolling_max_nb(high, per)
-    ll = vbt.nb.rolling_min_nb(low, per)
-    dist = hl - ll  # Range of the channel
+    # Bollinger Bands calculation with T3
+    upper, middle, lower = talib.BBANDS(close, timeperiod=length, 
+                                      nbdevup=mult, nbdevdn=mult, 
+                                      matype=MA_Type.T3)
     
-    # Calculate Fibonacci levels
-    hf = hl - dist * 0.236    # Highest Fibonacci line (23.6%)
-    cfh = hl - dist * 0.382   # Center High Fibonacci line (38.2%)
-    cfl = hl - dist * 0.618   # Center Low Fibonacci line (61.8%)
-    lf = hl - dist * 0.764    # Lowest Fibonacci line (76.4%)
+    # RSI calculation
+    rsi = talib.RSI(close, lengthRSI)
+    
+    # Stochastic Calculation
+    # stoch = talib.STOCH(close, close, close, fastk_period=5, slowk_period=3, slowd_period=3)
     
     # Convert to Pandas Series for signal conditions
     close_series = pd.Series(close, index=index)
+    rsi = pd.Series(rsi, index=index)
     
-    # Generate signals based on price position relative to zones
-    # Bullish entry: price crosses above lowest fib line from below
-    # Bearish entry: price crosses below highest fib line from above
+    # Signal conditions
     close_prev = close_series.shift(1)
-    hf_series = pd.Series(hf, index=index)
-    lf_series = pd.Series(lf, index=index)
+    upper_prev = pd.Series(upper, index=index).shift(1)
+    lower_prev = pd.Series(lower, index=index).shift(1)
+    rsi_prev = rsi.shift(1)
     
-    bull_entries = (close_prev < lf_series) & (close_series > lf_series)
-    bear_entries = (close_prev > hf_series) & (close_series < hf_series)
+    bear_entries = (close_prev > upper_prev) & (close_series < upper) & \
+                   (rsi_prev > upperlimit)
+    bull_entries = (close_prev < lower_prev) & (close_series > lower) & \
+                   (rsi_prev < lowerlimit)
     
-    return bull_entries, bear_entries, hl, ll, hf, cfh, cfl, lf
+    return bear_entries, bull_entries
 
-FibZone = vbt.IndicatorFactory(
-    class_name="FibZone",
-    short_name="FZ",
-    input_names=["close", "high", "low"],
-    param_names=["per"],
-    output_names=["bull_entries", "bear_entries", "hl", "ll", "hf", "cfh", "cfl", "lf"]
+BBSR = vbt.IndicatorFactory(
+    class_name="BBSR",
+    short_name="BBSR",
+    input_names=["close"],
+    param_names=["length", "mult", "lengthRSI", "upperlimit", "lowerlimit"],
+    output_names=["bear_entries", "bull_entries"]
 ).from_apply_func(
-    FibZoneDef,
-    per=21,
+    BBSRDef,
+    length=20,
+    mult=2.0,
+    lengthRSI=14,
+    upperlimit=70,  # Changed to typical RSI overbought level
+    lowerlimit=30,  # Changed to typical RSI oversold level
     to_2d=False
 )
 
-class FibZoneStrategy(BaseStrategy):
-    '''Fibonacci Zone Strategy'''
-    _name = "FibZone"
-    desc = "FibZone is a strategy that uses Fibonacci retracement levels to identify potential trend reversals. Generates bullish signals when price crosses above the 76.4% Fibonacci level and bearish signals when price crosses below the 23.6% Fibonacci level."
+class BBSRStrategy(BaseStrategy):
+    '''Bollinger Bands Stochastic RSI Extreme Strategy'''
+    _name = "BBSR"
+    desc = "BBSR is a strategy combining Bollinger Bands and Stochastic RSI to identify extreme price conditions. Generates bearish signals when price crosses below upper BB with overbought Stochastic RSI, and bullish signals when price crosses above lower BB with oversold Stochastic RSI."
     
     param_def = [
-        {"name": "per", "type": "int", "min": 10, "max": 30, "step": 5},  # Period for lookback
+        {"name": "length", "type": "int", "min": 10, "max": 20, "step": 5},  # all int
+        {"name": "mult", "type": "float", "min": 1.0, "max": 2.0, "step": 0.5},  # all float
+        # {"name": "smoothK", "type": "int", "min": 1, "max": 3, "step": 1},  # all int
+        # {"name": "smoothD", "type": "int", "min": 1, "max": 3, "step": 1},  # all int
+        {"name": "lengthRSI", "type": "int", "min": 5, "max": 14, "step": 3},  # all int
+        # {"name": "lengthStoch", "type": "int", "min": 5, "max": 14, "step": 3},  # all int
+        {"name": "upperlimit", "type": "float", "min": 70.0, "max": 90.0, "step": 10.0},  # all float
+        {"name": "lowerlimit", "type": "float", "min": 10.0, "max": 30.0, "step": 10.0},  # all float
     ]
 
     @vbt.cached_method
     def run(self, calledby='add') -> bool:
         # Initialize variables
         close_price = self.stock_dfs[0][1].close
-        high_price = self.stock_dfs[0][1].high
-        low_price = self.stock_dfs[0][1].low
         open_price = self.stock_dfs[0][1].open
         
         # Get parameters
@@ -76,17 +91,18 @@ class FibZoneStrategy(BaseStrategy):
                  for param in self.param_def}
 
         # Calculate indicators
-        ind = FibZone.run(close_price, high_price, low_price, **params, param_product=True)
+        ind = BBSR.run(close_price, **params, param_product=True)
 
         # Clean up param_dict
         for param in self.param_def:
             del self.param_dict[param['name']]
 
         # Generate signals with no look-ahead bias
-        bull_entries = ind.bull_entries.vbt.signals.fshift()
         bear_entries = ind.bear_entries.vbt.signals.fshift()
+        bull_entries = ind.bull_entries.vbt.signals.fshift()
         
-        # Strategy logic: go long on bull entries, exit on bear entries
+        # For this strategy, we'll use bear signals as exits for long positions
+        # and bull signals as entries
         entries = bull_entries
         exits = bear_entries
 
@@ -94,18 +110,18 @@ class FibZoneStrategy(BaseStrategy):
         if self.param_dict['WFO'] != 'None':
             entries, exits = self.maxRARM_WFO(close_price, entries, exits, calledby)
             pf = vbt.Portfolio.from_signals(
-                close=close_price,
-                open=open_price,
-                entries=entries,
-                exits=exits,
+                close=close_price, 
+                open=open_price, 
+                entries=entries, 
+                exits=exits, 
                 **self.pf_kwargs
             )
         else:
             pf = vbt.Portfolio.from_signals(
-                close=close_price,
-                open=open_price,
-                entries=entries,
-                exits=exits,
+                close=close_price, 
+                open=open_price, 
+                entries=entries, 
+                exits=exits, 
                 **self.pf_kwargs
             )
             if calledby == 'add':
@@ -117,7 +133,8 @@ class FibZoneStrategy(BaseStrategy):
                 
                 self.param_dict.update(dict(zip(
                     [p['name'] for p in self.param_def],
-                    [int(x) for x in idxmax]  # All params are int in this case
+                    [float(x) if p['type'] == 'float' else int(x) 
+                     for x, p in zip(idxmax, self.param_def)]
                 )))
         
         self.pf = pf

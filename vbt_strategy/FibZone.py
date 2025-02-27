@@ -2,9 +2,11 @@ import numpy as np
 import pandas as pd
 import vectorbt as vbt
 from .base import BaseStrategy
+from utils.vbt import plot_CSCV
+
 
 def FibZoneDef(close, high, low, per=21):
-    # Handle inputs as either Pandas Series or NumPy arrays
+    # Ensure inputs are 2D NumPy arrays
     if isinstance(close, pd.Series):
         index = close.index
         close = close.values
@@ -16,9 +18,17 @@ def FibZoneDef(close, high, low, per=21):
         low = np.asarray(low)
         index = pd.RangeIndex(len(close))
     
+    # Reshape to 2D if necessary (vectorbt's nb functions expect 2D arrays)
+    if close.ndim == 1:
+        close = close.reshape(-1, 1)
+    if high.ndim == 1:
+        high = high.reshape(-1, 1)
+    if low.ndim == 1:
+        low = low.reshape(-1, 1)
+    
     # Calculate rolling highest high and lowest low
-    hl = vbt.nb.rolling_max_nb(high, per)
-    ll = vbt.nb.rolling_min_nb(low, per)
+    hl = vbt.nb.rolling_max_nb(high, per)  # Shape: (n_rows, n_cols)
+    ll = vbt.nb.rolling_min_nb(low, per)   # Shape: (n_rows, n_cols)
     dist = hl - ll  # Range of the channel
     
     # Calculate Fibonacci levels
@@ -27,20 +37,18 @@ def FibZoneDef(close, high, low, per=21):
     cfl = hl - dist * 0.618   # Center Low Fibonacci line (61.8%)
     lf = hl - dist * 0.764    # Lowest Fibonacci line (76.4%)
     
-    # Convert to Pandas Series for signal conditions
-    close_series = pd.Series(close, index=index)
+    # Convert to Pandas Series for signal conditions (using first column if multi-column)
+    close_series = pd.Series(close[:, 0], index=index)
+    hf_series = pd.Series(hf[:, 0], index=index)
+    lf_series = pd.Series(lf[:, 0], index=index)
     
     # Generate signals based on price position relative to zones
-    # Bullish entry: price crosses above lowest fib line from below
-    # Bearish entry: price crosses below highest fib line from above
     close_prev = close_series.shift(1)
-    hf_series = pd.Series(hf, index=index)
-    lf_series = pd.Series(lf, index=index)
-    
     bull_entries = (close_prev < lf_series) & (close_series > lf_series)
     bear_entries = (close_prev > hf_series) & (close_series < hf_series)
     
-    return bull_entries, bear_entries, hl, ll, hf, cfh, cfl, lf
+    # Return outputs (ensure 1D arrays for entries if needed)
+    return bull_entries.values, bear_entries.values, hl, ll, hf, cfh, cfl, lf
 
 FibZone = vbt.IndicatorFactory(
     class_name="FibZone",
@@ -117,7 +125,7 @@ class FibZoneStrategy(BaseStrategy):
                 
                 self.param_dict.update(dict(zip(
                     [p['name'] for p in self.param_def],
-                    [int(x) for x in idxmax]  # All params are int in this case
+                    [int(idxmax)]  # All params are int in this case
                 )))
         
         self.pf = pf

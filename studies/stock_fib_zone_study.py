@@ -3,7 +3,6 @@ import plotly.graph_objects as go
 import numpy as np
 import streamlit as st
 from utils.processing import get_stocks
-import talib as ta
 
 class DCABacktest:
     def __init__(self, df, initial_capital=10_000_000, buy_amount=1_000_000):
@@ -16,73 +15,23 @@ class DCABacktest:
         self.zone_shares = 0
         self.zone_trades = []
         
-        # Monthly DCA strategy variables
+        # Monthly DCA strategy variables (will be initialized if DCA is enabled)
         self.dca_cash = initial_capital
         self.dca_shares = 0
         self.dca_trades = []
 
-    def calculate_moving_average(self, series, period, ma_type="WMA"):
-        """Helper function to calculate moving averages"""
-        if ma_type == "SMA":
-            return ta.SMA(series, timeperiod=period)
-        elif ma_type == "EMA":
-            return ta.EMA(series, timeperiod=period)
-        elif ma_type == "WMA":
-            return ta.WMA(series, timeperiod=period)
-        return ta.WMA(series)
-
-    def calculate_fear_zone(self, source_col, high_period=21, stdev_period=21):
-        """Calculate Fear Zone using the new methodology"""
-        df = self.df
-        source = df[source_col]
-        
-        # Calculate FZ1
-        highest_high = source.rolling(window=high_period).max()
-        fz1 = (highest_high - source) / highest_high
-        avg1 = self.calculate_moving_average(fz1, stdev_period)
-        stdev1 = fz1.rolling(window=stdev_period).std()
-        fz1_limit = avg1 + stdev1
-        
-        # Calculate FZ2
-        fz2 = self.calculate_moving_average(source, high_period)
-        avg2 = self.calculate_moving_average(fz2, stdev_period)
-        stdev2 = fz2.rolling(window=stdev_period).std()
-        fz2_limit = avg2 - stdev2
-        
-        # Calculate True Range for zone boundaries
-        df['tr'] = ta.TRANGE(df['high'], df['low'], df['close'])
-        
-        return fz1, fz1_limit, fz2, fz2_limit, df['tr']
-
     def calculate_zones(self, period=21, min_signal_gap=5, run_dca=False):
-        """Calculate zones with updated Fear Zone calculation"""
+        """Calculate Fibonacci zones and trading signals"""
         df = self.df
-        
-        # Calculate OHLC4 as source
-        df['ohlc4'] = (df['open'] + df['high'] + df['low'] + df['close']) / 4
-        
-        # Original Greed Zone (unchanged)
         df['hl'] = df['high'].rolling(window=period).max()
-        df['dist'] = df['hl'] - df['low'].rolling(window=period).min()
-        df['hf'] = df['hl'] - df['dist'] * 0.236  # Greed zone
+        df['ll'] = df['low'].rolling(window=period).min()
+        df['dist'] = df['hl'] - df['ll']
         
-        # New Fear Zone calculation
-        fz1, fz1_limit, fz2, fz2_limit, tr = self.calculate_fear_zone('ohlc4', period, period)
-        df['fz1'] = fz1
-        df['fz1_limit'] = fz1_limit
-        df['fz2'] = fz2
-        df['fz2_limit'] = fz2_limit
-        df['tr'] = tr
+        df['hf'] = df['hl'] - df['dist'] * 0.236    # Greed zone
+        df['lf'] = df['hl'] - df['dist'] * 0.764    # Fear zone
         
-        # Define fear zone boundaries
-        df['lf_open'] = np.where((df['fz1'] > df['fz1_limit']) & (df['fz2'] < df['fz2_limit']),
-                               df['low'] - df['tr'], np.nan)
-        df['lf_close'] = np.where((df['fz1'] > df['fz1_limit']) & (df['fz2'] < df['fz2_limit']),
-                                df['low'] - 2 * df['tr'], np.nan)
-        
-        # Trading signals
         df['prev_close'] = df['close'].shift(1)
-        df['buy_signal'] = (~df['lf_open'].isna()) & (df['prev_close'] > df['lf_open'])
+        df['buy_signal'] = (df['prev_close'] > df['lf']) & (df['close'] <= df['lf'])
         df['sell_signal'] = (df['prev_close'] < df['hf']) & (df['close'] >= df['hf'])
         
         # Filter signals with minimum gap
@@ -100,7 +49,7 @@ class DCABacktest:
                 df.loc[df.index[i], 'sell_exec'] = True
                 last_sell = i
         
-        # Add monthly DCA signal if enabled
+        # Add monthly DCA signal only if enabled
         if run_dca:
             df['month'] = df.index.to_series().dt.to_period('M')
             df['is_first_day_of_month'] = df.groupby('month').cumcount() == 0
@@ -110,10 +59,10 @@ class DCABacktest:
 
     def run_backtest(self, run_dca=False):
         """Execute the Zone strategy and optionally the DCA strategy"""
-        # [Same as original code - no changes needed here]
         df = self.df
         
         for i in range(len(df)):
+            # Zone Strategy
             if df['buy_exec'].iloc[i]:
                 shares_to_buy = self.buy_amount / df['close'].iloc[i]
                 self.zone_shares += shares_to_buy
@@ -140,6 +89,7 @@ class DCABacktest:
                 })
                 self.zone_shares = 0
             
+            # Monthly DCA Strategy (if enabled)
             if run_dca and df['dca_buy'].iloc[i]:
                 dca_shares_to_buy = self.buy_amount / df['close'].iloc[i]
                 self.dca_shares += dca_shares_to_buy
@@ -153,6 +103,7 @@ class DCABacktest:
                     'total_shares': self.dca_shares
                 })
         
+        # Calculate final metrics
         final_price = df['close'].iloc[-1]
         zone_final_value = self.zone_cash + (self.zone_shares * final_price)
         self.metrics = {
@@ -176,25 +127,22 @@ class DCABacktest:
                 'profit_pct': (dca_final_value - self.initial_capital) / self.initial_capital * 100,
                 'num_trades': len(self.dca_trades),
                 'buy_trades': len([t for t in self.dca_trades if t['type'] == 'BUY']),
-                'sell_trades': 0
+                'sell_trades': 0  # DCA doesn't sell
             }
-
     def plot_results(self):
-        """Visualize the Zone strategy results with updated Fear Zone"""
+        """Visualize the Zone strategy results"""
         df = self.df
         fig = go.Figure()
         
-        # Price candlestick
-        fig.add_trace(go.Candlestick(
+        # Price line
+        fig.add_trace(go.Scatter(
             x=df.index,
-            open=df['open'],
-            high=df['high'],
-            low=df['low'],
-            close=df['close'],
+            y=df['close'],
+            mode='lines',
             name='Price'
         ))
         
-        # Greed zone (unchanged)
+        # Greed zone
         fig.add_trace(go.Scatter(
             x=df.index,
             y=df['hl'],
@@ -210,25 +158,23 @@ class DCABacktest:
             name='Greed Zone'
         ))
         
-        # New Fear Zone visualization
-        fear_open = df['lf_open']
-        fear_close = df['lf_close']
+        # Fear zone
         fig.add_trace(go.Scatter(
             x=df.index,
-            y=fear_open,
+            y=df['lf'],
             line=dict(color='rgba(255,165,0,0.2)'),
             showlegend=False
         ))
         fig.add_trace(go.Scatter(
             x=df.index,
-            y=fear_close,
+            y=df['ll'],
             fill='tonexty',
             fillcolor='rgba(255,165,0,0.2)',
             line=dict(color='rgba(255,165,0,0.2)'),
             name='Fear Zone'
         ))
         
-        # Buy/Sell signals
+        # Zone Buy/Sell signals
         buys = df[df['buy_exec']]
         if not buys.empty:
             fig.add_trace(go.Scatter(
@@ -264,19 +210,22 @@ def run(symbol_benchmark, symbolsDate_dict):
         st.info("Please select symbols.")
         st.stop()
     
+    # Get data
     stock_df = get_stocks(symbolsDate_dict, single=True)
     sample_data = stock_df[['open', 'high', 'low', 'close']]
-    
+    # Initialize and run backtest
     backtest = DCABacktest(sample_data)
     backtest.calculate_zones(period=21, min_signal_gap=5, run_dca=False)
     backtest.run_backtest(run_dca=False)
     
+    # Plot (only Zone strategy)
     fig = backtest.plot_results()
     fig.update_yaxes(fixedrange=False)
-    fig.update_layout(height=400, margin=dict(l=0, r=0, t=40, b=0))
+    fig.update_layout(height=600, margin=dict(l=0, r=0, t=40, b=0))
     fig.update_xaxes(rangeslider_visible=False)
     st.plotly_chart(fig, use_container_width=True)
     
+    # Display results
     st.subheader("Backtest Results")
     
     st.write("### Zone Strategy (Buy Fear, Sell Greed)")
@@ -291,11 +240,13 @@ def run(symbol_benchmark, symbolsDate_dict):
         st.metric("Total Trades", zone_metrics['num_trades'])
         st.metric("Buy/Sell Trades", f"{zone_metrics['buy_trades']}/{zone_metrics['sell_trades']}")
     
+    # plot total_returns
     st.write("### asset_value")
     zone_trade_df = pd.DataFrame(backtest.zone_trades)
     zone_trade_df['asset_value'] = zone_trade_df['price'] * zone_trade_df['total_shares']
-    st.line_chart(zone_trade_df['asset_value'])
+    st.line_chart(zone_trade_df['asset_value'] )
 
+    # Show trade logs
     if st.checkbox("Show Zone Strategy Trade Log"):
         zone_trade_df = pd.DataFrame(backtest.zone_trades)
         if not zone_trade_df.empty:
@@ -306,3 +257,4 @@ def run(symbol_benchmark, symbolsDate_dict):
                 'cash': '{:.2f}',
                 'total_shares': '{:.4f}'
             }))
+   
