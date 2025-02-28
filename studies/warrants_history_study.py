@@ -513,92 +513,69 @@ def run(symbol_benchmark, symbolsDate_dict):
     default_tickers = all_tickers if select_all else []
     
     selected_tickers = st.multiselect('Select tickers', all_tickers, default=default_tickers)
-        
-    returns_df = pd.DataFrame()
     
-    ev_threshold = st.number_input('EV Threshold', value=1)
-    
-    for selected_ticker in selected_tickers:
-        selected_df = full_df[full_df['ticker'] == selected_ticker]
-        
-        # reindex to TradingDate
-        selected_df.set_index('TradingDate', inplace=True)
-        
-        result_df = simulate_warrant(stock_df, selected_df, 252)
-        result_df['ticker'] = selected_ticker
-        # cap = 100
-        
-        # cap expect_value to -cap +cap
-        # result_df['expect_value'] = result_df['expect_value'].clip(-cap, cap)
-        final_listing_change = result_df['listing_change'].iloc[-1]
-        
-        # Example Usage
-        current_cash = 10_000_000
-        portfolio_value = current_cash
-        current_value = 0
-        current_position = 0
-        current_asset = 0
-        volume = 0
-        current_pnl = 0
-        current_return = 0
-        min_order_size = 100
-        
-        trade_df = backtest_trade_cw_simulation(
-            result_df,
-            current_cash,
-            portfolio_value,
-            current_value,
-            current_position,
-            current_asset,
-            volume,
-            current_pnl,
-            current_return,
-            min_order_size,
-            ev_threshold
-        )
-        
-        listing_change = result_df['listing_change'].iloc[-1]
-        final_return = trade_df['PnL'].iloc[-1] / current_cash
-        pnl = trade_df['PnL'].iloc[-1]
-        
-        returns = pd.DataFrame({
-            'ticker': [selected_ticker],
-            'listing_change': [listing_change],
-            'pnl': [pnl],
-            'final_return': [final_return]})
-        
-        returns_df = pd.concat([returns_df, returns], axis=0)
-        # plot return
-        
-        if len(selected_tickers) > 1:
-            continue
+    all_simulate_df = pd.DataFrame()
+    if st.button('Run Simulation'):        
+        for selected_ticker in selected_tickers:
+            selected_df = full_df[full_df['ticker'] == selected_ticker]
+            
+            # reindex to TradingDate
+            selected_df.set_index('TradingDate', inplace=True)
+            
+            result_df = simulate_warrant(stock_df, selected_df, 252)
+            result_df['ticker'] = selected_ticker
+            # cap = 100
+            
+            # cap expect_value to -cap +cap
+            # result_df['expect_value'] = result_df['expect_value'].clip(-cap, cap)
+            final_listing_change = result_df['listing_change'].iloc[-1]
+            
+            result_df['price_ratio'] = result_df['close_cw'] / result_df['close_stock']
+            # pu.plot_single_bar(result_df['price_ratio'], title=f"Price Ratio {selected_ticker}")
+            
+            result_df['expect_value_change'] = result_df['expect_value'].pct_change()
+            # pu.plot_single_bar(result_df['expect_value_change'], title=f"Expected Value Change {selected_ticker}")
+            
+            result_df['expect_value_change_acc'] = result_df['expect_value'].pct_change().cumsum()
+            
+            all_simulate_df = pd.concat([all_simulate_df, result_df], axis=0)
+                        
+        all_simulate_df.to_csv(f'data/warrant_simulation_{ticker}.csv')
+        st.success(f'Save to data/warrant_simulation_{ticker}.csv')
 
-        result_df['price_ratio'] = result_df['close_cw'] / result_df['close_stock']
-        # pu.plot_single_bar(result_df['price_ratio'], title=f"Price Ratio {selected_ticker}")
+    load_simulate_df = st.checkbox('Load Simulation', value=False)
+    
+    if load_simulate_df:
+        all_simulate_df = pd.read_csv(f'data/warrant_simulation_{ticker}.csv')
+
+    
+    if all_simulate_df.empty:
+        st.stop()
         
-        result_df['expect_value_change'] = result_df['expect_value'].pct_change()
-        # pu.plot_single_bar(result_df['expect_value_change'], title=f"Expected Value Change {selected_ticker}")
-        
-        result_df['expect_value_change_acc'] = result_df['expect_value'].pct_change().cumsum()
+    cap = 6
+    all_simulate_df['expect_value'] = all_simulate_df['expect_value'].clip(-cap, cap)
+    
+    # plot all expect value
+    fig = px.line(all_simulate_df, x='TradingDate', y='expect_value', color='ticker', title='Expected Value')
+    st.plotly_chart(fig)
+    
+    # expect value by listing date
+    all_simulate_df['days_to_listing'] = all_simulate_df['days_to_listing'].astype(int)
+    
+    listing_expect_value_df = all_simulate_df.pivot(index='days_to_listing', columns='ticker', values='expect_value')
+    listing_expect_value_df.sort_index(inplace=True)
+    
+    pu.plot_multi_line(listing_expect_value_df, title='Expected Value by Days to Listing', x_title='Days to Listing', y_title='Expected Value', legend_title='Ticker')
+
+    if len(selected_tickers) == 1:
+        selected_ticker = selected_tickers[0]
+        result_df = all_simulate_df[all_simulate_df['ticker'] == selected_ticker]
         # plot acc expect value with trend line
         fig = px.line(result_df, x=result_df.index, y='expect_value_change_acc', title=f"Expected Value Change Acc {selected_ticker}")
         fig.add_trace(go.Scatter(x=result_df.index, y=result_df['expect_value_change_acc'].rolling(14).mean(), mode='lines', name='trend'))
         st.plotly_chart(fig)
         
-        pu.plot_single_line(result_df['close_cw'], title=f"Close CW {final_listing_change}%")
-        pu.plot_single_line(result_df['close_stock'], title=f"Close Stock {selected_ticker}")
-        pu.plot_single_line(trade_df['PnL'], title=f"PnL {selected_ticker}")
+        pu.plot_single_line(result_df['close_cw'], title=f"Close CW {selected_ticker}")
+        # pu.plot_single_line(trade_df['PnL'], title=f"PnL {selected_ticker}")
         pu.plot_single_bar(result_df['expect_value'], title=f"Expected Value {selected_ticker}")
-        # pu.plot_single_bar(trade_df['Volume'], title=f"Volume {selected_ticker}")
-        # pu.plot_single_bar(result_df['expect_value_annual'], title="Expected Value Annualized by Ticker")
-        # pu.plot_single_bar(result_df['expect_value_daily'] * 100, title="Expected Value Daily by Ticker")
-        
-            
-    if len(selected_tickers) > 1:
-        st.dataframe(returns_df, use_container_width=True)
-        
-        avg_return = returns_df['final_return'].mean()
-        st.write(f'Average return: {avg_return}')
-        
-        avg_listing_change = returns_df['listing_change'].mean()
-        st.write(f'Average listing change: {avg_listing_change}')
+        pu.plot_single_line(result_df['close_stock'], title=f"Close Stock {selected_ticker}")
