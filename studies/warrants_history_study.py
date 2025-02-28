@@ -376,8 +376,6 @@ def load_full_warrants_history(ticker='ACB'):
     
     # pu.plot_single_bar(df['out_of_money'], title='Out of money', x_title='Warrant', y_title='Out of money', legend_title='Out of money')
     
-    pu.plot_single_bar(df['listing_change'], title='Listing change', x_title='Warrant', y_title='Listing change', legend_title='Listing change')
-    
     # remove the first column unnamed 0
     price_df = price_df.loc[:, ~price_df.columns.str.contains('^Unnamed')]
     
@@ -401,9 +399,16 @@ def load_full_warrants_history(ticker='ACB'):
     # exercise_method,term,issue_date,listing_date,first_trade_date,
     # last_trade_date,maturity_date,conversion_ratio,adjusted_conversion_ratio,issue_price,exercise_price,
     # adjusted_exercise_price,listed_volume,circulating_volume,listing_change
-
+        # index as datetime
+    full_df['listing_date'] = pd.to_datetime(full_df['listing_date'])
+    full_df['maturity_date'] = pd.to_datetime(full_df['maturity_date'])
+    full_df['first_trade_date'] = pd.to_datetime(full_df['FirstTradingDate'])
+    
+    full_df['issue_date'] = pd.to_datetime(full_df['issue_date'])
+    full_df['days_to_listing'] = (full_df['TradingDate'] - full_df['first_trade_date']).dt.days
     full_df['Exercise_Price'] = full_df['exercise_price'].astype(float)
     full_df['close_cw'] = full_df['ClosePrice'].astype(float)
+    full_df['price_to_issue'] = (full_df['close_cw'] - full_df['issue_price']) / full_df['issue_price']
     # 2.3:1 -> 2.3
     full_df['Exercise_Ratio'] = full_df['conversion_ratio'].apply(lambda x: float(x.split(':')[0]))
     full_df['break_even_price'] = su.warrant_break_even_point(full_df['close_cw'], full_df['Exercise_Price'], full_df['Exercise_Ratio'])
@@ -432,14 +437,74 @@ def run(symbol_benchmark, symbolsDate_dict):
         
     full_df = load_full_warrants_history(ticker)
     
-    stocks_df = get_stocks(symbolsDate_dict, 'close')
+    # drop ticker CFPT1908
+    full_df = full_df[full_df['ticker'] != 'CFPT1908']
     
+    listing_change_df = full_df[['close_cw', 'TradingDate', 'ticker']]
+    
+    # reshape the data each column is a ticker
+    listing_change_df = listing_change_df.pivot(index='TradingDate', columns='ticker', values='close_cw')
+    
+    # convert to percentage acc return
+    listing_change_acc_df = listing_change_df.pct_change().cumsum()
+    
+    # set all nan of listing_change_acc_df to nan of listing_change_df nan
+    listing_change_acc_df = listing_change_acc_df.where(~listing_change_df.isna())
+    
+    # index as datetime
+    listing_change_acc_df.index = pd.to_datetime(listing_change_acc_df.index)
+    
+    # fill na with 0
+    # listing_change_df.fillna(0, inplace=True)
+    
+    # st.write(listing_change_df)
+    
+    stocks_df = get_stocks(symbolsDate_dict, 'close')
+        
     stock_df = stocks_df[[ticker]]
     stock_df.columns = ['close']
     
+    # allign the stock_df with index > listing_change_acc_df.index < stock_df.index
+    stock_align_df = stock_df[stock_df.index.isin(listing_change_acc_df.index)]
+    stock_acc_return = stock_align_df.pct_change().cumsum()
+    
+    stock_acc_return.columns = ['close']
+    
+    # merge with listing_change_df
+    listing_change_acc_with_stock_df = pd.merge(stock_acc_return, listing_change_acc_df, left_index=True, right_index=True, how='left')
+    
+    # plit multi line
+    pu.plot_multi_line(listing_change_acc_with_stock_df, title='Listing Change', x_title='Date', y_title='Listing Change', legend_title='Ticker')
+    
     # index to datetime
     stock_df.index = pd.to_datetime(stock_df.index)
-
+    
+    # full_df = full_df[full_df['ticker'] == 'CFPT2201']    
+    
+    listing_change_by_day_df = full_df[['close_cw', 'days_to_listing', 'ticker']]
+    
+        
+    # reshape the data each column is a ticker
+    listing_change_by_day_df = listing_change_by_day_df.pivot(index='days_to_listing', columns='ticker', values='close_cw')
+    
+    # sort by days_to_listing
+    listing_change_by_day_df.sort_index(inplace=True)
+    
+    # pirce at max days_to_expired
+    first_price = listing_change_by_day_df.bfill().iloc[0]
+    # st.write(first_price)
+        
+    # convert to percentage acc return
+    listing_change_by_day_acc_df = listing_change_by_day_df / first_price - 1
+    
+    # pu.plot_multi_line(listing_change_by_day_df, title='Listing Change by Day', x_title='Days to Expired', y_title='Listing Change', legend_title='Ticker')
+    
+    # set all nan of listing_change_acc_df to nan of listing_change_df nan
+    listing_change_by_day_acc_df = listing_change_by_day_acc_df.where(~listing_change_by_day_df.isna())
+    
+    pu.plot_multi_line(listing_change_by_day_acc_df, title='Listing Change by Day', x_title='Days to Expired', y_title='Listing Change', legend_title='Ticker')
+    
+    
     # plot stock
     pu.plot_single_line(stock_df['close'], title=f'{ticker} price')
     
@@ -508,14 +573,25 @@ def run(symbol_benchmark, symbolsDate_dict):
         if len(selected_tickers) > 1:
             continue
 
-        pu.plot_single_line(result_df['close_stock'], title=f"Close Stock {selected_ticker}")
+        result_df['price_ratio'] = result_df['close_cw'] / result_df['close_stock']
+        # pu.plot_single_bar(result_df['price_ratio'], title=f"Price Ratio {selected_ticker}")
+        
+        result_df['expect_value_change'] = result_df['expect_value'].pct_change()
+        # pu.plot_single_bar(result_df['expect_value_change'], title=f"Expected Value Change {selected_ticker}")
+        
+        result_df['expect_value_change_acc'] = result_df['expect_value'].pct_change().cumsum()
+        # plot acc expect value with trend line
+        fig = px.line(result_df, x=result_df.index, y='expect_value_change_acc', title=f"Expected Value Change Acc {selected_ticker}")
+        fig.add_trace(go.Scatter(x=result_df.index, y=result_df['expect_value_change_acc'].rolling(14).mean(), mode='lines', name='trend'))
+        st.plotly_chart(fig)
+        
         pu.plot_single_line(result_df['close_cw'], title=f"Close CW {final_listing_change}%")
+        pu.plot_single_line(result_df['close_stock'], title=f"Close Stock {selected_ticker}")
         pu.plot_single_line(trade_df['PnL'], title=f"PnL {selected_ticker}")
-        pu.plot_single_bar(trade_df['ExpectedValue'], title=f"Expect Value {selected_ticker}")
         pu.plot_single_bar(result_df['expect_value'], title=f"Expected Value {selected_ticker}")
-        pu.plot_single_bar(trade_df['Volume'], title=f"Volume {selected_ticker}")
-        pu.plot_single_bar(result_df['expect_value_annual'], title="Expected Value Annualized by Ticker")
-        pu.plot_single_bar(result_df['expect_value_daily'] * 100, title="Expected Value Daily by Ticker")
+        # pu.plot_single_bar(trade_df['Volume'], title=f"Volume {selected_ticker}")
+        # pu.plot_single_bar(result_df['expect_value_annual'], title="Expected Value Annualized by Ticker")
+        # pu.plot_single_bar(result_df['expect_value_daily'] * 100, title="Expected Value Daily by Ticker")
         
             
     if len(selected_tickers) > 1:

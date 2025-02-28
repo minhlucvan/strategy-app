@@ -7,23 +7,38 @@ import pandas as pd
 import plotly.subplots as sp
 
 def plot_multi_line(df, title="", x_title="", y_title="", legend_title="", price_df=None):
-    df = df.copy()
+    df = df.copy().astype(float)  # Ensure numerical dtype
+    df = df.where(df.notna(), None)  # Convert NaN to None
     if price_df is not None:
         fig = sp.make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.01)
         for col in df.columns:
-            fig.add_trace(go.Scatter(x=df.index, y=df[col], mode='lines', name=col), row=1, col=1)
-            fig.add_trace(go.Scatter(x=price_df.index, y=price_df[col], mode='lines', name=col), row=2, col=1)
+            fig.add_trace(go.Scatter(
+                x=df.index, y=df[col], mode='lines', name=col, connectgaps=False  # Prevent interpolation
+            ), row=1, col=1)
+            fig.add_trace(go.Scatter(
+                x=price_df.index, y=price_df[col], mode='lines', name=col, connectgaps=False  # Prevent interpolation
+            ), row=2, col=1)
         fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
         st.plotly_chart(fig, use_container_width=True)
         return
+    
     fig = go.Figure()
     for col in df.columns:
-        fig.add_trace(go.Scatter(x=df.index, y=df[col], mode='lines', name=col))
+        fig.add_trace(go.Scatter(
+            x=df.index, y=df[col], mode='lines', name=col, connectgaps=False  # Prevent interpolation
+        ))
+    
     fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
-    # update marker color by stock name
+    
+    # Update marker color by stock name
     for i, stock in enumerate(df.columns):
         fig.data[i].marker.color = px.colors.qualitative.Plotly[i % len(px.colors.qualitative.Plotly)]
+    
+    # update_traces
+    fig.update_traces(connectgaps=False)  # Prevent interpolation
+    
     st.plotly_chart(fig, use_container_width=True)
+
 
 def plot_multi_bar(df, title="", x_title="", y_title="", legend_title="", price_df=None):
     if price_df is not None:
