@@ -275,11 +275,27 @@ def get_vn_valuation(symbol: str, indicator: str) -> pd.DataFrame:
         pd.DataFrame: _description_
     """
     print(f"get_vn_valuation: {symbol}, {indicator}")
-    evaluation = stock_utils.get_stock_evaluation(symbol)
-    evaluation_df = stock_utils.load_stock_evaluation_to_dataframe(evaluation)
     
-    evaluation_df['value'] = evaluation_df['pe']
-
+    # Define cache file path
+    cache_file = f'data/valuation/valuation_{symbol}_{indicator}.csv'
+    
+    try:
+        # Try to read from cache
+        evaluation_df = pd.read_csv(cache_file, index_col=0)
+        print(f"Loaded {symbol} valuation data from cache")
+    except FileNotFoundError:
+        # If cache does not exist, fetch data and save to cache
+        evaluation = stock_utils.get_stock_evaluation(symbol)
+        evaluation_df = stock_utils.load_stock_evaluation_to_dataframe(evaluation)
+        
+        evaluation_df['value'] = evaluation_df[indicator]
+        
+        # Ensure directory exists
+        os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+        
+        evaluation_df.to_csv(cache_file)
+        print(f"Saved {symbol} valuation data to cache")
+    
     return evaluation_df
 
 @lru_cache

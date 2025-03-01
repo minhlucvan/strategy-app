@@ -440,13 +440,15 @@ def run(symbol_benchmark, symbolsDate_dict):
     # drop ticker CFPT1908
     full_df = full_df[full_df['ticker'] != 'CFPT1908']
     
-    listing_change_df = full_df[['close_cw', 'TradingDate', 'ticker']]
+    full_df['listing_change_cal'] = full_df['close_cw'] / full_df['issue_price'] - 1
+    
+    listing_change_df = full_df[['listing_change_cal', 'TradingDate', 'ticker']]
     
     # reshape the data each column is a ticker
-    listing_change_df = listing_change_df.pivot(index='TradingDate', columns='ticker', values='close_cw')
+    listing_change_df = listing_change_df.pivot(index='TradingDate', columns='ticker', values='listing_change_cal')
     
     # convert to percentage acc return
-    listing_change_acc_df = listing_change_df.pct_change().cumsum()
+    listing_change_acc_df = listing_change_df
     
     # set all nan of listing_change_acc_df to nan of listing_change_df nan
     listing_change_acc_df = listing_change_acc_df.where(~listing_change_df.isna())
@@ -481,21 +483,17 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     # full_df = full_df[full_df['ticker'] == 'CFPT2201']    
     
-    listing_change_by_day_df = full_df[['close_cw', 'days_to_listing', 'ticker']]
+    listing_change_by_day_df = full_df[['listing_change_cal', 'days_to_listing', 'ticker']]
     
         
     # reshape the data each column is a ticker
-    listing_change_by_day_df = listing_change_by_day_df.pivot(index='days_to_listing', columns='ticker', values='close_cw')
+    listing_change_by_day_df = listing_change_by_day_df.pivot(index='days_to_listing', columns='ticker', values='listing_change_cal')
     
     # sort by days_to_listing
     listing_change_by_day_df.sort_index(inplace=True)
-    
-    # pirce at max days_to_expired
-    first_price = listing_change_by_day_df.bfill().iloc[0]
-    # st.write(first_price)
-        
+            
     # convert to percentage acc return
-    listing_change_by_day_acc_df = listing_change_by_day_df / first_price - 1
+    listing_change_by_day_acc_df = listing_change_by_day_df
     
     # pu.plot_multi_line(listing_change_by_day_df, title='Listing Change by Day', x_title='Days to Expired', y_title='Listing Change', legend_title='Ticker')
     
@@ -538,6 +536,10 @@ def run(symbol_benchmark, symbolsDate_dict):
             
             result_df['expect_value_change_acc'] = result_df['expect_value'].pct_change().cumsum()
             
+            first_expect_value = result_df['expect_value'].iloc[0]
+            
+            result_df['expect_value_change_listing'] = result_df['expect_value'] / first_expect_value - 1
+            
             all_simulate_df = pd.concat([all_simulate_df, result_df], axis=0)
                         
         all_simulate_df.to_csv(f'data/warrant_simulation_{ticker}.csv')
@@ -552,7 +554,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     if all_simulate_df.empty:
         st.stop()
         
-    cap = 6
+    cap = 20
     all_simulate_df['expect_value'] = all_simulate_df['expect_value'].clip(-cap, cap)
     
     # plot all expect value
@@ -571,8 +573,10 @@ def run(symbol_benchmark, symbolsDate_dict):
         selected_ticker = selected_tickers[0]
         result_df = all_simulate_df[all_simulate_df['ticker'] == selected_ticker]
         # plot acc expect value with trend line
-        fig = px.line(result_df, x=result_df.index, y='expect_value_change_acc', title=f"Expected Value Change Acc {selected_ticker}")
-        fig.add_trace(go.Scatter(x=result_df.index, y=result_df['expect_value_change_acc'].rolling(14).mean(), mode='lines', name='trend'))
+        fig = px.line(result_df, x=result_df.index, y='expect_value_change_listing', title=f"Expected Value Change Acc {selected_ticker}")
+        fig.add_trace(go.Scatter(x=result_df.index, y=result_df['expect_value_change_listing'].rolling(14).mean(), mode='lines', name='trend'))
+        # remove legend
+        fig.update_layout(showlegend=False)
         st.plotly_chart(fig)
         
         pu.plot_single_line(result_df['close_cw'], title=f"Close CW {selected_ticker}")

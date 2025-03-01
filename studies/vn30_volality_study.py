@@ -37,12 +37,12 @@ def plot_double_bar(bearish_vix, bullish_vix, benchmark):
 # depending on the time to expiration of each. Take the square root to get volatility as standard deviation.
 # Multiply the volatility (standard deviation) by 100. The result is the VIX index value.
 # https://www.macroption.com/vix-calculation/#:~:text=VIX%20Calculation%20Step%20by%20Step,-Select%20the%20options&text=Calculate%2030%2Dday%20variance%20by,is%20the%20VIX%20index%20value.
-def calculate_vix_index(prices):
+def calculate_vix_index(prices, window=21):
     # calculate the log returns
     log_returns = np.log(prices / prices.shift(1))
     
     # calculate the variance
-    variance = log_returns.rolling(window=21).std() ** 2
+    variance = log_returns.rolling(window=window).std() ** 2
     
     # calculate the variance of the variance
     variance_of_variance = variance.rolling(window=2).std()

@@ -65,6 +65,10 @@ from .stock_growth_study import run as run_stock_growth_study
 from .scraping_bbsr_study import run as run_scraping_bbsr_study
 from .stock_fib_zone_study import run as run_stock_fib_zone_study
 from .fibo_retracement_study import run as run_fibo_retracement_study
+from .stock_cluster_value_study import run as run_stock_cluster_value_study
+from .stock_cluster_price_study import run as run_stock_cluster_price_study
+from .stock_cluster_industry_study import run as run_stock_cluster_industry_study
+from .vn30_liquidity_study import run as run_vn30_liquidity_study
 
 study_list = [
     {
@@ -338,5 +342,21 @@ study_list = [
     {
         "name": "Fibo Retracement",
         "module": run_fibo_retracement_study
+    },
+    {
+        "name": "Stock Value Cluster",
+        "module": run_stock_cluster_value_study
+    },
+    {
+        "name": "Stock Price Cluster",
+        "module": run_stock_cluster_price_study
+    },
+    {
+        "name": "Stock Industry Cluster",
+        "module": run_stock_cluster_industry_study
+    },
+    {
+        "name": "VN30 Liquidity",
+        "module": run_vn30_liquidity_study
     }
 ]

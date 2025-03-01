@@ -2,7 +2,7 @@ import streamlit as st
 
 from utils.component import input_SymbolsDate, check_password, form_SavePortfolio, params_selector
 from utils.db import get_SymbolName
-from utils.stock_utils import get_stock_overview, get_stock_ratio
+from utils.stock_utils import load_stock_overview_cached, get_stock_ratio
 from utils.vbt import display_pfbrief
 import pandas as pd
 from studies.magic_fomula_study import run as run_magic_fomula
@@ -14,7 +14,7 @@ def show_stock(symbol):
         
     st.write("Company profile")
     symbol = symbolsDate_dict['symbols'][0]
-    stock_overview = get_stock_overview(symbol)
+    stock_overview = load_stock_overview_cached(symbol)
     stock_info = get_stock_ratio(symbol)
     
     st.write("Overview")
@@ -36,7 +36,7 @@ def show_stock_compare(symbols):
     overview_dict = {}
     
     for symbol in symbols:
-        stock_overview = get_stock_overview(symbol)
+        stock_overview = load_stock_overview_cached(symbol)
         overview_dict[symbol] = stock_overview
     
     overview_df = pd.DataFrame(overview_dict)

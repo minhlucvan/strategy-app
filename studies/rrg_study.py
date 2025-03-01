@@ -15,6 +15,7 @@ import matplotlib.pyplot as plt
 
 from utils.processing import get_stocks
 from utils.vbt import plot_pf
+from vbt_strategy.RRG import RRG_Strategy
 
 def run(symbol_benchmark, symbolsDate_dict):
     if len(symbolsDate_dict['symbols']) < 1:
@@ -23,14 +24,13 @@ def run(symbol_benchmark, symbolsDate_dict):
         
     symbolsDate_dict['symbols'] =  [symbol_benchmark] + symbolsDate_dict['symbols']
 
-    
-    stocks_df = get_stocks(symbolsDate_dict,'close')
+    stocks_df = get_stocks(symbolsDate_dict,'close')    
     
     # drop na
-    stocks_df = stocks_df.dropna(axis=1, how='any')
+    stocks_df = stocks_df.dropna(axis=0)
     
     
-    st.write(stocks_df)
+    # st.write(stocks_df)
 
     pf = RRG_Strategy(symbol_benchmark, stocks_df, output_bool=True)
     plot_pf(pf, name= 'RRG Strategy', bm_symbol=symbol_benchmark, bm_price=stocks_df[symbol_benchmark], select=True)

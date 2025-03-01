@@ -2337,6 +2337,21 @@ def get_stock_overview(ticker='MWG'):
         print(f"Request failed with status code {response.status_code}")
         return None
     
+def load_stock_overview_cached(ticker='MWG', refresh=False):
+    cache_file = f'./data/overview/overview_{ticker}.json'
+    
+    if os.path.exists(cache_file) and not refresh:
+        with open(cache_file, 'r') as f:
+            data = json.load(f)
+            return data
+    else:
+        data = get_stock_overview(ticker)
+        if data:
+            os.makedirs(os.path.dirname(cache_file), exist_ok=True)
+            with open(cache_file, 'w') as f:
+                json.dump(data, f)
+        return data
+    
 def get_stock_ratio(ticker='MWG'):
     # https://apipubaws.tcbs.com.vn/tcanalysis/v1/ticker/BMP/stockratio
     url = f'https://apipubaws.tcbs.com.vn/tcanalysis/v1/ticker/{ticker}/stockratio'
@@ -2757,3 +2772,38 @@ def get_intraday_snapshots_all(tickers):
     df = load_intraday_snapshots_to_dataframe(data)
     
     return df    
+
+
+def get_all_industries():
+    overview_df = pd.read_csv("data/stock_overview.csv", index_col=0)
+        
+    return overview_df['industryEn'].unique()
+
+def filter_stocks_by_industry(stocks_df, industry):
+    overview_df = pd.read_csv("data/stock_overview.csv", index_col=0)
+    
+    tickers = overview_df[overview_df['industryEn'] == industry].index
+    
+    # Filter only the tickers that exist in the stocks_df columns
+    tickers = [ticker for ticker in tickers if ticker in stocks_df.columns]
+    
+    return stocks_df[tickers]
+
+def construct_index_df(stocks_df):
+    # create custom index for stocks_df price data
+    index_df = stocks_df.mean(axis=1)
+    
+    return index_df
+    
+def construct_multi_index_df(stocks_df, industries):
+    multi_index_dfs = {}
+    
+    for industry in industries:
+        stocks_industry_df = filter_stocks_by_industry(stocks_df, industry)
+        index_df = construct_index_df(stocks_industry_df)
+        
+        multi_index_dfs[industry] = index_df
+        
+    multi_index_df = pd.concat(multi_index_dfs, axis=1)
+        
+    return multi_index_df
