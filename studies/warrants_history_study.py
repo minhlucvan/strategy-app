@@ -4,8 +4,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import utils.algotrade as at
 
-from studies.stock_news_momentum_study import calculate_price_changes
-from studies.stock_overnight_study import plot_scatter_2_sources
 import utils.plot_utils as pu
 from utils.processing import get_stocks, get_stocks_foregin_flow
 import utils.stock_utils as su
@@ -552,7 +550,6 @@ def run(symbol_benchmark, symbolsDate_dict):
         st.stop()
         
     cap = 20
-    st.write(all_simulate_df)
     all_simulate_df['expect_value'] = all_simulate_df['expect_value'].clip(-cap, cap)
     
     # plot all expect value
@@ -575,8 +572,6 @@ def run(symbol_benchmark, symbolsDate_dict):
     for selected_ticker in selected_tickers:
         selected_ticker = selected_tickers[0]
         result_df = all_simulate_df[all_simulate_df['ticker'] == selected_ticker]
-        
-        st.write(result_df)
                 
         pu.plot_single_line(result_df['close_cw'], title=f"Close CW {selected_ticker}")
         # pu.plot_single_line(trade_df['PnL'], title=f"PnL {selected_ticker}")
