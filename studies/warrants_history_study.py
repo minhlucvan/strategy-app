@@ -552,6 +552,7 @@ def run(symbol_benchmark, symbolsDate_dict):
         st.stop()
         
     cap = 20
+    st.write(all_simulate_df)
     all_simulate_df['expect_value'] = all_simulate_df['expect_value'].clip(-cap, cap)
     
     # plot all expect value

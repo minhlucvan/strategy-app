@@ -121,34 +121,36 @@ def simulate_warrant(stock_df, df, lookback_days=252):
     
     return result_df
 
-def get_statical_from_returns(returns, days_to_expired, num_days, break_even_price=0):
-    ret_mean = returns.mean()
-    ret_std = returns.std()
-    ret_max = returns.max()
+def get_statical_from_returns(returns, days_to_expired, num_days, break_even_price=0, stock_price=0):
+    ret_mean = returns.mean(axis=0)
+    ret_std = returns.std(axis=0)
+    ret_max = returns.max(axis=0)
+    ret_min = returns.min(axis=0)
     
-    # win rate = number of returns > break_even_price / total returns
-    win_rate = np.sum(returns > break_even_price) / len(returns)
+    projected_price = stock_price * (1 + ret_mean)
     
-    # loss mean = mean of returns < break_even_price
-    loss_mean = np.mean(returns[returns < break_even_price])
+    # win rate = number of projected_price > break_even_price / total projected_price
+    win_rate = np.sum(projected_price > break_even_price) / len(projected_price)
     
-    # profit mean = mean of returns >= break_even_price
-    profit_mean = np.mean(returns[returns >= break_even_price])
+    # loss mean = mean of projected_price < break_even_price
+    loss_mean = np.mean(projected_price[projected_price < break_even_price])
+    
+    # profit mean = mean of projected_price >= break_even_price
+    profit_mean = np.mean(projected_price[projected_price >= break_even_price])
     
     std_high = ret_mean + ret_std
     std_low = ret_mean - ret_std
     
     
     result_df = pd.DataFrame({
-        'min': [ret_mean],
-        'max': [ret_max],
-        'mean': [ret_mean],
-        'loss_mean': [loss_mean],
-        'profit_mean': [profit_mean],
-        'median': [ret_mean],
-        'std_high': [std_high],
-        'std_low': [std_low],
-        'win_rate': [win_rate]
+        'min': ret_min,
+        'max': ret_max,
+        'mean': ret_mean,
+        'loss_mean': loss_mean,
+        'profit_mean': profit_mean,
+        'std_high': std_high,
+        'std_low': std_low,
+        'win_rate': win_rate
     })
     
     return result_df
@@ -163,12 +165,13 @@ def simulate_warrant_statical(stock_df, df, lookback_days=252):
         
         days_to_expired = df['days_to_expired'][i]
         break_even_price = df['break_even_price'][i]
+        stock_price = df['close_stock'][i]
         
         # historical returns
         returns = stock_df_copy.pct_change(periods=lookback_days).dropna()
         
         # statical on historical returns
-        sims_df = get_statical_from_returns(returns, days_to_expired, lookback_days, break_even_price=break_even_price)
+        sims_df = get_statical_from_returns(returns, days_to_expired, lookback_days, break_even_price=break_even_price, stock_price=stock_price)
         
         sims_df.index = [sim_date]
         
