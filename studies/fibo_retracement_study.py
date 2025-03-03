@@ -84,26 +84,8 @@ def prepare_training_data(stock_df, sd, target_density):
     
     return (np.array(X_pred), np.array(y_pred), 
             np.array(X_refine), np.array(y_refine))
-
-def run(symbol_benchmark, symbolsDate_dict):
-    if not symbolsDate_dict['symbols']:
-        st.info("Please select symbols, mate!")
-        st.stop()
-    
-    stock_df = get_stocks(symbolsDate_dict, single=True)
-    stock_df.rename(columns={
-        'open': 'Open',
-        'high': 'High',
-        'low': 'Low',
-        'close': 'Close',
-        'volume': 'Volume'
-    }, inplace=True)
-        
-    if st.button('Train and Save Models'):
-        train_and_save_models(stock_df)
-        st.success('Models trained and saved successfully!')
-
 # Integrate with your run function
+
 def run(symbol_benchmark, symbolsDate_dict):
     if not symbolsDate_dict['symbols']:
         st.info("Please select symbols, mate!")
@@ -125,15 +107,16 @@ def run(symbol_benchmark, symbolsDate_dict):
     if st.button('Train and Save Models'):
         train_and_save_models(stock_df)
         st.success('Models trained and saved successfully!')
-        
-        
+    
+    target_density = st.slider('Select Target Density', 0.01, 0.5, 4.0)
+    
     # run the models
     if st.button('Run Models'):
         pred_model_path = os.path.join(CORE_PATH, "subjective_drawdown_models/subjective_drawdown_model1.pkl")
         refine_model_path = os.path.join(CORE_PATH, "subjective_drawdown_models/subjective_drawdown_model2.pkl")
         
         # Initialize SubjectiveDrawdown to find optimal drawdown
-        sd = SubjectiveDrawdown(verbose=True, target_density=0.25, path_to_model_pred=pred_model_path, path_to_model_refine=refine_model_path)
+        sd = SubjectiveDrawdown(verbose=True, target_density=target_density, path_to_model_pred=pred_model_path, path_to_model_refine=refine_model_path)
         optimal_drawdown, results = sd.fit(stock_df)
         st.write(f"Optimal drawdown criteria: {optimal_drawdown:.3f}")
 

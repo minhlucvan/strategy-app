@@ -24,7 +24,7 @@ import pandas as pd
 import numpy as np
 import pandas as pd
 
-from .warrants_exp_value_study import backtest_trade_cw_simulation, simulate_warrant
+from .warrants_exp_value_study import backtest_trade_cw_simulation, simulate_warrant, simulate_warrant_statical
 
 def parse_warrant_news(text):
     try:
@@ -507,20 +507,17 @@ def run(symbol_benchmark, symbolsDate_dict):
     pu.plot_single_line(stock_df['close'], title=f'{ticker} price')
     
     all_tickers = full_df['ticker'].unique()
-    select_all = st.checkbox('Select all', value=False)
-    default_tickers = all_tickers if select_all else []
-    
-    selected_tickers = st.multiselect('Select tickers', all_tickers, default=default_tickers)
     
     all_simulate_df = pd.DataFrame()
     if st.button('Run Simulation'):        
-        for selected_ticker in selected_tickers:
+        for selected_ticker in all_tickers:
             selected_df = full_df[full_df['ticker'] == selected_ticker]
             
             # reindex to TradingDate
             selected_df.set_index('TradingDate', inplace=True)
             
-            result_df = simulate_warrant(stock_df, selected_df, 252)
+            # result_df = simulate_warrant(stock_df, selected_df, 252)
+            result_df = simulate_warrant_statical(stock_df, selected_df, 252)
             result_df['ticker'] = selected_ticker
             # cap = 100
             
@@ -569,16 +566,17 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     pu.plot_multi_line(listing_expect_value_df, title='Expected Value by Days to Listing', x_title='Days to Listing', y_title='Expected Value', legend_title='Ticker')
 
-    if len(selected_tickers) == 1:
+    select_all = st.checkbox('Select all', value=False)
+    default_tickers = all_tickers if select_all else []
+    
+    selected_tickers = st.multiselect('Select tickers', all_tickers, default=default_tickers)
+
+    for selected_ticker in selected_tickers:
         selected_ticker = selected_tickers[0]
         result_df = all_simulate_df[all_simulate_df['ticker'] == selected_ticker]
-        # plot acc expect value with trend line
-        fig = px.line(result_df, x=result_df.index, y='expect_value_change_listing', title=f"Expected Value Change Acc {selected_ticker}")
-        fig.add_trace(go.Scatter(x=result_df.index, y=result_df['expect_value_change_listing'].rolling(14).mean(), mode='lines', name='trend'))
-        # remove legend
-        fig.update_layout(showlegend=False)
-        st.plotly_chart(fig)
         
+        st.write(result_df)
+                
         pu.plot_single_line(result_df['close_cw'], title=f"Close CW {selected_ticker}")
         # pu.plot_single_line(trade_df['PnL'], title=f"PnL {selected_ticker}")
         pu.plot_single_bar(result_df['expect_value'], title=f"Expected Value {selected_ticker}")

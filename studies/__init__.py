@@ -69,6 +69,8 @@ from .stock_cluster_value_study import run as run_stock_cluster_value_study
 from .stock_cluster_price_study import run as run_stock_cluster_price_study
 from .stock_cluster_industry_study import run as run_stock_cluster_industry_study
 from .vn30_liquidity_study import run as run_vn30_liquidity_study
+from .stock_summulation_study import run as run_stock_summulation_study
+from .stock_cycle_study import run as run_stock_cycle_study
 
 study_list = [
     {
@@ -358,5 +360,13 @@ study_list = [
     {
         "name": "VN30 Liquidity",
         "module": run_vn30_liquidity_study
+    },
+    {
+        "name": "Stock Summulation",
+        "module": run_stock_summulation_study
+    },
+    {
+        "name": "Stock Cycle",
+        "module": run_stock_cycle_study
     }
 ]

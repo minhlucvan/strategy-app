@@ -20,6 +20,12 @@ import pandas as pd
 
 import numpy as np
 import pandas as pd
+from arch import arch_model
+
+def get_garch_volatility(returns, lookback_days):
+    model = arch_model(returns, vol='Garch', p=1, q=1)
+    res = model.fit(disp='off')
+    return res.conditional_volatility[-1]
 
 def monte_carlo_simulation(df, num_simulations, num_days, lookback_days=252, break_even_price=0):
     # dynamic lookback_days based on num_days
@@ -72,12 +78,14 @@ def monte_carlo_simulation(df, num_simulations, num_days, lookback_days=252, bre
     total_sims = num_simulations * df.shape[1]
     win_rate = np.sum(simulation_results_last_first_stock > break_even_price) / total_sims
     loss_mean = np.mean(simulation_results_last_first_stock[simulation_results_last_first_stock < break_even_price])
+    profit_mean = np.mean(simulation_results_last_first_stock[simulation_results_last_first_stock >= break_even_price])
 
     result_df = pd.DataFrame({
         'min': sim_min.flatten(),
         'max': sim_max.flatten(),
         'mean': sim_mean.flatten(),
         'loss_mean': loss_mean,
+        'profit_mean': profit_mean,
         'median': sim_median.flatten(),
         'std_high': sim_std_high.flatten(),
         'std_low': sim_std_low.flatten(),
@@ -85,6 +93,91 @@ def monte_carlo_simulation(df, num_simulations, num_days, lookback_days=252, bre
     })
 
     return result_df
+
+def simulate_warrant(stock_df, df, lookback_days=252):
+    all_simulations_df = pd.DataFrame()
+
+    # Loop through index of df
+    for i in range(len(df)):
+        sim_date = df.index[i]
+        stock_df_copy = stock_df[stock_df.index <= sim_date].copy()
+        
+        days_to_expired = df['days_to_expired'][i]
+        break_even_price = df['break_even_price'][i]
+        
+        # Perform the Monte Carlo simulation for a fixed period of 100 days
+        sim_df = monte_carlo_simulation(stock_df_copy, 1000, days_to_expired, lookback_days=lookback_days, break_even_price=break_even_price)
+        
+        last_sim = sim_df.iloc[-1]
+            
+        last_sim_values = pd.DataFrame(last_sim).T
+        last_sim_values.index = [sim_date]    
+             
+        # st.write(last_sim_values)
+                
+        all_simulations_df = pd.concat([all_simulations_df, last_sim_values])
+    
+    result_df = process_simulations_results(df, all_simulations_df)
+    
+    return result_df
+
+def get_statical_from_returns(returns, days_to_expired, num_days, break_even_price=0):
+    ret_mean = returns.mean()
+    ret_std = returns.std()
+    ret_max = returns.max()
+    
+    # win rate = number of returns > break_even_price / total returns
+    win_rate = np.sum(returns > break_even_price) / len(returns)
+    
+    # loss mean = mean of returns < break_even_price
+    loss_mean = np.mean(returns[returns < break_even_price])
+    
+    # profit mean = mean of returns >= break_even_price
+    profit_mean = np.mean(returns[returns >= break_even_price])
+    
+    std_high = ret_mean + ret_std
+    std_low = ret_mean - ret_std
+    
+    
+    result_df = pd.DataFrame({
+        'min': [ret_mean],
+        'max': [ret_max],
+        'mean': [ret_mean],
+        'loss_mean': [loss_mean],
+        'profit_mean': [profit_mean],
+        'median': [ret_mean],
+        'std_high': [std_high],
+        'std_low': [std_low],
+        'win_rate': [win_rate]
+    })
+    
+    return result_df
+
+def simulate_warrant_statical(stock_df, df, lookback_days=252):
+    all_simulations_df = pd.DataFrame()
+
+    # Loop through index of df
+    for i in range(len(df)):
+        sim_date = df.index[i]
+        stock_df_copy = stock_df[stock_df.index <= sim_date].copy()
+        
+        days_to_expired = df['days_to_expired'][i]
+        break_even_price = df['break_even_price'][i]
+        
+        # historical returns
+        returns = stock_df_copy.pct_change(periods=lookback_days).dropna()
+        
+        # statical on historical returns
+        sims_df = get_statical_from_returns(returns, days_to_expired, lookback_days, break_even_price=break_even_price)
+        
+        sims_df.index = [sim_date]
+        
+        all_simulations_df = pd.concat([all_simulations_df, sims_df])
+        
+    result_df = process_simulations_results(df, all_simulations_df)
+    
+    return result_df
+        
 
 @st.cache_data
 def fetch_warrants_data():
@@ -138,9 +231,9 @@ def process_simulations_results(df, all_simulations_df):
     # merge sim_df with df
     result_df = pd.merge(df, all_simulations_df, left_index=True, right_index=True, suffixes=["", "_sim"])
     
-    # expected price = mean
-    result_df['expected_price'] = result_df['mean']
-    
+    # expected price = profit_mean
+    result_df['expected_price'] = result_df['profit_mean']
+        
     # expected_profit = expected_price - exercise_price
     result_df['expected_profit'] = result_df['expected_price'] - result_df['Exercise_Price']
     
@@ -287,33 +380,6 @@ def fetch_cw_data_with_price(cw_ticker, warrants_df, stock_df):
     
     return df
 
-def simulate_warrant(stock_df, df, lookback_days=252):
-    all_simulations_df = pd.DataFrame()
-
-    # Loop through index of df
-    for i in range(len(df)):
-        sim_date = df.index[i]
-        stock_df_copy = stock_df[stock_df.index <= sim_date].copy()
-        
-        days_to_expired = df['days_to_expired'][i]
-        break_even_price = df['break_even_price'][i]
-        
-        # Perform the Monte Carlo simulation for a fixed period of 100 days
-        sim_df = monte_carlo_simulation(stock_df_copy, 1000, days_to_expired, lookback_days=lookback_days, break_even_price=break_even_price)
-        
-        last_sim = sim_df.iloc[-1]
-            
-        last_sim_values = pd.DataFrame(last_sim).T
-        last_sim_values.index = [sim_date]    
-             
-        # st.write(last_sim_values)
-                
-        all_simulations_df = pd.concat([all_simulations_df, last_sim_values])
-    
-    result_df = process_simulations_results(df, all_simulations_df)
-    
-    return result_df
-
 def backtest_trade_cw_simulation(
     result_df,
     current_cash,
@@ -437,7 +503,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     df = fetch_cw_data_with_price(cw_ticker, warrants_df, stock_df)
         
-    result_df = simulate_warrant(stock_df, df)
+    result_df = simulate_warrant(stock_df, df, lookback_days=100)
     
     # ============ Plotting ============
     

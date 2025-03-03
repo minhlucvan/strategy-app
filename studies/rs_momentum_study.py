@@ -1,267 +1,157 @@
 import pandas as pd
 import numpy as np
 import streamlit as st
-import plotly.graph_objs as go
-from plotly.subplots import make_subplots
-
-from utils.plot_utils import plot_multi_bar, plot_multi_line, plot_single_bar
-from utils.processing import get_stocks
 import vectorbt as vbt
+from plotly.subplots import make_subplots
+import plotly.graph_objects as go
+import plotly.express as px
+from utils.plot_utils import plot_multi_line, plot_single_line
+from utils.processing import get_stocks
 
+# --- Factor Calculation Functions ---
+def calculate_historical_rv(stocks_df: pd.DataFrame, market_df: pd.Series, window: int = 21) -> pd.DataFrame:
+    """Calculate annualized relative volatility using log returns for robustness."""
+    stock_returns = np.log(stocks_df.div(stocks_df.shift(1)))
+    market_returns = np.log(market_df.div(market_df.shift(1)))
+    stock_vol = stock_returns.rolling(window=window).std() * np.sqrt(252)
+    market_vol = market_returns.rolling(window=window).std() * np.sqrt(252)
+    return stock_vol.div(market_vol, axis=0)
 
-
-def plot_AnimatedRSVIX(rs_df, vix_df, symbols, tail_length):
-    # Determine dynamic ranges for the axes
-    x_min = vix_df.min().min()
-    x_max = vix_df.max().max()
-    y_min = rs_df.min().min()
-    y_max = rs_df.max().max()
-
-    # Create the frame figure
-    fig_dict = {
-        "data": [],
-        "layout": {},
-        "frames": []
-    }
-
-    # Fill in most of layout
-    fig_dict["layout"]["xaxis"] = {"range": [x_min, x_max], "title": "VIX", "showgrid": True}
-    fig_dict["layout"]["yaxis"] = {"range": [y_min, y_max], "title": "RS", "showgrid": True}
-    fig_dict["layout"]["hovermode"] = "closest"
-    fig_dict["layout"]["width"] = 1000
-    fig_dict["layout"]["height"] = 600
-    fig_dict["layout"]["updatemenus"] = [
-        {
-            "buttons": [
-                {
-                    "args": [None, {"frame": {"duration": 100, "redraw": False},
-                                    "fromcurrent": True, "transition": {"duration": 300,
-                                                                        "easing": "quadratic-in-out"}}],
-                    "label": "Play",
-                    "method": "animate"
-                },
-                {
-                    "args": [[None], {"frame": {"duration": 0, "redraw": False},
-                                    "mode": "immediate",
-                                    "transition": {"duration": 0}}],
-                    "label": "Pause",
-                    "method": "animate"
-                }
-            ],
-            "direction": "left",
-            "pad": {"r": 10, "t": 87},
-            "showactive": False,
-            "type": "buttons",
-            "x": 0.1,
-            "xanchor": "right",
-            "y": 0,
-            "yanchor": "top"
-        }
-    ]
-
-    sliders_dict = {
-        "active": 0,
-        "yanchor": "top",
-        "xanchor": "left",
-        "currentvalue": {
-            "font": {"size": 20},
-            "prefix": "Date:",
-            "visible": True,
-            "xanchor": "right"
-        },
-        "transition": {"duration": 300, "easing": "cubic-in-out"},
-        "pad": {"b": 10, "t": 50},
-        "len": 0.9,
-        "x": 0.1,
-        "y": 0,
-        "steps": []
-    }
-
-    # Make data
-    for symbol in symbols:
-        data_dict = {
-            "x": list(vix_df[symbol][-tail_length:]),
-            "y": list(rs_df[symbol][-tail_length:]),
-            "mode": "lines+markers+text",
-            "marker": {
-                'symbol': "circle-open-dot",
-                'size': 6,
-            },
-            "line": {
-                'width': 4,
-            },
-            "name": symbol,
-            "hovertemplate": '<b>%{hovertext}</b>',
-            "hovertext": [d.strftime("%Y-%m-%d") for d in rs_df.index[-tail_length:]]
-        }
-        fig_dict["data"].append(data_dict)
-        data_dict = {
-            "x": list(vix_df[symbol][-1:]),
-            "y": list(rs_df[symbol][-1:]),
-            "mode": "markers+text",
-            "marker": {
-                'symbol': "circle",
-                'size': 12,
-            },
-            "text": symbol,
-            "name": symbol,
-            "hovertemplate": '<b>%{hovertext}</b>',
-            "hovertext": [d.strftime("%Y-%m-%d") for d in rs_df.index[-1:]],
-            "showlegend": False
-        }
-        fig_dict["data"].append(data_dict)
-
-    # Make frames
-    for i in range(len(rs_df) - tail_length + 1):
-        d = rs_df.index[i].strftime("%Y-%m-%d")
-        frame = {"data": [], "name": str(d)}
-        for symbol in symbols:
-            data_dict = {
-                "x": list(vix_df[symbol][i: i + tail_length]),
-                "y": list(rs_df[symbol][i: i + tail_length]),
-                "mode": "lines+markers",
-                "marker": {
-                    'symbol': "circle-open-dot",
-                    'size': 6,
-                },
-                "line": {
-                    'width': 4,
-                },
-                "name": symbol,
-                "hovertemplate": '<b>%{hovertext}</b>',
-                "hovertext": [d.strftime("%Y-%m-%d") for d in rs_df.index[i: i + tail_length]]
-            }
-            frame["data"].append(data_dict)
-            data_dict = {
-                "x": list(vix_df[symbol][i + tail_length - 1: i + tail_length]),
-                "y": list(rs_df[symbol][i + tail_length - 1: i + tail_length]),
-                "mode": "markers+text",
-                "marker": {
-                    'symbol': "circle",
-                    'size': 12,
-                },
-                "text": symbol,
-                "name": symbol,
-                "hovertemplate": '<b>%{hovertext}</b>',
-                "hovertext": [d.strftime("%Y-%m-%d") for d in rs_df.index[i + tail_length - 1: i + tail_length]],
-                "showlegend": False
-            }
-            frame["data"].append(data_dict)
-
-        fig_dict["frames"].append(frame)
-        slider_step = {"args": [
-            [d],
-            {"frame": {"duration": 300, "redraw": False},
-             "mode": "immediate",
-             "transition": {"duration": 300}}
-        ],
-            "label": d,
-            "method": "animate"}
-        sliders_dict["steps"].append(slider_step)
-
-    fig_dict["layout"]["sliders"] = [sliders_dict]
-    fig_dict["layout"]["title"] = 'RS vs VIX Animated Scatter Plot'
-
-    fig = go.Figure(fig_dict)
-    st.plotly_chart(fig, use_container_width=True)
-
-def calculate_hist_volatility(prices, window=21):
-    # calculate the log returns
-    log_returns = np.log(prices / prices.shift(1))
-    
-    # calculate the variance
-    variance = log_returns.rolling(window=window).std() ** 2
-    
-    # calculate the volatility
-    volatility = variance.rolling(window=window).std()
-    
-    return volatility
-
-# Calculate 30-day variance by interpolating the two variances,
-# depending on the time to expiration of each. Take the square root to get volatility as standard deviation.
-# Multiply the volatility (standard deviation) by 100. The result is the VIX index value.
-# https://www.macroption.com/vix-calculation/#:~:text=VIX%20Calculation%20Step%20by%20Step,-Select%20the%20options&text=Calculate%2030%2Dday%20variance%20by,is%20the%20VIX%20index%20value.
-def calculate_vix_index(prices, window=21):
-    # calculate the log returns
-    log_returns = np.log(prices / prices.shift(1))
-    
-    # calculate the variance
-    variance = log_returns.rolling(window=window).std() ** 2
-    
-    # calculate the variance of the variance
-    variance_of_variance = variance.rolling(window=2).std()
-    
-    # calculate the VIX index
-    vix_index = 100 * variance_of_variance
-    
-    return vix_index
-
-def calculate_rs(prices_df, market_df):
+def calculate_historical_rs(stocks_df, benchmark_df, lookback_period):
     """
-    Calculate the relative strength (RS) of stocks compared to the market.
-    
-    Parameters:
-    prices_df (pd.DataFrame): DataFrame containing stock prices with dates as the index.
-    market_df (pd.DataFrame): DataFrame containing market index prices with dates as the index.
-    
-    Returns:
-    pd.DataFrame: DataFrame with the relative strength of each stock compared to the market.
+    Calculate true Relative Strength (RS) based on historical returns.
+    RS = (1 + Stock Return) / (1 + Benchmark Return)
     """
-    # Calculate the daily returns for the stocks and the market
-    stock_returns = prices_df.pct_change()
-    market_returns = market_df.pct_change()
+    try:
+        stock_returns = stocks_df.pct_change(periods=lookback_period)
+        benchmark_returns = benchmark_df.pct_change(periods=lookback_period).iloc[:, 0]
 
-    # Calculate the cumulative returns for the stocks and the market
-    cumulative_stock_returns = (1 + stock_returns).cumprod() - 1
-    cumulative_market_returns = (1 + market_returns).cumprod() - 1
+        rs_df = (1 + stock_returns).div(1 + benchmark_returns, axis=0)
+        return rs_df.replace([np.inf, -np.inf], np.nan)
+    except Exception as e:
+        st.error(f"Error in RS calculation: {str(e)}")
+        return None
 
-    # Calculate the relative strength
-    rs_df = cumulative_stock_returns.divide(cumulative_market_returns, axis=0)
-    
-    # rank the relative strength by axis=1
-    rs_df = rs_df.rank(axis=1)
-    
-    return rs_df
-
-
-# Example usage
 def run(symbol_benchmark, symbolsDate_dict):
-    
-    if len(symbolsDate_dict['symbols']) < 1:
+    if not symbolsDate_dict.get('symbols'):
         st.info("Please select symbols.")
-        st.stop()
-    
-    # Fetching stock data
+        return
+
+    # Fetch stock & benchmark data
     stocks_df = get_stocks(symbolsDate_dict, 'close')
-    benchmark_df = get_stocks(symbolsDate_dict, 'close', benchmark=True)
-
-    # Calculating RS
-    rs_df = pd.DataFrame(index=stocks_df.index)
-    for symbol in stocks_df.columns:
-        r = stocks_df[symbol] / benchmark_df[symbol_benchmark]
-        r_zscore = (r - r.mean()) / r.std()
-        rs_df[symbol] = r_zscore
-
-    # Calculating VIX
-    vix_df = calculate_vix_index(stocks_df)
-    
-    vix_df = vix_df.rolling(5).mean()
-    
-    # calculate the rsi
-    rsi_ind = vbt.RSI.run(stocks_df, window=14)
-
-    rsi_df = rsi_ind.rsi[14]
-    
-    hv_df = calculate_hist_volatility(stocks_df)
-    
-    market_df = benchmark_df[symbol_benchmark]
-    
-    rs_df = calculate_rs(stocks_df, market_df)
+    if stocks_df.empty:
+        st.warning("No valid stock data retrieved")
+        return
         
-    # Plotting 
-    plot_AnimatedRSVIX(rsi_df, vix_df, stocks_df.columns, tail_length=3)
+    benchmark_df = get_stocks(symbolsDate_dict, 'close', benchmark=True)
+        
+    if benchmark_df.empty:
+        st.warning("No valid benchmark data retrieved")
+        return
 
-    plot_multi_line(rsi_df, title='Relative Strength')
+    # User-defined lookback period
+    lookback_period = st.slider('Select Lookback Period (days)', 5, 200, 60)
+
+    # Calculate RS using historical returns
+    rs_df = calculate_historical_rs(stocks_df, benchmark_df, lookback_period)
+    if rs_df is None:
+        return
+
+    # Normalize RS for better visualization
+    rs_df_normalized = (rs_df - rs_df.mean()) / rs_df.std()
     
-    plot_multi_line(benchmark_df, title='Benchmark Prices')
-   
+    # snapshot of RS, top 5
+    rs_snapshot = rs_df.iloc[-1]
+    rs_snapshot = rs_snapshot.sort_values(ascending=False)
+    st.write("### Relative Strength Snapshot")
+    st.write(rs_snapshot.head(5))
+
+    # Plot RS trends
+    plot_multi_line(
+        rs_df_normalized,
+        title=f'Relative Strength vs {symbol_benchmark} (Lookback: {lookback_period} days)',
+        x_title='Date',
+        y_title='Normalized RS'
+    )
+    
+    # calculate relative volatility
+    rv_df = calculate_historical_rv(stocks_df, benchmark_df[symbol_benchmark], window=lookback_period)
+    
+    plot_multi_line(
+        rv_df,
+        title=f'Relative Volatility vs {symbol_benchmark} (Window: 21 days)',
+        x_title='Date',
+        y_title='Relative Volatility'
+    )
+    
+    # snapshot of RV, top 5
+    rv_snapshot = rv_df.iloc[-1]
+    rv_snapshot = rv_snapshot.sort_values(ascending=False)
+    st.write("### Relative Volatility Snapshot")
+      
+    stock_returns = stocks_df.pct_change(periods=lookback_period)
+
+    # Symbol selection for detailed view
+    selected_symbol = st.selectbox('Select symbols for detailed analysis', symbolsDate_dict['symbols'])
+    if selected_symbol:
+        selected_rs_df = rs_df[selected_symbol]
+        selected_rv_df = rv_df[selected_symbol]
+        selected_stock_df = stocks_df[selected_symbol]
+        
+
+        plot_single_line(
+            selected_rs_df,
+            title='Selected Symbols Relative Strength',
+            x_title='Date',
+            y_title='RS'
+        ) 
+
+        plot_single_line(
+            selected_stock_df,
+            title='Selected Stock Prices',
+            x_title='Date',
+            y_title='Price'
+        )
+
+        plot_single_line(
+            selected_rv_df,
+            title='Selected Symbols Relative Volatility',
+            x_title='Date',
+            y_title='RV'
+        )       
+        
+        # Remove NaN values from selected_rv_df
+        selected_rv_df_clean = selected_rv_df.dropna()
+
+        aligned_rs_df = selected_rs_df.loc[selected_rv_df_clean.index]
+
+        fig = make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.1, subplot_titles=('RS vs RV', 'Stock Price'))
+
+        scatter = px.scatter(
+            x=aligned_rs_df.index,
+            y=aligned_rs_df,
+            color=selected_rv_df_clean,
+            labels={'x': 'Date', 'y': 'RS'}
+        ).data[0]
+        fig.add_trace(scatter, row=1, col=1)
+
+        line = go.Scatter(
+            x=selected_stock_df.index,
+            y=selected_stock_df,
+            mode='lines',
+            name='Stock Price'
+        )
+        fig.add_trace(line, row=2, col=1)
+
+        fig.update_layout(title_text='RS vs RV and Stock Price', height=600)
+        st.plotly_chart(fig)
+        
+        
+        selected_stock_returns = stock_returns[selected_symbol]
+        
+        plot_single_line(
+            selected_stock_returns,
+            title='Selected Symbols Returns',
+            x_title='Date',
+            y_title='Returns'
+        )
