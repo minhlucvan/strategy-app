@@ -104,3 +104,8 @@ def run(symbol_benchmark, symbolsDate_dict):
     spread = index_price - beta * benchmark_price
     
     pu.plot_single_line(spread, "Spread", "Date", "Spread")
+    
+    # zscorespread=(spread−mean(spread))/std(spread)
+    zscore_spread = (spread - spread.mean()) / spread.std()
+    
+    pu.plot_single_line(zscore_spread, "Z-Score Spread", "Date", "Z-Score Spread")
