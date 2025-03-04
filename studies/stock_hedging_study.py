@@ -98,3 +98,9 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     fear_greed_stock = calculate_fear_greed_indicator(index_price, vol_window=vol_period, rsi_window=rsi_window, lookback=lookback)
     plot_price_and_indicator(index_price, fear_greed_stock, "Stocks Price and Fear and Greed Index", "Fear and Greed Index")
+    
+    # Spread=Price of Stock−(beta x Price of VN30)
+    
+    spread = index_price - beta * benchmark_price
+    
+    pu.plot_single_line(spread, "Spread", "Date", "Spread")
