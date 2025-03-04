@@ -4,7 +4,6 @@ import plotly.express as px
 import plotly.graph_objects as go
 import utils.algotrade as at
 
-from studies.stock_news_momentum_study import calculate_price_changes
 from studies.stock_overnight_study import plot_scatter_2_sources
 from utils.plot_utils import plot_cash_and_assets, plot_multi_bar, plot_multi_line, plot_single_bar, plot_single_line, plot_multi_scatter, plot_events
 from utils.processing import get_stocks, get_stocks_foregin_flow

@@ -542,18 +542,24 @@ def run(symbol_benchmark, symbolsDate_dict):
 
     load_simulate_df = st.checkbox('Load Simulation', value=False)
     
+    filter_positive = st.checkbox('Filter Positive', value=False)
+    
     if load_simulate_df:
         all_simulate_df = pd.read_csv(f'data/warrant_simulation_{ticker}.csv')
-
     
     if all_simulate_df.empty:
         st.stop()
         
-    cap = 20
+    cap = 10
     all_simulate_df['expect_value'] = all_simulate_df['expect_value'].clip(-cap, cap)
     
+    display_simulate_df = all_simulate_df.copy()
+    
+    if filter_positive:
+        display_simulate_df = all_simulate_df[all_simulate_df['expect_value'] > 0]
+    
     # plot all expect value
-    fig = px.line(all_simulate_df, x='TradingDate', y='expect_value', color='ticker', title='Expected Value')
+    fig = px.line(display_simulate_df, x='TradingDate', y='expect_value', color='ticker', title='Expected Value')
     st.plotly_chart(fig)
     
     # expect value by listing date
@@ -572,6 +578,8 @@ def run(symbol_benchmark, symbolsDate_dict):
     for selected_ticker in selected_tickers:
         selected_ticker = selected_tickers[0]
         result_df = all_simulate_df[all_simulate_df['ticker'] == selected_ticker]
+        
+        # st.write(result_df)
                 
         pu.plot_single_line(result_df['close_cw'], title=f"Close CW {selected_ticker}")
         # pu.plot_single_line(trade_df['PnL'], title=f"PnL {selected_ticker}")

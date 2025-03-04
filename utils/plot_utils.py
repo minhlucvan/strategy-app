@@ -86,11 +86,11 @@ def plot_single_line(df, title="", x_title="", y_title="", legend_title=""):
     fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
     st.plotly_chart(fig, use_container_width=True)
 
-def plot_single_line_with_price(df, title, x_title, y_title, legend_title, price_df):
+def plot_single_line_with_price(df, title, x_title, y_title, legend_title, price_df, price_legend_title=None):
     fig = sp.make_subplots(rows=2, cols=1, shared_xaxes=True, vertical_spacing=0.01)
     fig.add_trace(go.Scatter(x=df.index, y=df, mode='lines', name=legend_title), row=1, col=1)
     fig.add_trace(go.Scatter
-                    (x=price_df.index, y=price_df, mode='lines', name=legend_title), row=2, col=1)
+                    (x=price_df.index, y=price_df, mode='lines', name=price_legend_title), row=2, col=1)
     fig.update_layout(title=title, xaxis_title=x_title, yaxis_title=y_title, legend_title=legend_title)
     st.plotly_chart(fig, use_container_width=True)
     

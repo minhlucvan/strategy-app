@@ -2807,3 +2807,24 @@ def construct_multi_index_df(stocks_df, industries):
     multi_index_df = pd.concat(multi_index_dfs, axis=1)
         
     return multi_index_df
+
+def calculate_price_changes(stocks_df, news_df, lower_bound=-4, upper_bound=2):
+    stocks_df = stocks_df.reindex(news_df.index, method='ffill')
+    
+    price_change_dfs = {}
+    
+    for i in range(lower_bound, upper_bound):
+        price_change_df = (stocks_df.shift(i) - stocks_df) / stocks_df
+        
+        # set type to float
+        price_change_df = price_change_df.astype(float)
+        
+        price_change_dfs[f"change_{i}"] = price_change_df
+        
+    price_changes_df = pd.concat(price_change_dfs, axis=1)
+    price_changes_df.index = news_df.index
+    
+    price_changes_flat_df = price_changes_df.stack().reset_index()
+    price_changes_flat_df = price_changes_flat_df.set_index('level_0')
+    
+    return price_changes_flat_df

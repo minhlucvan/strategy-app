@@ -3,7 +3,7 @@ import numpy as np
 import streamlit as st
 import plotly.express as px
 
-from studies.stock_news_momentum_study import calculate_price_changes, filter_events, plot_correlation, plot_scatter_matrix, run_simulation
+from studies.stock_news_momentum_study import filter_events, plot_correlation, plot_scatter_matrix, run_simulation
 from utils.component import input_SymbolsDate
 from utils.plot_utils import plot_events
 from utils.processing import get_stocks, get_stocks_news

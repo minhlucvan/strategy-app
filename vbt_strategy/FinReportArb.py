@@ -8,7 +8,7 @@ import datetime
 
 from indicators.EventArb import generate_arbitrage_signal, get_EventArbInd
 from indicators.SEventArb import get_SEventArbInd
-from studies.stock_news_momentum_study import calculate_price_changes, get_events_signals_by_column
+from studies.stock_news_momentum_study import get_events_signals_by_column
 from utils.processing import get_stocks_document, get_stocks_events
 from utils.tcbs_agent import load_calender_data_tp_df
 from utils.tcbs_api import TCBSAPI

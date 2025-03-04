@@ -70,5 +70,7 @@ STUDY_CONFIG = {
     "Stock Industry Cluster": "stock_cluster_industry_study",
     "VN30 Liquidity": "vn30_liquidity_study",
     "Stock Summulation": "stock_summulation_study",
-    "Stock Cycle": "stock_cycle_study"
+    "Stock Cycle": "stock_cycle_study",
+    'Stock Hedging': 'stock_hedging_study',
+    'Stock Candles': 'stock_candle_stick_study',
 }
