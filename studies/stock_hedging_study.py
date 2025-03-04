@@ -44,6 +44,39 @@ def calculate_correlation_and_beta(index_price, benchmark_price):
     
     return correlation, beta
 
+def calculate_rolling_beta(index_price, benchmark_price, window=252):
+    """
+    Computes the rolling beta of index price against the benchmark price using returns.
+    """
+    # Calculate daily returns (percentage change)
+    index_returns = index_price.pct_change().dropna()
+    benchmark_returns = benchmark_price.pct_change().dropna()
+    
+    # Concatenate returns into a DataFrame
+    corr_df = pd.concat([index_returns, benchmark_returns], axis=1)
+    corr_df.columns = ['index', 'benchmark']
+    
+    # Calculate rolling beta
+    rolling_beta = corr_df['index'].rolling(window=window).cov(corr_df['benchmark']) / corr_df['benchmark'].rolling(window=window).var()
+    
+    return rolling_beta
+
+def calculate_rolling_correlation(index_price, benchmark_price, window=252):
+    """
+    Computes the rolling correlation of index price against the benchmark price using returns.
+    """
+    # Calculate daily returns (percentage change)
+    index_returns = index_price.pct_change().dropna()
+    benchmark_returns = benchmark_price.pct_change().dropna()
+    
+    # Concatenate returns into a DataFrame
+    corr_df = pd.concat([index_returns, benchmark_returns], axis=1)
+    corr_df.columns = ['index', 'benchmark']
+    
+    # Calculate rolling correlation
+    rolling_correlation = corr_df['index'].rolling(window=window).corr(corr_df['benchmark'])
+    
+    return rolling_correlation
 
 def plot_price_and_indicator(price_series, indicator_series, title, indicator_name):
     """
@@ -79,6 +112,13 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     
     pu.plot_single_line_with_price(index_price, "Stocks Price", "Date", "Price", "Stock", benchmark_price, "VN30")
+    
+    rolling_correlation = calculate_rolling_correlation(index_price, benchmark_price)
+    
+    pu.plot_single_line(rolling_correlation, "Rolling Correlation", "Date", "Correlation")
+    
+    rolling_beta = calculate_rolling_beta(index_price, benchmark_price)
+    pu.plot_single_line(rolling_beta, "Rolling Beta", "Date", "Beta")
     
     correlation, beta = calculate_correlation_and_beta(index_price, benchmark_price)
     st.write(f"Correlation: {correlation}")
