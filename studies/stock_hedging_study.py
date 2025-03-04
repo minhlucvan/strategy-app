@@ -26,12 +26,22 @@ def calculate_fear_greed_indicator(benchmark_price, vol_window=20, rsi_window=14
 
 def calculate_correlation_and_beta(index_price, benchmark_price):
     """
-    Computes the correlation and beta of index price against the benchmark price.
+    Computes the correlation and beta of index price against the benchmark price using returns.
     """
-    corr_df = pd.concat([index_price, benchmark_price], axis=1)
+    # Calculate daily returns (percentage change)
+    index_returns = index_price.pct_change().dropna()
+    benchmark_returns = benchmark_price.pct_change().dropna()
+    
+    # Concatenate returns into a DataFrame
+    corr_df = pd.concat([index_returns, benchmark_returns], axis=1)
     corr_df.columns = ['index', 'benchmark']
-    correlation = corr_df.corr().iloc[0, 1]
-    beta = corr_df['index'].cov(corr_df['benchmark']) / corr_df['index'].var()
+    
+    # Calculate Pearson correlation
+    correlation = corr_df['index'].corr(corr_df['benchmark'])
+    
+    # Calculate beta: Cov(index, benchmark) / Var(benchmark)
+    beta = corr_df['index'].cov(corr_df['benchmark']) / corr_df['benchmark'].var()
+    
     return correlation, beta
 
 
@@ -57,7 +67,16 @@ def run(symbol_benchmark, symbolsDate_dict):
     prices_df = get_stocks(symbolsDate_dict, 'close')
     benchmark_df = get_stocks(symbolsDate_dict, 'close', benchmark=True)
     index_price = su.construct_index_df(prices_df)
-    benchmark_price = benchmark_df[symbol_benchmark]
+    benchmark_price = benchmark_df[symbol_benchmark] * 100_000
+    
+
+    # normalize the prices
+    index_price = index_price / index_price.iloc[0]
+    benchmark_price = benchmark_price / benchmark_price.iloc[0]
+    
+    index_over_benchmark = index_price / benchmark_price
+    pu.plot_single_line(index_over_benchmark, "Index Over Benchmark", "Date", "Index Over Benchmark")
+    
     
     pu.plot_single_line_with_price(index_price, "Stocks Price", "Date", "Price", "Stock", benchmark_price, "VN30")
     
