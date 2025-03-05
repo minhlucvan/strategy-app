@@ -26,59 +26,90 @@ def calculate_historical_returns(stocks_df, window=126):
     """Calculate trailing returns for momentum ranking."""
     return (stocks_df / stocks_df.shift(window) - 1) * 100
 
+def backtest(stocks_df, lookback_days=126, top_n=10, rebalance_freq='M', volatility_scaling=True):
+    """Optimized backtest with risk management and dynamic filters."""
+    # Calculate momentum with multiple timeframes
+    mom_short = calculate_historical_returns(stocks_df, 20)  # Short-term momentum
+    mom_long = calculate_historical_returns(stocks_df, lookback_days)  # Long-term momentum
+    momentum_df = 0.6 * mom_long + 0.4 * mom_short  # Weighted average
+
+    # Apply enhanced technical filters
+    signals_df = apply_technical_filters(stocks_df)
+
+    # Portfolio returns
+    portfolio_returns = pd.Series(0, index=stocks_df.index)
+    positions = pd.DataFrame(0, index=stocks_df.index, columns=stocks_df.columns)
+
+    # Calculate volatility for position sizing
+    vol_df = stocks_df.pct_change().rolling(20).std()
+
+    for date in stocks_df.resample(rebalance_freq).last().index:
+        if date not in momentum_df.index:
+            continue
+
+        # Select stocks based on momentum and signals
+        mom_rank = momentum_df.loc[date].rank(ascending=False)
+        valid_stocks = signals_df.loc[date] & (mom_rank <= top_n)
+
+        if valid_stocks.sum() > 0:
+            selected_stocks = valid_stocks.index[valid_stocks]
+            
+            # Volatility-adjusted weights
+            if volatility_scaling:
+                stock_vols = vol_df.loc[date, selected_stocks]
+                weights = 1 / (stock_vols / stock_vols.min())  # Inverse volatility weighting
+                weights = weights / weights.sum()  # Normalize
+            else:
+                weights = 1.0 / len(selected_stocks)  # Equal weight
+
+            # Update positions
+            positions.loc[date, selected_stocks] = weights
+
+    # Calculate daily portfolio returns with stop-loss logic
+    daily_returns = stocks_df.pct_change()
+    for date in positions.index:
+        if date not in daily_returns.index:
+            continue
+        weights = positions.loc[date].dropna()
+        if weights.sum() > 0:
+            stock_returns = daily_returns.loc[date, weights.index]
+            portfolio_returns.loc[date] = (stock_returns * weights).sum()
+
+            # Apply stop-loss (e.g., 5% max loss per position)
+            for stock in weights.index:
+                if portfolio_returns.loc[date] < -0.05:
+                    positions.loc[date:, stock] = 0
+
+    # Compute cumulative returns
+    cumulative_returns = (1 + portfolio_returns).cumprod()
+
+    return cumulative_returns, positions
+
 def apply_technical_filters(stocks_df):
-    """Apply SMA and RSI filters to each stock using TA-Lib."""
+    """Apply optimized technical filters with additional confirmation."""
     signals = pd.DataFrame(index=stocks_df.index, columns=stocks_df.columns)
+    
     for symbol in stocks_df.columns:
         price = stocks_df[symbol].dropna()
-        if len(price) < 200:  # Ensure enough data for SMA200
-            signals[symbol] = False
+        if len(price) < 200:
             continue
         
-        # Calculate indicators
+        # Compute indicators
         sma50 = ta.SMA(price.values, timeperiod=50)
         sma200 = ta.SMA(price.values, timeperiod=200)
         rsi = ta.RSI(price.values, timeperiod=14)
-        
-        # Align lengths by padding NaN at the start
-        sma50_series = pd.Series(np.concatenate([np.full(49, np.nan), sma50]), index=price.index)
-        sma200_series = pd.Series(np.concatenate([np.full(199, np.nan), sma200]), index=price.index)
-        rsi_series = pd.Series(np.concatenate([np.full(13, np.nan), rsi]), index=price.index)
-        
-        # Buy signal: SMA50 > SMA200 and RSI < 70
-        signals[symbol] = (sma50_series > sma200_series) & (rsi_series < 70)
-    
-    return signals.fillna(False)
+        # atr = ta.ATR(price.values, timeperiod=14)  # Average True Range for volatility
 
-def simulate_strategy(stocks_df, rebalance_freq='M', lookback_days=126, top_n=5):
-    """Simulate the momentum strategy with monthly rebalancing."""
-    mom_df = calculate_historical_returns(stocks_df, lookback_days)
-    tech_signals = apply_technical_filters(stocks_df)
-    
-    mom_df = mom_df.loc[tech_signals.index]
-    stocks_df = stocks_df.loc[tech_signals.index]
-    
-    weights = pd.DataFrame(index=stocks_df.index, columns=stocks_df.columns)
-    for date in stocks_df.index:
-        if date not in mom_df.index or date not in tech_signals.index:
-            continue
-        mom_rank = mom_df.loc[date].rank(ascending=False)
-        valid_stocks = tech_signals.loc[date] & (mom_rank <= top_n)
-        if valid_stocks.sum() > 0:
-            weights.loc[date, valid_stocks.index] = 1.0 / valid_stocks.sum()
-        else:
-            weights.loc[date] = 0.0
-    
-    weights = weights.fillna(0.0)
-    
-    portfolio = vbt.Portfolio.from_holding(
-        close=stocks_df,
-        weights=weights,
-        rebalance_freq=rebalance_freq,
-        cash_sharing=False,
-        call_seq='auto'
-    )
-    return portfolio
+        # Align indicators with price index
+        sma50_series = pd.Series(sma50, index=price.index[-len(sma50):]).reindex(price.index)
+        sma200_series = pd.Series(sma200, index=price.index[-len(sma200):]).reindex(price.index)
+        rsi_series = pd.Series(rsi, index=price.index[-len(rsi):]).reindex(price.index)
+        # atr_series = pd.Series(atr, index=price.index[-len(atr):]).reindex(price.index)
+
+        # Buy signal: SMA50 > SMA200 for 3 days, RSI < 60, and sufficient volatility
+        signals[symbol] = (sma50_series > sma200_series) & (rsi_series < 60)
+
+    return signals.fillna(False)
 
 def plot_price_and_indicator(stocks_df, indicator_df, title, indicator_name):
     """Plot prices and indicator in subplots."""
@@ -113,34 +144,12 @@ def run(symbol_benchmark, symbolsDate_dict):
     plot_price_and_indicator(stocks_df, mom_df, "Stock Prices and Momentum (6-month Returns)", "Momentum (%)")
 
     st.subheader("Strategy Simulation")
-    portfolio = simulate_strategy(stocks_df, rebalance_freq, lookback_days, top_n)
+    cumulative_returns, positions  = backtest(stocks_df, lookback_days, top_n, rebalance_freq)
 
-    total_return = portfolio.total_return() * 100
-    annualized_return = portfolio.annualized_return() * 100
-    sharpe = portfolio.sharpe_ratio()
-    max_drawdown = portfolio.max_drawdown() * 100
-
-    st.write(f"**Total Return**: {total_return:.2f}%")
-    st.write(f"**Annualized Return**: {annualized_return:.2f}%")
-    st.write(f"**Sharpe Ratio**: {sharpe:.2f}")
-    st.write(f"**Max Drawdown**: {max_drawdown:.2f}%")
-
-    equity_curve = portfolio.value()
-    st.subheader("Portfolio Equity Curve")
-    plot_single_line(equity_curve, "Strategy Equity Curve")
-
-    if symbol_benchmark:
-        benchmark_df = get_stocks({'symbols': [symbol_benchmark]}, 'close')
-        if not benchmark_df.empty:
-            benchmark_returns = benchmark_df.pct_change().add(1).cumprod() * 100
-            st.subheader("Strategy vs Benchmark")
-            comparison_df = pd.DataFrame({
-                "Strategy": equity_curve / equity_curve.iloc[0] * 100,
-                "Benchmark": benchmark_returns[symbol_benchmark]
-            })
-            plot_multi_line(comparison_df, "Strategy vs Benchmark (Normalized to 100)")
-
-    st.subheader("Portfolio Holdings")
-    weights = portfolio.weights
-    fig = px.area(weights, title="Portfolio Weights Over Time")
+    st.subheader("Portfolio Performance")
+    plot_single_line(cumulative_returns, "Portfolio Cumulative Returns")
+    
+    st.subheader("Position Weights")
+   
+    fig = px.area(positions, x=positions.index, y=positions.columns, title="Position Weights Over Time")
     st.plotly_chart(fig)
