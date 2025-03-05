@@ -29,8 +29,8 @@ def calculate_historical_returns(stocks_df, window=126):
 def backtest(stocks_df, lookback_days=126, top_n=10, rebalance_freq='M', volatility_scaling=True):
     """Optimized backtest with risk management and dynamic filters."""
     # Calculate momentum with multiple timeframes
-    mom_short = calculate_historical_returns(stocks_df, 20)  # Short-term momentum
-    mom_long = calculate_historical_returns(stocks_df, lookback_days)  # Long-term momentum
+    mom_short = calculate_historical_returns(stocks_df['close'], 20)  # Short-term momentum
+    mom_long = calculate_historical_returns(stocks_df['close'], lookback_days)  # Long-term momentum
     momentum_df = 0.6 * mom_long + 0.4 * mom_short  # Weighted average
 
     # Apply enhanced technical filters
@@ -41,7 +41,7 @@ def backtest(stocks_df, lookback_days=126, top_n=10, rebalance_freq='M', volatil
     positions = pd.DataFrame(0, index=stocks_df.index, columns=stocks_df.columns)
 
     # Calculate volatility for position sizing
-    vol_df = stocks_df.pct_change().rolling(20).std()
+    vol_df = stocks_df['close'].pct_change().rolling(20).std()
 
     for date in stocks_df.resample(rebalance_freq).last().index:
         if date not in momentum_df.index:
@@ -66,7 +66,7 @@ def backtest(stocks_df, lookback_days=126, top_n=10, rebalance_freq='M', volatil
             positions.loc[date, selected_stocks] = weights
 
     # Calculate daily portfolio returns with stop-loss logic
-    daily_returns = stocks_df.pct_change()
+    daily_returns = stocks_df['close'].pct_change()
     for date in positions.index:
         if date not in daily_returns.index:
             continue
@@ -90,7 +90,7 @@ def apply_technical_filters(stocks_df):
     signals = pd.DataFrame(index=stocks_df.index, columns=stocks_df.columns)
     
     for symbol in stocks_df.columns:
-        price = stocks_df[symbol].dropna()
+        price = stocks_df['close'][symbol].dropna()
         if len(price) < 200:
             continue
         
@@ -98,16 +98,20 @@ def apply_technical_filters(stocks_df):
         sma50 = ta.SMA(price.values, timeperiod=50)
         sma200 = ta.SMA(price.values, timeperiod=200)
         rsi = ta.RSI(price.values, timeperiod=14)
-        # atr = ta.ATR(price.values, timeperiod=14)  # Average True Range for volatility
+        
+        open_price = stocks_df['open'][symbol].dropna()
+        high_price = stocks_df['high'][symbol].dropna()
+        low_price = stocks_df['low'][symbol].dropna()
+        atr = ta.ATR(high_price.values, low_price.values, close_price.values, timeperiod=14)
 
         # Align indicators with price index
         sma50_series = pd.Series(sma50, index=price.index[-len(sma50):]).reindex(price.index)
         sma200_series = pd.Series(sma200, index=price.index[-len(sma200):]).reindex(price.index)
         rsi_series = pd.Series(rsi, index=price.index[-len(rsi):]).reindex(price.index)
-        # atr_series = pd.Series(atr, index=price.index[-len(atr):]).reindex(price.index)
+        atr_series = pd.Series(atr, index=price.index[-len(atr):]).reindex(price.index)
 
         # Buy signal: SMA50 > SMA200 for 3 days, RSI < 60, and sufficient volatility
-        signals[symbol] = (sma50_series > sma200_series) & (rsi_series < 60)
+        signals[symbol] = (sma50_series > sma200_series) & (rsi_series < 60) & (atr_series > 0.01)
 
     return signals.fillna(False)
 
@@ -129,7 +133,7 @@ def run(symbol_benchmark, symbolsDate_dict):
         st.info("Please select symbols (e.g., VN30 stocks).")
         return
 
-    stocks_df = get_stocks(symbolsDate_dict, 'close')
+    stocks_df = get_stocks(symbolsDate_dict, stack=True)
     if stocks_df.empty:
         st.warning("No valid stock data retrieved.")
         return
@@ -139,9 +143,9 @@ def run(symbol_benchmark, symbolsDate_dict):
     top_n = st.sidebar.slider('Number of Stocks to Hold', 1, 10, 5)
     rebalance_freq = st.sidebar.selectbox('Rebalance Frequency', ['M', 'W'], index=0)
 
-    mom_df = calculate_historical_returns(stocks_df, lookback_days)
+    mom_df = calculate_historical_returns(stocks_df['close'], lookback_days)
     st.subheader("Stock Prices and Momentum")
-    plot_price_and_indicator(stocks_df, mom_df, "Stock Prices and Momentum (6-month Returns)", "Momentum (%)")
+    plot_price_and_indicator(stocks_df['close'], mom_df, "Stock Prices and Momentum (6-month Returns)", "Momentum (%)")
 
     st.subheader("Strategy Simulation")
     cumulative_returns, positions  = backtest(stocks_df, lookback_days, top_n, rebalance_freq)
