@@ -8,6 +8,10 @@ from utils.component import input_SymbolsDate, check_password, params_selector, 
 from utils.db import get_SymbolsName
 from studies import STUDY_CONFIG
 
+# swap key-value pairs in dictionary
+STUDY_CONFIG = {v: k for k, v in STUDY_CONFIG.items()}
+STUDY_CONFIG = dict(sorted(STUDY_CONFIG.items()))
+
 def check_params(params: Dict) -> bool:
     """Validate parameters dictionary"""
     return bool(params)  # Simplified validation, adjust as needed
