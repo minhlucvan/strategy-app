@@ -75,4 +75,7 @@ STUDY_CONFIG = {
     "stock_candle_stick_study": "Stock Candles",
     "stock_lvm_study": "Stock LVM",
     "stock_momentum_study": "Stock Momentum",
+    "momentum_top_2_study": "Momentum Top 2",
+    "momentum_top_1_study": "Momentum Top 1",
+    
 }
