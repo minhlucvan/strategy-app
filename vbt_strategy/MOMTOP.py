@@ -6,11 +6,33 @@ import streamlit as st
 import vectorbt as vbt
 
 from indicators.EventArb import generate_arbitrage_signal, get_EventArbInd
-from studies.momentum_top_study import compute_sizes
 from utils.processing import get_stocks_events
 
 from .base import BaseStrategy
 from utils.vbt import init_vbtsetting, plot_CSCV
+
+# input df and filters
+# output list of sizes of each symbol by month
+def compute_sizes(df, filters):
+    sizes_df = pd.DataFrame(index=df.index, columns=df.columns)
+    
+    # fill with 0
+    sizes_df = sizes_df.fillna(0)
+    
+    # Month over month percent change
+    mom = df.pct_change() + 1
+    months_ret = [[n, return_by_m_month(mom, m)] for n, m in filters]
+    
+    for month in mom.index:
+        top_df = performance_raw(month, mom, months_ret)
+        
+        top_len = len(top_df.columns)
+        size = 1 / top_len
+            
+        for col in top_df.columns:
+            sizes_df.loc[month, col] =  size
+
+    return sizes_df
 
 
 class MOMTOPStrategy(BaseStrategy):
