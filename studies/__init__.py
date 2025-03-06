@@ -77,5 +77,6 @@ STUDY_CONFIG = {
     "stock_momentum_study": "Stock Momentum",
     "momentum_top_2_study": "Momentum Top 2",
     "momentum_top_1_study": "Momentum Top 1",
+    "stock_liquidity_breakout_study": "Stock Liquidity Breakout",
     
 }

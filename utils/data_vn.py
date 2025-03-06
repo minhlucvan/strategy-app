@@ -7,7 +7,6 @@ from functools import lru_cache
 import akshare as ak
 import streamlit as st
 import vectorbt as vbt
-import vnquant as vnquant
 
 from utils.db import load_symbol
 from utils import stock_utils
@@ -183,6 +182,7 @@ def get_vn_etf(symbol: str, start_date: str, end_date: str) -> pd.DataFrame:
     Returns:
         pd.DataFrame: _description_
     """
+    import vnquant as vnquant
     
     # 20180101 ->  '%Y-%m-%d'
     if len(start_date) == 8:
