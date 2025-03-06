@@ -159,7 +159,6 @@ def run(symbol_benchmark, symbolsDate_dict):
         stats_data = {
             "Total Trades": [len(trade_log)],
             "Average Return per Trade": [trade_log['Return'].mean()],
-            "Average PnL per Trade": [trade_log['PnL'].mean()],
             "Total Return": [cum_ret['Strategy'].iloc[-1] - 1],
             "Sharpe Ratio": [sharpe],
             "Max Drawdown": [cum_ret['Strategy'].min() - 1],
