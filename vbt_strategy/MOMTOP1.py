@@ -22,11 +22,9 @@ def compute_sizes(df):
     
     for i in range(1, len(df)):
         prev_returns = returns.iloc[i - 1]
-        if not prev_returns.empty:
+        if not prev_returns.empty and not prev_returns.isna().all():
             best_asset = prev_returns.idxmax()
-            st.write(prev_returns, best_asset)
-            st.stop()
-            sizes_df.iloc[i][best_asset] = 1.0  # Allocate fully to the best performing asset from the previous bar
+            sizes_df.iloc[i][best_asset] = 0.5
     
     return sizes_df
 
@@ -39,15 +37,15 @@ class MOMTOP1Strategy(BaseStrategy):
 
     @vbt.cached_method
     def run(self, calledby='add'):
-        stocks_df = self.stocks_df.dropna(axis=1, how='any')
-        stocks_df = stocks_df.fillna(method='ffill')
+        stocks_df = self.stocks_df.fillna(method='ffill')      
         
+        # dropna
+        stocks_df = stocks_df.dropna() 
         
         sizes = compute_sizes(stocks_df)
-        st.write(sizes)
-        
+                        
         init_vbtsetting()
-        self.pf_kwargs = dict(fees=0.001, slippage=0.001, freq='1D')
+        self.pf_kwargs = dict(fees=0.001, slippage=0.001, freq='1W')
 
         # Build portfolio
         if self.param_dict['WFO'] != 'None':
@@ -57,6 +55,7 @@ class MOMTOP1Strategy(BaseStrategy):
                 stocks_df,
                 sizes,
                 size_type='targetpercent',
+                init_cash=40_000_000,
                 group_by=True,
                 cash_sharing=True,
                 **self.pf_kwargs,
