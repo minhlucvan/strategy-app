@@ -79,4 +79,5 @@ STUDY_CONFIG = {
     "momentum_top_1_study": "Momentum Top 1",
     "stock_liquidity_lock_study": "Stock Liquidity Lock",
     "stock_liquidity_lock2_study": "Stock Liquidity Lock 2",
+    "stock_liquidity_lock3_study": "Stock Liquidity Lock 3",
 }

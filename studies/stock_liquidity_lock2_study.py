@@ -20,7 +20,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     stocks_volume_df = get_stocks(symbolsDate_dict, 'volume')
 
     # Volume breakout detection
-    window = st.slider("Select the window size for rolling avg volume", 1, 252, 100)
+    window = st.slider("Select the window size for rolling avg volume", 1, 504, 100)
     volume_z_score_df = (stocks_volume_df - stocks_volume_df.rolling(window=window).mean()) / stocks_volume_df.rolling(window=window).std()
     liquidity_threshold = st.slider("Select volume z-score threshold", 0.0, 10.0, 5.0)
     volume_breakout_df = volume_z_score_df > liquidity_threshold
