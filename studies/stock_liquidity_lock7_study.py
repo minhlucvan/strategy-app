@@ -106,6 +106,10 @@ This approach enhances breakout detection while filtering out false signals, off
     avg_price_change = signals_df['Price_Change (%)'].mean() / 100
     transaction_cost = 0.002
     profitable = avg_price_change - transaction_cost
+    first_market_date = stocks_df.index.min()
+    last_market_date = stocks_df.index.max()
+    total_market_days = (last_market_date - first_market_date).days
+    annualized_profit = profitable * 252 / total_market_days
 
     col1, col2, col3 = st.columns(3)
     with col1:
@@ -114,8 +118,10 @@ This approach enhances breakout detection while filtering out false signals, off
         st.metric("Accuracy (Price Up)", f"{accuracy * 100:.2f}%")
     with col3:
         st.metric("Avg Price Change", f"{avg_price_change * 100:.2f}%")
+        
     st.write(f"Net profitable after costs: {profitable * 100:.2f}%")
-
+    st.write("Expected Annualized Return: {:.2f}%".format(annualized_profit * 100))
+    
     # Display signals
     if st.checkbox("Show signals"):
         st.write("### ELLR Breakout Signals")
