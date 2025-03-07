@@ -29,6 +29,7 @@ from .FearZone import FearGreedStrategy
 from .BBSR import BBSRStrategy
 from .FibZone import FibZoneStrategy
 from .MOMTOP1 import MOMTOP1Strategy
+from .LiqLock import LiqLockStrategy
 
 __all__ = [
     "MOMStrategy",
@@ -61,7 +62,8 @@ __all__ = [
     'FearGreedStrategy',
     'BBSRStrategy',
     'FibZoneStrategy',
-    'MOMTOP1Strategy'
+    'MOMTOP1Strategy',
+    'LiqLockStrategy'
 ]
 
 strategy_list = [
@@ -95,5 +97,6 @@ strategy_list = [
     'FearGreed',
     'BBSR',
     'FibZone',
-    'MOMTOP1'
+    'MOMTOP1',
+    'LiqLock'
 ]
