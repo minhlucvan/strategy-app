@@ -49,7 +49,7 @@ This approach enhances breakout detection while filtering out false signals, off
     stocks_low_df = stocks_full_df['low']
 
     # ELLR Components
-    lookback_period = st.slider("Lookback period", 5, 50, 20)
+    lookback_period = st.slider("Lookback period", 5, 252, 20)
     avg_volume_df = stocks_volume_df.rolling(window=lookback_period).mean()
     price_change_df = stocks_df.pct_change()
     price_change_sign_df = np.sign(price_change_df)
@@ -76,12 +76,11 @@ This approach enhances breakout detection while filtering out false signals, off
     breakout_df = ellr_breakout_df & trend_filter_df & volatility_filter_df
 
     # T+2.5 Price Movement
-    stats_period = st.slider("T+2.5 period (days)", 2, 3, 2)
+    stats_period = st.slider("T+2.5 period (days)", 2, 10, 2)
     price_ahead_df = stocks_df.shift(-stats_period)
     future_price_change_df = (price_ahead_df - stocks_df) / stocks_df
 
-    # Signals with Minimum Gain Filter
-    min_gain = st.slider("Minimum gain filter (%)", 0.0, 1.0, 0.5) / 100
+
     signals_list = []
     for symbol in breakout_df.columns:
         breakout_dates = breakout_df.index[breakout_df[symbol]]
@@ -89,16 +88,15 @@ This approach enhances breakout detection while filtering out false signals, off
             entry_price = stocks_df[symbol].loc[date]
             exit_price = price_ahead_df[symbol].loc[date]
             price_change = future_price_change_df[symbol].loc[date]
-            if price_change >= min_gain:
-                signal_data = {
-                    'Date': date,
-                    'Symbol': symbol,
-                    'ELLR': ellr_df[symbol].loc[date],
-                    'Price': entry_price,
-                    'Price_Ahead': exit_price,
-                    'Price_Change (%)': price_change * 100,
-                }
-                signals_list.append(signal_data)
+            signal_data = {
+                'Date': date,
+                'Symbol': symbol,
+                'ELLR': ellr_df[symbol].loc[date],
+                'Price': entry_price,
+                'Price_Ahead': exit_price,
+                'Price_Change (%)': price_change * 100,
+            }
+            signals_list.append(signal_data)
     
     signals_df = pd.DataFrame(signals_list)
     
