@@ -78,6 +78,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     show_signals = st.checkbox("Show all LLR breakout signals")
     if show_signals:
         st.write("### All LLR Breakout Signals")
+        signals_df = signals_df.sort_values(by='Date', ascending=False)
         if not signals_df.empty:
             st.dataframe(signals_df.style.format({
                 'LLR': "{:.2f}",
@@ -91,16 +92,21 @@ def run(symbol_benchmark, symbolsDate_dict):
     # Tickers stats
     show_tickers_stats = st.checkbox("Show tickers stats")
     if show_tickers_stats:
+        # Calculate additional columns
+        signals_df['Accuracy'] = signals_df['Price_Change_After_{}_Days'.format(stats_period)] > 0
+        signals_df['Total Signals'] = 1
+        signals_df['Avg Price Change'] = signals_df['Price_Change_After_{}_Days'.format(stats_period)]
+        
         # group by symbol
         symbol_group = signals_df.groupby('Symbol')
         symbol_stats = symbol_group.agg({
-            'LLR': ['mean', 'std'],
-            'Price_Change_After_{}_Days'.format(stats_period): ['mean', 'std'],
+            'LLR': ['mean'],
+            'Price_Change_After_{}_Days'.format(stats_period): ['mean'],
             'Accuracy': ['mean'],
-            'Total Signals': ['count'],
+            'Total Signals': ['sum'],
             'Avg Price Change': ['mean']
         })
-        st.dataframe(symbol_stats)
+        st.dataframe(symbol_stats, use_container_width=True)
         
 
     # Plot for single symbol
