@@ -6,33 +6,29 @@ from .base import BaseStrategy
 from utils.vbt import plot_CSCV
 import streamlit as st 
 
-
 class LiqLockStrategy(BaseStrategy):
-    '''Liquidity Lock strategy that buys on liquidity breakout and sells after 3 days'''
+    '''Liquidity Lock strategy using Liquidity Lock Ratio (LLR) to detect liquidity breakouts'''
     _name = "LIQUIDITYLOCK"
-    desc = "This strategy buys stocks when their liquidity breaks above the 14-day average and holds for 3 days"
+    desc = "This strategy buys stocks when their LLR breaks above the 14-day average and holds for 3 days"
     timeframe = 'D'
     stacked_bool = True
     column = None
 
-    def calculate_liquidity(self, close_df, volume_df):
-        """Calculate liquidity as price change * volume"""
-        price_change = close_df.pct_change()
-        volume_df = volume_df.fillna(0)
-        return price_change * volume_df
-        
+    def calculate_llr(self, close_df, volume_df, window):
+        """Calculate Liquidity Lock Ratio (LLR)"""
+        price_change_df = close_df.pct_change()
+        price_change_sign_df = np.sign(price_change_df)
+        avg_volume_df = volume_df.rolling(window=window).mean()
+        llr_df = (volume_df * price_change_sign_df) / avg_volume_df
+        return llr_df
+    
     def generate_signals(self, close_df, volume_df, window, hold_period, threshold):
-        """Generate buy signals based on liquidity breakout"""
-        # Calculate liquidity
-        liquidity_df = self.calculate_liquidity(close_df, volume_df)
+        """Generate buy signals based on LLR breakout"""
+        # Calculate LLR
+        llr_df = self.calculate_llr(close_df, volume_df, window)
         
-        # Calculate rolling mean over window period
-        liquidity_avg = liquidity_df.rolling(window=window).mean()
-        
-        liquidity_z_score_df = (liquidity_df - liquidity_avg) / liquidity_df.std()
-        
-        # Generate signals when liquidity z-score is above threshold
-        entries = liquidity_z_score_df > threshold
+        # Identify breakouts
+        entries = llr_df > threshold
         
         # Generate exit signals after hold_period days
         exits = entries.shift(hold_period).fillna(False)
@@ -40,18 +36,15 @@ class LiqLockStrategy(BaseStrategy):
         return entries, exits
     
     @vbt.cached_method
-    def run(self, calledby='add'):  # Define calledby as a parameter with default value
+    def run(self, calledby='add'):
         """Execute the trading strategy"""
-        
-        # filna with ffill
         self.stocks_df = self.stocks_df.fillna(method='ffill')
-        
         close_df = self.stocks_df['close']
         volume_df = self.stocks_df['volume']
         
-        window = 14
+        window = 252
         hold_period = 3
-        threshold = 2.0
+        threshold = 5.0
         
         # Generate signals
         entries, exits = self.generate_signals(close_df, volume_df, window, hold_period, threshold)
