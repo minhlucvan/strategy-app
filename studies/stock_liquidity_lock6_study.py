@@ -20,7 +20,7 @@ def run(symbol_benchmark, symbolsDate_dict):
     stocks_volume_df = get_stocks(symbolsDate_dict, 'volume')
 
     # Calculate LLR
-    lookback_period = st.slider("Select lookback period for average volume", 5, 504, 100)
+    lookback_period = st.slider("Select lookback period for average volume", 5, 504, 400)
     avg_volume_df = stocks_volume_df.rolling(window=lookback_period).mean()
     
     # Daily price change sign
@@ -31,13 +31,12 @@ def run(symbol_benchmark, symbolsDate_dict):
     llr_df = (stocks_volume_df * price_change_sign_df) / avg_volume_df
     
     # Define threshold for LLR breakout
-    llr_threshold = st.slider("Select LLR threshold for breakout", 1.0, 10.0, 2.5)
+    llr_threshold = st.slider("Select LLR threshold for breakout", 1.0,50.0, 20.0)
     llr_breakout_df = llr_df > llr_threshold  # Positive spikes indicate potential squeezes
 
     # Price change over next 2-3 days (approximating T+2.5)
-    stats_period = st.slider("Select period for post-breakout price stats (T+2.5 approx)", 2, 5, 2)
+    stats_period = st.slider("Select period for post-breakout price stats (T+2.5 approx)", 2, 15, 2)
     price_ahead_df = stocks_df.shift(-stats_period)
-    future_price_change_df = (price_ahead_df - stocks_df) / stocks_df
 
     # Create a DataFrame of all breakout signals
     signals_list = []
@@ -46,22 +45,29 @@ def run(symbol_benchmark, symbolsDate_dict):
         for date in breakout_dates:
             entry_price = stocks_df[symbol].loc[date]
             exit_price = price_ahead_df[symbol].loc[date]
+            Returns = (exit_price - entry_price) / entry_price
+            Avg_Volume = avg_volume_df[symbol].loc[date]
+            Target_LLR = llr_threshold
+            Target_Volume = int(Target_LLR * Avg_Volume)
             signal_data = {
                 'Date': date,
                 'Symbol': symbol,
                 'LLR': llr_df[symbol].loc[date],
+                'Target_Volume': Target_Volume,
                 'Price': entry_price,
                 'Price_Ahead': exit_price,
-                'Price_Change_After_{}_Days'.format(stats_period): future_price_change_df[symbol].loc[date] * 100,  # In percentage
+                'Returns': Returns
             }
             signals_list.append(signal_data)
     
     signals_df = pd.DataFrame(signals_list)
+    signals_df = signals_df.sort_values(by='Date', ascending=False)
+    
     
     # Metrics
     total_signals = llr_breakout_df.sum().sum()
-    accuracy = (llr_breakout_df & (future_price_change_df > 0)).sum() / llr_breakout_df.sum()
-    avg_price_change = future_price_change_df[llr_breakout_df].mean()
+    accuracy = signals_df['Returns'] > 0
+    avg_price_change = signals_df['Returns']
     transaction_cost = 0.0016
     profitable = avg_price_change.mean() - transaction_cost
 
@@ -73,39 +79,63 @@ def run(symbol_benchmark, symbolsDate_dict):
     with col3:
         st.metric("Avg Price Change", f"{avg_price_change.mean() * 100:.2f}%")
     st.write(f"Average profitable after transaction cost: {profitable * 100:.2f}%")
-
+            
+    # daily stats  
+    daily_returns = signals_df.groupby('Date').agg({
+        'Returns': ['mean', 'count']
+    })
+    
+    # avg signal per day
+    avg_signals_per_day = daily_returns['Returns']['count'].mean()
+    st.write(f"Average signals per day: {avg_signals_per_day:.2f}")
+    
+    acc_daily_returns = (1 + daily_returns['Returns']['mean']).cumprod() - 1
+    
+    # signals daily count
+    st.write("### Daily Signals Count")
+    fig = go.Figure()
+    fig.add_trace(go.Bar(x=daily_returns.index, y=daily_returns['Returns']['count'], name='Signals Count'))
+    fig.update_layout(title_text="Daily Signals Count", height=400)
+    st.plotly_chart(fig)
+    
+    st.write("### Accumulated Daily Returns")
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(x=acc_daily_returns.index, y=acc_daily_returns, mode='lines', name='Accumulated Daily Returns'))
+    fig.update_layout(title_text="Accumulated Daily Returns", height=400)
+    st.plotly_chart(fig)
+    
+    # return distribution
+    st.write("### Returns Distribution")
+    fig = go.Figure()
+    fig.add_trace(go.Histogram(x=signals_df['Returns'], nbinsx=20))
+    fig.update_layout(title_text="Returns Distribution", height=400)
+    st.plotly_chart(fig)
+        
     # Display signals
-    show_signals = st.checkbox("Show all LLR breakout signals")
+    show_signals = st.checkbox("Show signals")
     if show_signals:
         st.write("### All LLR Breakout Signals")
-        signals_df = signals_df.sort_values(by='Date', ascending=False)
         if not signals_df.empty:
             st.dataframe(signals_df.style.format({
                 'LLR': "{:.2f}",
                 'Price': "{:.2f}",
                 'Price_Ahead': "{:.2f}",
-                'Price_Change_After_{}_Days'.format(stats_period): "{:.2f}%"
+                'Returns': "{:.2%}",
+                'Target_Volume': "{:.0f}"
             }))
         else:
             st.write("No LLR breakout signals detected with the current settings.")
-            
+        
     # Tickers stats
     show_tickers_stats = st.checkbox("Show tickers stats")
     if show_tickers_stats:
-        # Calculate additional columns
-        signals_df['Accuracy'] = signals_df['Price_Change_After_{}_Days'.format(stats_period)] > 0
-        signals_df['Total Signals'] = 1
-        signals_df['Avg Price Change'] = signals_df['Price_Change_After_{}_Days'.format(stats_period)]
-        
         # group by symbol
-        symbol_group = signals_df.groupby('Symbol')
-        symbol_stats = symbol_group.agg({
-            'LLR': ['mean'],
-            'Price_Change_After_{}_Days'.format(stats_period): ['mean'],
-            'Accuracy': ['mean'],
-            'Total Signals': ['sum'],
-            'Avg Price Change': ['mean']
+        symbol_stats = signals_df.groupby('Symbol').agg({
+            'Returns': ['mean', 'count', lambda x: (x > 0).mean()]
         })
+                 
+        symbol_stats.columns = ['Avg Returns', 'Count', 'Accuracy']
+        symbol_stats = symbol_stats.sort_values(by='Avg Returns', ascending=False)
         st.dataframe(symbol_stats, use_container_width=True)
         
 

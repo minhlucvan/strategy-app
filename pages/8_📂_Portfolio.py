@@ -179,7 +179,7 @@ def main():
             display_results(stocks_df, weights, expected_annual_return, annual_volatility, sharpe_ratio, mu, S, tickers)
         
         except Exception as e:
-            st.error(f"Error: {e}")
+            st.error(e)
             st.stop()
 
 

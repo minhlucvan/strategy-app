@@ -1,153 +1,127 @@
 import pandas as pd
 import numpy as np
 import streamlit as st
-import plotly.graph_objs as go
-from plotly.subplots import make_subplots
+import datetime
 
+from utils.processing import get_stocks  
+
+import pandas as pd
+import numpy as np
+import datetime
 from utils.processing import get_stocks
 
-def run(symbol_benchmark, symbolsDate_dict):    
-    with st.expander("Optimized ELLR Study - Vietnam T+2.5"):
-        st.write("""Here's the updated strategy description:  
-
-**Optimized ELLR Study - Vietnam T+2.5**  
-
-This strategy refines the Enhanced Liquidity-Linked Ratio (ELLR) model by incorporating a dynamic threshold and additional market filters to identify potential breakout stocks in Vietnam’s T+2.5 settlement environment.  
-
-### Key Components:  
-1. **ELLR Calculation**:  
-   - Uses intraday volatility, trading volume, and price movement signals.  
-   - Adjusted for float availability to enhance accuracy.  
-
-2. **Dynamic Thresholding**:  
-   - Identifies breakout stocks using a rolling percentile filter (e.g., 90th percentile).  
-
-3. **Market Trend & Volatility Filters**:  
-   - Trend confirmation via short-term (10-day) and long-term (20-day) SMA crossovers.  
-   - Volatility filter ensures ATR is above its historical average.  
-
-4. **T+2.5 Profitability Assessment**:  
-   - Tracks price movements 2–3 days post-breakout.  
-   - Applies a minimum gain filter to refine entry points.  
-
-5. **Performance Metrics & Visualization**:  
-   - Reports signal count, accuracy, and net profitability after costs.  
-   - Interactive stock charts highlight key breakouts.  
-
-This approach enhances breakout detection while filtering out false signals, offering a systematic way to capture short-term price movements in Vietnam’s stock market.""")
+class PaperStrategy:
+    def __init__(self, symbolsDate_dict, capital=100000, holding_period=2):
+        self.symbolsDate_dict = symbolsDate_dict
+        self.symbols = symbolsDate_dict['symbols']
+        self.start_date = symbolsDate_dict['start_date']
+        self.end_date = symbolsDate_dict['end_date']
+        self.current_date = self.start_date
+        self.holding_period = holding_period
+        self.capital = capital
+        self.transaction_cost = 0.0016
+        self.trade_log = []
+        self.portfolio = {}
+        self.nav = [capital]
+        self.daily_returns = []
+        
+    def setup(self):
+        # get historical data
+        self.stocks_df = self.get_stock_data()
+        
+    def get_live_data(self):
+        raise NotImplementedError("Subclasses should implement this method")
     
+    def get_stock_data(self, is_live=False):
+        if is_live:
+            return self.get_live_data()
+        
+        symbolsDate_dict = self.symbolsDate_dict.copy()
+        return get_stocks(symbolsDate_dict, stack=True)
+    
+    def generate_signals(self, stocks_df, volume_df):
+        raise NotImplementedError("Subclasses should implement this method")
+    
+    def update_portfolio(self, latest_prices):
+        closed_trades = []
+        daily_pnl = 0
+        
+        for symbol, (entry_price, entry_date) in list(self.portfolio.items()):
+            if (self.current_date - entry_date).days >= self.holding_period:
+                exit_price = latest_prices.get(symbol, np.nan)
+                if not np.isnan(exit_price):
+                    ret = (exit_price - entry_price) / entry_price - self.transaction_cost
+                    daily_pnl += ret * (self.capital / max(1, len(self.portfolio)))
+                    closed_trades.append(symbol)
+                    self.trade_log.append([entry_date, self.current_date, symbol, entry_price, exit_price, ret])
+        
+        for symbol in closed_trades:
+            del self.portfolio[symbol]
+        
+        return daily_pnl
+    
+    def get_stock_ddata_slice(self, date):
+        # all data before the current date
+        return self.stocks_df.loc[:date]
+    
+    def run_day(self, is_live=False):
+        current_date = self.current_date
+        stocks_df = self.get_stock_ddata_slice(current_date)
+        close_df = stocks_df['close']
+        volume_df = stocks_df['volume']
+        
+        if close_df.empty or volume_df.empty:
+            return
+        
+        latest_prices = close_df.loc[self.current_date].to_dict()
+        daily_pnl = self.update_portfolio(latest_prices)
+        signals = self.generate_signals(close_df, volume_df)
+        new_positions = {s: (latest_prices[s], self.current_date) for s in signals.index if signals[s]}
+        self.portfolio.update(new_positions)
+        
+        self.capital *= (1 + daily_pnl)
+        self.nav.append(self.capital)
+        self.daily_returns.append(daily_pnl)
+    
+    def backtest(self):
+        date_range = pd.date_range(self.start_date, self.end_date, freq='B')
+        for date in date_range:
+            self.current_date = date
+            self.run_day()
+        
+        return pd.DataFrame(self.trade_log, columns=['Entry Date', 'Exit Date', 'Symbol', 'Entry Price', 'Exit Price', 'Net Return'])
+    
+    def run_live(self):
+        self.current_date = datetime.date.today()
+        self.run_day(is_live=True)
+    
+    def get_trade_log(self):
+        return pd.DataFrame(self.trade_log, columns=['Entry Date', 'Exit Date', 'Symbol', 'Entry Price', 'Exit Price', 'Net Return'])
+
+class LLRPaperStrategy(PaperStrategy):
+    def __init__(self, symbolsDate_dict, capital=100000, lookback=400, llr_threshold=20.0, holding_period=2):
+        super().__init__(symbolsDate_dict, capital, holding_period)
+        self.lookback = lookback
+        self.llr_threshold = llr_threshold
+    
+    def calculate_llr(self, stocks_df, volume_df):
+        avg_volume = volume_df.rolling(window=self.lookback, min_periods=1).mean()
+        price_change_sign = np.sign(stocks_df.pct_change())
+        return (volume_df * price_change_sign) / avg_volume
+    
+    def generate_signals(self, stocks_df, volume_df):
+        llr = self.calculate_llr(stocks_df, volume_df)
+        return llr.iloc[-1] > self.llr_threshold
+
+# Example of running daily update
+def run(symbol_benchmark, symbolsDate_dict): 
+    st.header("LLR Live Test")
     if len(symbolsDate_dict['symbols']) < 1:
         st.info("Please select symbols.")
         st.stop()
-    
-    # Load data (assuming OHLCV available)
-    stocks_full_df = get_stocks(symbolsDate_dict, stack=True)
-    
-    stocks_df = stocks_full_df['close']
-    stocks_volume_df = stocks_full_df['volume']
-    stocks_high_df = stocks_full_df['high']
-    stocks_low_df = stocks_full_df['low']
 
-    # ELLR Components
-    lookback_period = st.slider("Lookback period", 5, 252, 20)
-    avg_volume_df = stocks_volume_df.rolling(window=lookback_period).mean()
-    price_change_df = stocks_df.pct_change()
-    price_change_sign_df = np.sign(price_change_df)
-    intraday_volatility_df = (stocks_high_df - stocks_low_df) / stocks_df
-    float_availability_df = 1 - (stocks_volume_df.rolling(window=5).sum() / stocks_volume_df.rolling(window=lookback_period).sum()).clip(0, 1)
-    ellr_df = (stocks_volume_df * price_change_sign_df * intraday_volatility_df) / (avg_volume_df * float_availability_df)
+    papper = LLRPaperStrategy(symbolsDate_dict)
+    papper.setup()
     
-    # Dynamic Threshold: Top 10% of ELLR values
-    ellr_threshold_percentile = st.slider("ELLR percentile threshold", 80, 95, 90)  # 90th percentile default
-    ellr_threshold_df = ellr_df.rolling(window=lookback_period).quantile(ellr_threshold_percentile / 100)
-    ellr_breakout_df = ellr_df > ellr_threshold_df
-    
-    # Trend Filter: 10-day SMA > 20-day SMA
-    sma_short_df = stocks_df.rolling(window=10).mean()
-    sma_long_df = stocks_df.rolling(window=20).mean()
-    trend_filter_df = sma_short_df > sma_long_df
-    
-    # Volatility Filter: ATR > Avg ATR
-    atr_df = ((stocks_high_df - stocks_low_df) + price_change_df.abs() * stocks_df).rolling(window=14).mean()
-    atr_avg_df = atr_df.rolling(window=lookback_period).mean()
-    volatility_filter_df = atr_df > atr_avg_df
-    
-    # Combined Breakout
-    breakout_df = ellr_breakout_df & trend_filter_df & volatility_filter_df
-
-    # T+2.5 Price Movement
-    stats_period = st.slider("T+2.5 period (days)", 2, 10, 2)
-    price_ahead_df = stocks_df.shift(-stats_period)
-    future_price_change_df = (price_ahead_df - stocks_df) / stocks_df
-
-
-    signals_list = []
-    for symbol in breakout_df.columns:
-        breakout_dates = breakout_df.index[breakout_df[symbol]]
-        for date in breakout_dates:
-            entry_price = stocks_df[symbol].loc[date]
-            exit_price = price_ahead_df[symbol].loc[date]
-            price_change = future_price_change_df[symbol].loc[date]
-            signal_data = {
-                'Date': date,
-                'Symbol': symbol,
-                'ELLR': ellr_df[symbol].loc[date],
-                'Price': entry_price,
-                'Price_Ahead': exit_price,
-                'Price_Change (%)': price_change * 100,
-            }
-            signals_list.append(signal_data)
-    
-    signals_df = pd.DataFrame(signals_list)
-    
-    # Metrics
-    total_signals = len(signals_df)
-    accuracy = (signals_df['Price_Change (%)'] > 0).mean()
-    avg_price_change = signals_df['Price_Change (%)'].mean() / 100
-    transaction_cost = 0.002
-    profitable = avg_price_change - transaction_cost
-    first_market_date = stocks_df.index.min()
-    last_market_date = stocks_df.index.max()
-    total_market_days = (last_market_date - first_market_date).days
-    annualized_profit = profitable * 252 / total_market_days
-
-    col1, col2, col3 = st.columns(3)
-    with col1:
-        st.metric("Total ELLR Signals", total_signals)
-    with col2:
-        st.metric("Accuracy (Price Up)", f"{accuracy * 100:.2f}%")
-    with col3:
-        st.metric("Avg Price Change", f"{avg_price_change * 100:.2f}%")
-        
-    st.write(f"Net profitable after costs: {profitable * 100:.2f}%")
-    st.write("Expected Annualized Return: {:.2f}%".format(annualized_profit * 100))
-    
-    # Display signals
-    if st.checkbox("Show signals"):
-        st.write("### ELLR Breakout Signals")
-        # sort by date
-        signals_df = signals_df.sort_values(by='Date', ascending=False)
-        if not signals_df.empty:
-            st.dataframe(signals_df.style.format({
-                'ELLR': "{:.2f}",
-                'Price': "{:.2f}",
-                'Price_Ahead': "{:.2f}",
-                'Price_Change (%)': "{:.2f}%"
-            }))
-        else:
-            st.write("No signals detected.")
-
-    # Plot
-    if len(symbolsDate_dict['symbols']) == 1:
-        symbol = symbolsDate_dict['symbols'][0]
-        fig = make_subplots(rows=3, cols=1, shared_xaxes=True, vertical_spacing=0.05)
-        fig.add_trace(go.Scatter(x=stocks_df.index, y=stocks_df[symbol], mode='lines', name=f"{symbol} Price"), row=1, col=1)
-        fig.add_trace(go.Scatter(x=signals_df['Date'], y=signals_df['Price'], mode='markers', name="Breakouts", marker=dict(size=10, color='red')), row=1, col=1)
-        fig.add_trace(go.Scatter(x=ellr_df.index, y=ellr_df[symbol], mode='lines', name="ELLR"), row=2, col=1)
-        fig.add_trace(go.Scatter(x=ellr_threshold_df.index, y=ellr_threshold_df[symbol], mode='lines', name="Threshold", line=dict(dash='dash', color='red')), row=2, col=1)
-        fig.add_trace(go.Scatter(x=stocks_volume_df.index, y=stocks_volume_df[symbol], mode='lines', name="Volume"), row=3, col=1)
-        fig.update_layout(title_text=f"{symbol} - ELLR Analysis", height=800)
-        fig.update_yaxes(title_text="Price", row=1, col=1)
-        fig.update_yaxes(title_text="ELLR", row=2, col=1)
-        fig.update_yaxes(title_text="Volume", row=3, col=1)
-        st.plotly_chart(fig)
+    res = papper.backtest()
+    st.write(res)

@@ -20,11 +20,18 @@ def compute_sizes(df):
     # Calculate daily returns
     returns = df.pct_change()
     
+    # trend df wheather the price > ema 20
+    # ema = df.rolling(window=5).mean()
+    # trend_df = df > ema    
+        
     for i in range(1, len(df)):
         prev_returns = returns.iloc[i - 1]
         if not prev_returns.empty and not prev_returns.isna().all():
-            best_asset = prev_returns.idxmax()
-            sizes_df.iloc[i][best_asset] = 0.5
+            # Filter assets that are in an uptrend
+            # uptrend_assets = trend_df.iloc[i - 1][trend_df.iloc[i - 1]].index
+            # if not uptrend_assets.empty:
+            top_asset = prev_returns.loc[prev_returns.idxmax()]
+            sizes_df.iloc[i][top_asset] = 1.0
     
     return sizes_df
 

@@ -141,7 +141,7 @@ class Portfolio(object):
         start_date = self.df.loc[self.df['id'] == id, 'start_date'].values[0]
         param_dict = self.df.loc[self.df['id'] == id, 'param_dict'].values[0]
         oend_date = pd.to_datetime(
-            self.df.loc[self.df['id'] == id, 'end_date'].values[0]).dt.tz_localize(None)
+            self.df.loc[self.df['id'] == id, 'end_date'].values[0])
 
         if market == 'US':
             end_date = datetime.now(pytz.timezone(

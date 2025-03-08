@@ -108,7 +108,7 @@ def get_pfOpMS(stocks_df, rm="MV", show_report=False, return_w=False, plot=True)
     port = rp.Portfolio(returns=pct_df)
     method_mu='hist'
     method_cov='hist'
-    port.assets_stats(method_mu=method_mu, method_cov=method_cov, d=0.94)
+    port.assets_stats(method_mu=method_mu, method_cov=method_cov)
     # rm = 'MV' # Risk measure used, this time will be variance
     model="Classic"
     obj = 'Sharpe' # Objective function, could be MinRisk, MaxRet, Utility or Sharpe
@@ -165,15 +165,18 @@ def FactorExposure(main_df:pd.DataFrame, factors_df:pd.DataFrame)-> pd.DataFrame
 def plot_AssetsClusters(stocks_df):
     # Plotting Assets Clusters
     Y = stocks_df.pct_change().dropna()
-    fig, ax = plt.subplots()
-    ax = rp.plot_clusters(returns=Y,
-                      codependence='pearson',
-                      linkage='ward',
-                      k=None,
-                      max_k=10,
-                      leaf_order=True,
-                      dendrogram=True,
-                      #linecolor='tab:purple',
-                      ax=ax)
-    st.pyplot(fig)
+    if Y.empty or len(Y) < 2 or Y.shape[1] < 2:
+        st.error("Not enough data to plot clusters.")
+    else:
+        fig, ax = plt.subplots()
+        ax = rp.plot_clusters(returns=Y,
+                          codependence='pearson',
+                          linkage='ward',
+                          k=None,
+                          max_k=10,
+                          leaf_order=True,
+                          dendrogram=True,
+                          #linecolor='tab:purple',
+                          ax=ax)
+        st.pyplot(fig)
     

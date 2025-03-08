@@ -206,27 +206,23 @@ def params_selector(params):
     for param in params:
         col1, col2 = st.columns([3, 1])
         with col1:
-            gap = (param["max"]-param["min"]) * 0.5
-            if param["step"] == 0 and param['type'] == 'int':
-                value = st.slider("Select " + param["name"], min_value= param["min"], max_value= param['max'], step= 1)
-                values = [value, value]
-            elif param["step"] == 0.0:
-                value = st.slider("Select " + param["name"], min_value= param["min"], max_value= param['max'], step= 0.01)
-                values = [value, value]
+            if param.get("control", "range") == "single":
+                value = st.slider(f"Select {param['name']}", min_value=param["min"], max_value=param["max"], step=param["step"], value=param["value"])
+                params_parse[param["name"]] = [value]
             else:
-                if param['type'] == 'int':
+                gap = (param["max"] - param["min"]) * 0.5
+                if param["type"] == 'int':
                     gap = int(gap)
                     bottom = max(0, param["min"] - gap)
                 else:
                     bottom = max(0.0, param["min"] - gap)
-                values = st.slider("Select a range of " + param["name"],
-                                bottom, param['max'] + gap, (param["min"], param["max"]))
-        with col2:
-            step_number = st.number_input("step of " + param["name"], value=param["step"])
-
-        if step_number == 0:
-             params_parse[param["name"]] = [values[0]]
-        else:
-            params_parse[param["name"]] = np.arange(values[0], values[1], step_number)
-
+                
+                values = st.slider(f"Select a range of {param['name']}", bottom, param['max'] + gap, (param["min"], param["max"]))
+                step_number = st.number_input(f"Step of {param['name']}", value=param["step"])
+                
+                if step_number == 0:
+                    params_parse[param["name"]] = [values[0]]
+                else:
+                    params_parse[param["name"]] = np.arange(values[0], values[1], step_number).tolist()
+    
     return params_parse

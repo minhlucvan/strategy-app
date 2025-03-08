@@ -30,6 +30,8 @@ from .BBSR import BBSRStrategy
 from .FibZone import FibZoneStrategy
 from .MOMTOP1 import MOMTOP1Strategy
 from .LiqLock import LiqLockStrategy
+from .LLRTOP import LLRTOPStrategy
+from .TrendBreakout import TrendBreakoutStrategy
 
 __all__ = [
     "MOMStrategy",
@@ -63,7 +65,9 @@ __all__ = [
     'BBSRStrategy',
     'FibZoneStrategy',
     'MOMTOP1Strategy',
-    'LiqLockStrategy'
+    'LiqLockStrategy',
+    'LLRTOPStrategy',
+    'TrendBreakoutStrategy'
 ]
 
 strategy_list = [
@@ -98,5 +102,7 @@ strategy_list = [
     'BBSR',
     'FibZone',
     'MOMTOP1',
-    'LiqLock'
+    'LiqLock',
+    'LLRTOP',
+    'TrendBreakout'
 ]

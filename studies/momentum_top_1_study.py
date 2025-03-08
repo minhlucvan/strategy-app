@@ -105,12 +105,14 @@ def run(symbol_benchmark, symbolsDate_dict):
     cum_ret = cum_ret.fillna(method='ffill')
         
     sharpe = sharpe_ratio(portfolio_returns)
+    win_rate = (portfolio_returns > 1).mean()
     
     # Display metrics
-    col1, col2, col3 = st.columns(3)
+    col1, col2, col3, col4 = st.columns(4)
     col1.metric("Strategy Return", f"{(cum_ret['Strategy'].iloc[-1] - 1):.2%}")
     col2.metric("VNINDEX Return", f"{(cum_ret['VNINDEX'].iloc[-1] - 1):.2%}")
     col3.metric("Sharpe Ratio", f"{sharpe:.2f}")
+    col4.metric("Win Rate", f"{win_rate:.2%}")
     
     # Plot cumulative returns
     fig = px.line(cum_ret - 1, labels={'value': 'Cumulative Return', 'variable': ''})
@@ -120,6 +122,11 @@ def run(symbol_benchmark, symbolsDate_dict):
     
     # show bar chart of returns over time
     fig = px.bar(trade_log, x='Exit_Date', y='Return', color='Ticker', title='Returns over time')
+    st.plotly_chart(fig)
+    
+    # return distribution
+    st.write("### Return Distribution")
+    fig = px.histogram(trade_log, x='Return', nbins=20)
     st.plotly_chart(fig)
     
     show_current_portfolio = st.checkbox("Show Current Portfolio")

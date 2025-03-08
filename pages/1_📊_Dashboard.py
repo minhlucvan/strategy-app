@@ -20,10 +20,12 @@ def show_PortforlioYearly(pf_row):
     end_date = date.today()
     end_date = datetime(year=end_date.year, month=end_date.month,
                         day=end_date.day, tzinfo=pytz.utc)
+    start_date = datetime(
+        year=end_date.year-1, month=end_date.month, day=end_date.day, tzinfo=pytz.utc)
     symbolsDate_dict = {
         "market":   pf_row['market'],
         "symbols":  pf_row['symbols'].split(','),
-        "start_date": end_date,
+        "start_date": start_date,
         "end_date": end_date,
     }
 
@@ -31,7 +33,7 @@ def show_PortforlioYearly(pf_row):
 
     # get the strategy class according to strategy name
     strategy_cli = getattr(__import__(f"vbt_strategy"),
-                           f"{strategyname}Strategy")
+                           f"{strategyname}Strategy")    
     strategy = strategy_cli(symbolsDate_dict)
     params = params_selector(strategy.param_def)
     pfYearly_df = pd.DataFrame()
@@ -40,7 +42,6 @@ def show_PortforlioYearly(pf_row):
             year=end_date.year-y, month=end_date.month, day=end_date.day, tzinfo=pytz.utc)
         display_start_date = start_date.strftime('%Y-%m-%d')
         display_end_date = end_date.strftime('%Y-%m-%d')
-        st.write(f"Period: {display_start_date} to {display_end_date}")
         symbolsDate_dict = {
             "market":   pf_row['market'],
             "symbols":  pf_row['symbols'].split(','),
@@ -51,8 +52,6 @@ def show_PortforlioYearly(pf_row):
 
         if check_params(params):
             if strategy.maxRARM(params, output_bool=False):
-                st.text("Max Sharpe_Ratio's parameters:    " +
-                        str(strategy.param_dict))
                 pfYearly_df = pd.concat([pfYearly_df, pd.DataFrame({
                     "year": y,
                     'total_return': round(strategy.pf.stats('total_return')[0]/100.0, 2),
@@ -172,11 +171,9 @@ def main():
             if updatepf_bool:
                 if portfolio.update(index):
                     st.success('Update portfolio Sucessfully.')
-                    st.experimental_rerun()
                 else:
                     st.error('Fail to update portfolio.')
                 st.session_state['update_bokeh'] = True
-                # st.experimental_rerun()
 
             if deletepf_bool:
                 if portfolio.delete(portfolio.df.loc[index, 'id']):
@@ -184,7 +181,6 @@ def main():
                 else:
                     st.error('Fail to delete portfolio.')
                 st.session_state['update_bokeh'] = True
-                st.experimental_rerun()
         else:
             selected_pfs = []
 

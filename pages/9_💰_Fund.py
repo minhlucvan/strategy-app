@@ -201,7 +201,7 @@ def run():
 
         # 2.1.2 plot pf chart of Orginial fund porforlio.
         stocks_df = fund_engine.getSotcks()
-
+        
         weights = []
         for symbol in stocks_df.columns:
             if symbol in df.index:

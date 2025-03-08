@@ -197,8 +197,10 @@ def get_stock_bars_very_long_term_cached(
 ):  
     print(f"Fetching data for {ticker} {stock_type} {resolution}")
     
+    # Default combine period
     combine_period = 1
     
+    # Normalize resolution input
     if resolution is None:
         resolution = 'D'
     elif resolution == '1D':
@@ -208,10 +210,10 @@ def get_stock_bars_very_long_term_cached(
     elif resolution == '1M':
         resolution = 'M'
     elif resolution == '3D':
-        resolution = 'D'
-        combine_period = 3
+        resolution = 'D'  # Base resolution is daily
+        combine_period = 3  # Combine 3 daily bars
     
-        
+    # Minimum days for cache validation
     mindays = 3
     if resolution == 'W':
         mindays = 8
@@ -219,23 +221,21 @@ def get_stock_bars_very_long_term_cached(
         mindays = 32
         
     resolution_slug = f"_{resolution.lower()}" if resolution != 'D' else ''
-
     long_terms_cache_file = f'./data/prices/{stock_type}_{ticker}{resolution_slug}.csv'
     short_terms_cache_file = f'./data/caches/{stock_type}_{ticker}{resolution_slug}_{datetime.now().strftime("%Y%m%d")}.csv'
 
     df = pd.DataFrame()
 
+    # Load from cache or fetch data
     if os.path.exists(long_terms_cache_file) and not invalidate_cache_file(long_terms_cache_file, mindays=mindays) and not refresh:
         print(f'Loading data from csv file: {long_terms_cache_file}')
-        df = pd.read_csv(long_terms_cache_file, parse_dates=[
-                         'tradingDate'], header=0)
+        df = pd.read_csv(long_terms_cache_file, parse_dates=['tradingDate'], header=0)
         df = load_data_into_dataframe(df, set_index=set_index)
         df = filter_data_by_date(df, start_date, end_date)
         
     elif os.path.exists(short_terms_cache_file) and not force_fetch:
         print(f'Loading data from cached csv file: {short_terms_cache_file}')
-        df = pd.read_csv(short_terms_cache_file, parse_dates=[
-                         'tradingDate'], header=0)
+        df = pd.read_csv(short_terms_cache_file, parse_dates=['tradingDate'], header=0)
         df = load_data_into_dataframe(df, set_index=set_index)
         df = filter_data_by_date(df, start_date, end_date)
 
@@ -243,41 +243,46 @@ def get_stock_bars_very_long_term_cached(
         df = pd.DataFrame()
     elif stock_type == 'yf':
         print(f'Fetching data from Yahoo Finance API: {stock_type}_{ticker}')
-        if resolution == 'D':
-            resolution = '1d'
-        data = yf.download(ticker, period="max", interval=resolution)
-
-        # add tradingDate = index
-        data['tradingDate'] = data.index
-
-        data['close'] = data['Close']
-
-        data['volume'] = data['Volume']
-
-        df = data
+        yf_resolution = '1d' if resolution == 'D' else resolution.lower()
+        data = yf.download(ticker, period="max", interval=yf_resolution)
+        if not data.empty:
+            data['tradingDate'] = data.index
+            data['close'] = data['Close']
+            data['volume'] = data['Volume']
+            df = data[['tradingDate', 'Open', 'High', 'Low', 'close', 'volume']]
+            df.columns = ['tradingDate', 'open', 'high', 'low', 'close', 'volume']
     else:
         print(f'Fetching data from API: {stock_type} {ticker} {resolution}')
         data = get_stock_bars_very_long_term(
             ticker=ticker, stock_type=stock_type, count_back=count_back, resolution=resolution, total_page=total_page)
         df = load_data_into_dataframe(data, set_index=set_index)
-        if len(df) > 0:
+        if not df.empty:
             df.to_csv(long_terms_cache_file, index=False)
             df.to_csv(short_terms_cache_file, index=False)
-        
         df = filter_data_by_date(df, start_date, end_date)
+
+    # Combine bars if 3D timeframe is requested
+    if combine_period > 1 and not df.empty:
+        # Ensure tradingDate is available and sorted
+        if 'tradingDate' not in df.columns:
+            df['tradingDate'] = df.index
             
-    if combine_period > 1:
-        df['group'] = np.floor(df.index / 3)  
+        df['tradingDate'] = pd.to_datetime(df['tradingDate'])  # Ensure datetime type
+        df = df.sort_values('tradingDate')
+        
+        # Assign a group number to every 3 bars
+        df['group'] = (df.index - df.index[0]) // combine_period
+        
+        # Aggregate the bars
         df = df.groupby('group').agg({
+            'tradingDate': 'first',  # Use the first date of the group
             'open': 'first',
             'high': 'max',
             'low': 'min',
             'close': 'last',
             'volume': 'sum'
-        })
-        df['tradingDate'] = df.index * 3
-        df = df.reset_index(drop=True)
-        
+        }).reset_index(drop=True)
+
     return df
 
 
