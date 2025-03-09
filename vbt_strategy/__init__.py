@@ -32,6 +32,8 @@ from .MOMTOP1 import MOMTOP1Strategy
 from .LiqLock import LiqLockStrategy
 from .LLRTOP import LLRTOPStrategy
 from .TrendBreakout import TrendBreakoutStrategy
+from .LowFlow import LowFlowStrategy
+from .LowFlowReversal import LowFlowReversalStrategy
 
 __all__ = [
     "MOMStrategy",
@@ -67,7 +69,9 @@ __all__ = [
     'MOMTOP1Strategy',
     'LiqLockStrategy',
     'LLRTOPStrategy',
-    'TrendBreakoutStrategy'
+    'TrendBreakoutStrategy',
+    'LowFlowStrategy',
+    'LowFlowReversalStrategy'
 ]
 
 strategy_list = [
@@ -104,5 +108,7 @@ strategy_list = [
     'MOMTOP1',
     'LiqLock',
     'LLRTOP',
-    'TrendBreakout'
+    'TrendBreakout',
+    'LowFlow',
+    'LowFlowReversal'
 ]

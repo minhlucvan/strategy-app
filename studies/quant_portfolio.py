@@ -11,7 +11,10 @@ from utils.processing import get_stocks
 CONFIG = {
     'risk_free_rate': 0.045,
     'transaction_cost': 0.002,
-    'freq': 52
+    'freq': 52,
+    'holding_period': 2,
+    'stop_loss': 0.0,
+    'take_profit': 0.0
 }
 
 @dataclass
@@ -21,10 +24,25 @@ class Trade:
     ticker: str
     entry_price: float
     exit_price: float
+    stop_loss: float = 0.0
+    take_profit: float = 0.0
     
     def net_return(self, cost: float) -> float:
+        
+        if np.isnan(self.exit_price):
+            return 0
+        
         gross = self.exit_price / self.entry_price
-        return gross - cost - 1
+        
+        if self.stop_loss > 0 and gross < 1 - self.stop_loss:
+            gross = 1 - self.stop_loss
+            
+        if self.take_profit > 0 and gross > 1 + self.take_profit:
+            gross = 1 + self.take_profit
+        
+        net = gross - cost - 1
+        
+        return net
 
 class FactorStrategy(ABC):
     def __init__(self, prices: pd.DataFrame, config: Dict = CONFIG):
@@ -45,14 +63,19 @@ class FactorStrategy(ABC):
         
         for i, date in enumerate(self.returns.index[1:-1]):
             try:
-                selected_tickers = self.select_assets(date)
+                selected_tickers, signals = self.select_assets(date)
                 if not selected_tickers:
                     continue
-                    
-                next_date = self.returns.index[i + 2]
+                
+                hold_period = self.config.get('holding_period', 2)
+                next_date = self.returns.index[i + hold_period] if i + hold_period < len(self.returns) else None
                 period_return = 0
                 
+                
                 for ticker in selected_tickers:
+                    if next_date is None:
+                        continue
+                    signal = signals[ticker]
                     entry_price = float(self.prices.loc[date, ticker])
                     exit_price = float(self.prices.loc[next_date, ticker])
                     trade = Trade(date, next_date, ticker, entry_price, exit_price)
@@ -61,6 +84,7 @@ class FactorStrategy(ABC):
                         'entry_date': date,
                         'exit_date': next_date,
                         'ticker': ticker,
+                        'signal': signal,
                         'entry_price': entry_price,
                         'exit_price': exit_price,
                         'net_return': net_ret  # Add net_return to trade log
@@ -70,8 +94,7 @@ class FactorStrategy(ABC):
                 portfolio_returns.append(period_return / len(selected_tickers))
                 
             except (KeyError, ValueError) as e:
-                st.warning(f"Data issue at {date}: {str(e)}")
-                continue
+                raise ValueError(f"Error at {date}: {e}")
                 
         portfolio_returns = pd.Series(portfolio_returns, 
                                     index=self.returns.index[1:len(portfolio_returns)+1])
@@ -82,8 +105,10 @@ class PerformanceMetrics:
     # Unchanged
     @staticmethod
     def sharpe_ratio(returns: pd.Series, config: Dict) -> float:
-        excess = returns - config['risk_free_rate'] / config['freq']
-        return np.sqrt(config['freq']) * excess.mean() / excess.std()
+        excess_returns = returns - config['risk_free_rate'] / config['freq']
+        mean_excess = excess_returns.mean()
+        std_excess = excess_returns.std()
+        return mean_excess / std_excess
     
     @staticmethod
     def win_rate(returns: pd.Series) -> float:
@@ -96,4 +121,9 @@ class PerformanceMetrics:
 def create_visualizations(data: pd.DataFrame, title: str, x: str, y: str, color: str = None):
     fig = px.bar(data, x=x, y=y, color=color, title=title) if color else px.histogram(data, x=x, nbins=20)
     fig.update_layout(yaxis_tickformat='.0%', hovermode='x unified')
+    return fig
+
+def create_signal_visualizations(data: pd.DataFrame, title: str, x: str, y: str, color: str = None):
+    # scatter returns vs signals
+    fig = px.scatter(data, x=x, y=y, color=color, title=title)
     return fig

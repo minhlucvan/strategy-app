@@ -167,7 +167,8 @@ def plot_pf(pf, name= "", select=True, bm_symbol=None, bm_price=None, show_recen
     df.to_html(buf=buffer, float_format='{:10.2f}'.format, index=False, border=1)
     buffer.write("<br><h4>Order's Records</h4>")
     records_df.to_html(buf=buffer, float_format='{:10.2f}'.format, border=1)
-    buffer.write("<br><footer>Copyright (c) 2022 Brilliant Forecast Ltd. All rights reserved.</footer>")
+    year = datetime.datetime.now().year
+    buffer.write(f"<br><footer>Copyright (c) {year} by EdgeQuant</footer>")
 
     html_bytes = buffer.getvalue().encode()
     st.download_button(

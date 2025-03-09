@@ -85,4 +85,7 @@ STUDY_CONFIG = {
     "stock_liquidity_lock5_study": "Stock Liquidity Lock 5",
     "stock_liquidity_lock6_study": "Stock Liquidity Lock 6",
     "stock_liquidity_lock7_study": "Stock Liquidity Lock 7",
+    "stock_liquidity_study": "Stock Liquidity",
+    "stock_liquidity2_study": "Stock Liquidity 2",
+    "stock_liquidity3_study": "Stock Liquidity 3",
 }
