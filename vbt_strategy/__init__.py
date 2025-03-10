@@ -34,6 +34,7 @@ from .LLRTOP import LLRTOPStrategy
 from .TrendBreakout import TrendBreakoutStrategy
 from .LowFlow import LowFlowStrategy
 from .LowFlowReversal import LowFlowReversalStrategy
+from .DCA import DCAStrategy
 
 __all__ = [
     "MOMStrategy",
@@ -71,7 +72,8 @@ __all__ = [
     'LLRTOPStrategy',
     'TrendBreakoutStrategy',
     'LowFlowStrategy',
-    'LowFlowReversalStrategy'
+    'LowFlowReversalStrategy',
+    'DCAStrategy'
 ]
 
 strategy_list = [
@@ -110,5 +112,6 @@ strategy_list = [
     'LLRTOP',
     'TrendBreakout',
     'LowFlow',
-    'LowFlowReversal'
+    'LowFlowReversal',
+    'DCA'
 ]
